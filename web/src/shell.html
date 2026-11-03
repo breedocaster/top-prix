@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Top Prix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>/*CSS*/</style>
+</head>
+<body>
+<div id="app">
+  <div id="top">
+    <span class="date" id="tDate"></span>
+    <span class="st money" id="tMoney"></span>
+    <span class="st rp" id="tRP"></span>
+    <span class="st fans" id="tFans"></span>
+    <span class="sp"><button data-s="0">⏸</button><button data-s="1">▶</button><button data-s="f" id="tFast">2×</button></span>
+  </div>
+  <div id="sceneWrap"><canvas id="scene"></canvas></div>
+  <div id="ticker"></div>
+  <div id="nextbar"></div>
+  <div id="activity"></div>
+  <div id="menu">
+    <button data-m="race" id="mRace"><span class="ic">🏁</span><span class="tx">Races</span><span class="badge hidden">!</span></button>
+    <button data-m="build"><span class="ic">🔧</span><span class="tx">Build</span></button>
+    <button data-m="garage"><span class="ic">🚗</span><span class="tx">Garage</span></button>
+    <button data-m="research"><span class="ic">🔬</span><span class="tx">Research</span></button>
+    <button data-m="staff"><span class="ic">👥</span><span class="tx">Staff</span></button>
+    <button data-m="sponsors" id="mSpon"><span class="ic">💼</span><span class="tx">Sponsors</span><span class="badge hidden">!</span></button>
+    <button data-m="facility"><span class="ic">🏗️</span><span class="tx">Facility</span></button>
+    <button data-m="team" id="mTeam"><span class="ic">📋</span><span class="tx">Team</span><span class="badge hidden">!</span></button>
+  </div>
+  <div id="ov" class="ov hidden"><div class="win">
+    <div class="whead"><button class="wback hidden" id="wback">◀</button><span class="wtitle" id="wtitle"></span><button class="wclose" id="wclose">✕</button></div>
+    <div class="wtabs" id="wtabs"></div>
+    <div class="wbody" id="wbody"></div>
+  </div></div>
+  <div id="race" class="hidden">
+    <div class="rhead"><div id="rTitle"></div><div id="rInfo"></div></div>
+    <canvas id="rcv"></canvas>
+    <div id="rComm"></div>
+    <div id="rBoard"></div>
+    <div id="rCtl"></div>
+    <div id="rResult" class="hidden"></div>
+  </div>
+  <div id="pop" class="hidden"></div>
+  <div id="toast"></div>
+  <div id="title">
+    <h1>TOP<br>PRIX</h1>
+    <div class="tag">Motorsport team manager · cars &amp; bikes · tarmac &amp; dirt</div>
+    <canvas id="tcv"></canvas>
+    <div class="box" id="tbox"></div>
+  </div>
+</div>
+<script>/*JS*/</script>
+</body>
+</html>
