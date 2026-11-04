@@ -9,7 +9,7 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJ="$(cd "${1:?project dir}" && pwd)"; MODE="${2:-debug}"; PRESET="${4:-Android}"
 NAME="$(sed -n 's/^config\/name="\(.*\)"/\1/p' "$PROJ/project.godot" | tr -cd '[:alnum:]')"
-OUT="${3:-$PWD/${NAME:-game}-$MODE.apk}"
+OUT="$(realpath -m "${3:-$PWD/${NAME:-game}-$MODE.apk}")"   # absolute: Godot resolves paths against --path
 if [ -z "${GODOT_VERSION:-}" ]; then
   FEAT="$(sed -n 's/^config\/features=PackedStringArray("\([0-9.]*\)".*/\1/p' "$PROJ/project.godot")"
   case "$FEAT" in 4.7) GODOT_VERSION=4.7.2-stable;; 4.6) GODOT_VERSION=4.6.1-stable;; *) GODOT_VERSION=4.7.2-stable;; esac
