@@ -412,6 +412,43 @@ static func window(child: Control, kind := "window") -> PanelContainer:
 	p.add_child(child)
 	return p
 
+## Music / sound effects / engine volume sliders (Game.player.*_vol, applied live, saved with the profile).
+## Used by the title Profile page, career Settings and the race screen's VOL panel.
+const VOLUMES := [["Music", "music_vol", 0.6], ["Sound effects", "sfx_vol", 0.8], ["Engines", "engine_vol", 0.8]]
+
+static func volume_sliders(label_w := 104) -> VBoxContainer:
+	var box := vbox(4)
+	for pair in VOLUMES:
+		var h := hbox(4)
+		var l := label(pair[0], Color.WHITE, true)
+		l.custom_minimum_size = Vector2(label_w, 0)
+		l.autowrap_mode = TextServer.AUTOWRAP_OFF
+		l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(l)
+		var sl := HSlider.new()
+		sl.min_value = 0.0; sl.max_value = 1.0; sl.step = 0.05
+		sl.value = float(Game.player.get(pair[1], pair[2]))
+		sl.custom_minimum_size = Vector2(0, 18)
+		sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sl.set_meta("act", "vol:" + str(pair[1]))
+		var pct := label("%d%%" % int(round(sl.value * 100)), DIM, true)
+		pct.custom_minimum_size = Vector2(34, 0)
+		pct.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		pct.autowrap_mode = TextServer.AUTOWRAP_OFF
+		pct.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		sl.value_changed.connect(_on_vol.bind(str(pair[1]), pct))
+		sl.drag_ended.connect(func(_c): Game.save_profile())
+		h.add_child(sl)
+		h.add_child(pct)
+		box.add_child(h)
+	return box
+
+static func _on_vol(val: float, key: String, pct: Label) -> void:
+	Game.player[key] = val
+	pct.text = "%d%%" % int(round(val * 100))
+	Audio.apply_volumes()
+	if Engine.get_main_loop() and not Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT): Game.save_profile()
+
 static func scroll(child: Control) -> ScrollContainer:
 	var s := ScrollContainer.new()
 	s.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED

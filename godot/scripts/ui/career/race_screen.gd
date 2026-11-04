@@ -4,7 +4,7 @@ extends Control
 ## the 8-car drag ladder, hillclimb best-of-2 (with a retune at the bench between runs), rally stages,
 ## endurance. Between stages and at the end a SNES window shows the stage table / results (prize, RP,
 ## fans, XP, sparks, engine report, championship, unlocks, the dynasty's place).
-## ctx: {rid, vid, drv (driver staff id), tactic, sid (series id or null), fmt}
+## ctx: {rid, vid, drv (driver staff id), tactic, sid (series id or null), fmt, entries?: [[vid, sid], ...]}
 ##   or a private test session: {test: track id (D.TESTS), vid, drv, laps} -> Career.startTest / finishTest,
 ##   lap times + datalog window; DONE returns to the screen that opened it.
 
@@ -37,6 +37,7 @@ func setup(c: Dictionary) -> void:
 	var opts := {}
 	var dyn: Dictionary = Story.rival_for(str(c.rid))
 	if not dyn.is_empty(): opts.dyn = dyn
+	if c.get("entries") is Array: opts.entries = c.entries
 	var sid = c.get("sid")
 	if sid != null and str(sid) == "": sid = null
 	flow = Career.startRace(str(c.rid), c.vid, c.drv, str(c.get("tactic", "normal")), sid, str(c.get("fmt", "")), opts)
@@ -138,12 +139,18 @@ func _show_panel(p: Dictionary) -> void:
 	var t := ""
 	match str(p.stage):
 		"heat":
+			var mine: Array = p.get("mine", [])
+			var names := mine.map(func(m): return str(m.name))
 			t = "HEAT: %s" % ("DNF" if p.dnf else U.ord(int(p.pos)))
+			if mine.size() > 1: t = "HEAT: " + " & ".join(mine.map(func(m): return "DNF" if m.dnf else U.ord(int(m.pos))))
 			var ord: Array = p.order
 			for i in ord.size():
-				var me: bool = str(ord[i]) == str(Career.G.team.name)
+				var me: bool = str(ord[i]) == str(Career.G.team.name) or names.has(str(ord[i]))
 				body.append(_row(i + 1, str(ord[i]), "", me))
-			if p.dead: body.append(CareerKit.small("Your machine can't make the main.", CareerKit.BAD))
+			if p.dead: body.append(CareerKit.small("Your machine can't make the main." if mine.size() < 2 else "None of your machines can make the main.", CareerKit.BAD))
+			elif mine.size() > 1:
+				for m in mine:
+					body.append(CareerKit.small("%s: %s" % [m.name, "can't make the main" if m.dead else "starts the main P%d of %d" % [int(m.slot) + 1, int(p.grid_size)]], CareerKit.BAD if m.dead else UIKit.GOLD))
 			else: body.append(CareerKit.small("Main event grid: you start P%d of %d." % [int(p.slot) + 1, int(p.grid_size)], UIKit.GOLD))
 			if p.dead: btns.append({"t": "SEE RESULTS", "cb": _finish, "col": UIKit.OK, "wide": true, "tid": "results"})
 			else: btns.append({"t": "START MAIN", "cb": _next, "col": UIKit.OK, "wide": true, "tid": "next"})
@@ -162,6 +169,7 @@ func _show_panel(p: Dictionary) -> void:
 				btns.append({"t": "RESULTS", "cb": _finish, "col": UIKit.OK, "wide": true, "tid": "results"})
 		"hill":
 			t = "RUN %d: %s" % [int(p.run), ("%.2fs" % float(p.time)) if p.time != null else "DNF"]
+			if p.get("mine", []).size() > 1: t = "RUN %d" % int(p.run)
 			var tab: Array = p.table
 			for i in tab.size():
 				var row: Array = tab[i]
@@ -174,7 +182,11 @@ func _show_panel(p: Dictionary) -> void:
 			else:
 				btns.append({"t": "RESULTS", "cb": _finish, "col": UIKit.OK, "wide": true, "tid": "results"})
 	if p.get("can_retune", false) and router and router.has_screen("bench"):
-		btns.append({"t": "RETUNE FIRST", "cb": _retune, "col": UIKit.BTN, "wide": true, "tid": "retune", "keep": false})
+		if flow.multi():
+			for P in flow.rs.players():
+				btns.append({"t": "RETUNE " + CareerKit.asc(str(P.name)).split(" ")[0].to_upper(), "cb": _retune.bind(P.vid), "col": UIKit.BTN, "tid": "retune_%d" % int(P.get("entry", 0)), "keep": false})
+		else:
+			btns.append({"t": "RETUNE FIRST", "cb": _retune, "col": UIKit.BTN, "wide": true, "tid": "retune", "keep": false})
 	_win(t, body, btns)
 
 func _win(t: String, body: Array, btns: Array) -> void:
@@ -190,12 +202,13 @@ func _next() -> void:
 		return
 	_start_stage()
 
-func _retune() -> void:
-	var e = Career.veh(flow.vid).get("eng")
+func _retune(which = null) -> void:
+	var tv = flow.vid if which == null else which
+	var e = Career.veh(tv).get("eng")
 	var tb := "setup"
 	if e is Dictionary and e.fuel != "none": tb = "efi" if e.fuel == "efi" else "carb"
 	_retuning = true
-	router.open("bench", {"vid": flow.vid, "tab": tb, "cond": flow.rs.cond, "rid": str(flow.def.id), "resume": _stage_title()})
+	router.open("bench", {"vid": tv, "tab": tb, "cond": flow.rs.cond, "rid": str(flow.def.id), "resume": _stage_title()})
 
 ## Router: the bench closed, we're on top again -> show the stage panel again.
 func refresh() -> void:
@@ -252,7 +265,8 @@ func _show_results() -> void:
 	if out.get("rep", false): body.append(CareerKit.small("Repeat win this year: reduced rewards.", CareerKit.WARN))
 	if out.get("spark") != null: body.append(CareerKit.small("Earned a %s Spark!" % CareerKit.SPARK_N.get(str(out.spark), ""), CareerKit.SPARK_COL.get(str(out.spark), UIKit.GOLD)))
 	if out.get("destroyed", false): body.append(CareerKit.small("The machine was destroyed.", CareerKit.BAD))
-	if not v.is_empty():
+	var ens: Array = out.get("entries", [])
+	if not v.is_empty() and ens.size() <= 1:
 		var parts := ["HP %d%%" % int(round(float(v.hp) * 100))]
 		var e = v.get("eng")
 		if e is Dictionary and e.fuel != "none":
@@ -262,6 +276,21 @@ func _show_results() -> void:
 		if rs.fuelCost > 0: parts.append("fuel %s" % U.money(rs.fuelCost))
 		if v.status == "repair": parts.append("in for repairs")
 		body.append(CareerKit.small(", ".join(parts), CareerKit.BAD if P.get("holed", false) or P.get("seized", false) else CareerKit.SUB))
+	if ens.size() > 1:
+		body.append(CareerKit.sec("YOUR TEAM"))
+		for en in ens:
+			var vv := Career.veh(en.vid)
+			var bits := ["DNF" if en.dnf else U.ord(int(en.pos)), U.money(float(en.prize))]
+			if bool(en.destroyed): bits.append("DESTROYED")
+			elif not vv.is_empty():
+				bits.append("HP %d%%" % int(round(float(vv.hp) * 100)))
+				var ee = vv.get("eng")
+				if ee is Dictionary and ee.fuel != "none": bits.append("eng %d%%" % int(round(float(ee.cond) * 100)))
+				if en.has("vlv"): bits.append("Lv%d!" % int(en.vlv))
+			if bool(en.holed): bits.append("HOLED")
+			elif bool(en.seized): bits.append("SEIZED")
+			body.append(CareerKit.line(CareerKit.asc("%s (%s)" % [en.name, en.veh]), Color.WHITE))
+			body.append(CareerKit.small("  " + " | ".join(bits), CareerKit.BAD if en.dnf else CareerKit.SUB))
 	if out.has("dyn_pos"):
 		var dp := int(out.dyn_pos)
 		var beat := not dnf and (dp == 0 or pos < dp)
@@ -272,7 +301,7 @@ func _show_results() -> void:
 	for i in mini(8, ord.size()):
 		var e2: Dictionary = ord[i]
 		var me := Career.isPlayerEnt(e2)
-		var nm: String = str(G.team.name) if me else str(e2.get("team", "?"))
+		var nm: String = (flow.ent_name(e2) if me else str(e2.get("team", "?")))
 		var tail := "DNF" if bool(e2.get("dnf", false)) and not bool(e2.get("fin", false)) else ""
 		body.append(_row(i + 1, nm, tail, me, Color("#d8b0ff") if _is_dyn(e2) else CareerKit.TXT))
 	if flow.series_id != null and G.series.get(flow.series_id, {}).get("act") != null:

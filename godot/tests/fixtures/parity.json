@@ -690,32 +690,32 @@
    "staff": {
     "id": 1,
     "role": "drv",
-    "name": "Ozzie Gravelle",
-    "hair": "#222",
+    "name": "Zed Grimes",
+    "hair": "#2b1a12",
     "skin": "#e0ac69",
-    "appeal": 14,
-    "tech": 22,
-    "analysis": 22,
+    "appeal": 20,
+    "tech": 13,
+    "analysis": 16,
     "lv": 1,
     "joined": 0,
-    "pedal": 20,
-    "shift": 21,
-    "steer": 29,
+    "pedal": 30,
+    "shift": 40,
+    "steer": 23,
     "energy": 100,
     "maxE": 100,
     "aff": {
-     "car": 1.07,
-     "bike": 1.02
+     "car": 0.9,
+     "bike": 1.11
     },
-    "trait": null,
-    "salary": 8000
+    "trait": "tar",
+    "salary": 9000
    },
    "profile": {
-    "S": 41.373333333333335,
-    "A": 43.81077490774908,
-    "H": 41.34265232974911,
+    "S": 35.871428571428574,
+    "A": 38.91724137931035,
+    "H": 34.15384615384615,
     "t": {
-     "on": 100,
+     "on": 110,
      "off": 45,
      "wet": 85,
      "ice": 40
@@ -842,32 +842,32 @@
    "staff": {
     "id": 1,
     "role": "drv",
-    "name": "Ozzie Gravelle",
-    "hair": "#222",
+    "name": "Zed Grimes",
+    "hair": "#2b1a12",
     "skin": "#e0ac69",
-    "appeal": 14,
-    "tech": 22,
-    "analysis": 22,
+    "appeal": 20,
+    "tech": 13,
+    "analysis": 16,
     "lv": 1,
     "joined": 0,
-    "pedal": 20,
-    "shift": 21,
-    "steer": 29,
+    "pedal": 30,
+    "shift": 40,
+    "steer": 23,
     "energy": 100,
     "maxE": 100,
     "aff": {
-     "car": 1.07,
-     "bike": 1.02
+     "car": 0.9,
+     "bike": 1.11
     },
-    "trait": null,
-    "salary": 8000
+    "trait": "tar",
+    "salary": 9000
    },
    "profile": {
-    "S": 26.29333333333333,
-    "A": 42.86258302583026,
-    "H": 49.54494623655914,
+    "S": 29.49428571428572,
+    "A": 49.261034482758625,
+    "H": 52.95472527472527,
     "t": {
-     "on": 96,
+     "on": 106,
      "off": 65,
      "wet": 76,
      "ice": 40

@@ -50,7 +50,8 @@ func apply_volumes() -> void:
 	for pair in [["Music", "music_vol", 0.6], ["SFX", "sfx_vol", 0.8], ["Engine", "engine_vol", 0.8]]:
 		var v := clampf(float(P.get(pair[1], pair[2])), 0.0, 1.0)
 		var i := AudioServer.get_bus_index(pair[0])
-		AudioServer.set_bus_volume_db(i, linear_to_db(max(v, 0.0001)))
+		# squared slider -> gain: 50% is about -12 dB, closer to "half as loud" than -6 dB
+		AudioServer.set_bus_volume_db(i, linear_to_db(maxf(v * v, 0.0001)))
 		AudioServer.set_bus_mute(i, v <= 0.001)
 
 func _stream(path: String) -> AudioStream:

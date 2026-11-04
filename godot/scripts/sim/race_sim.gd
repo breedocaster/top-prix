@@ -213,8 +213,16 @@ static func create(d: Dictionary, humans: Array, opts: Dictionary = {}) -> RaceS
 		for r in opts.grid_rivals:
 			for e in ai:
 				if e.team == r.team: grid.append(e); break
-		var slot: int = mini(grid.size(), int(opts.get("player_slot", 0)))
-		for i in hs.size(): grid.insert(mini(slot + i, grid.size()), hs[i])
+		if opts.has("player_slots"):
+			# several entries: each at its own slot (heat order), lowest slot first
+			var sl: Array = opts.player_slots
+			var pairs := []
+			for i in hs.size(): pairs.append([int(sl[i]) if i < sl.size() else 99, hs[i]])
+			pairs.sort_custom(func(a, b): return a[0] < b[0])
+			for pr in pairs: grid.insert(mini(int(pr[0]), grid.size()), pr[1])
+		else:
+			var slot: int = mini(grid.size(), int(opts.get("player_slot", 0)))
+			for i in hs.size(): grid.insert(mini(slot + i, grid.size()), hs[i])
 	else:
 		grid = ai.duplicate()
 		grid.shuffle()
@@ -290,11 +298,23 @@ func label(e: Dictionary, viewer: Dictionary = {}) -> String:
 func humans() -> Array:
 	return ents.filter(func(e): return e.human)
 
-## Career races have one human entry: the web build's rs.player.
+## The career team's lead entry (the web build's rs.player): the first human.
 func player() -> Dictionary:
+	var first := {}
 	for e in ents:
-		if e.human: return e
-	return {}
+		if e.human:
+			if int(e.get("entry", 0)) == 0: return e
+			if first.is_empty(): first = e
+	return first
+
+## Every career entry of the player's team (two or three cars in one race), in entry order.
+func players() -> Array:
+	var out := ents.filter(func(e): return e.human and bool(e.get("isPlayer", false)))
+	out.sort_custom(func(a, b): return int(a.get("entry", 0)) < int(b.get("entry", 0)))
+	if out.is_empty():
+		var p := player()
+		if not p.is_empty(): out.append(p)
+	return out
 
 func tac(e: Dictionary) -> Dictionary:
 	return Data.D.TAC[e.get("tactic", "normal")] if e.human else Data.D.TAC.normal
@@ -478,8 +498,9 @@ func step(dt: float) -> void:
 # ---------------- traffic: cars take up space ----------------
 ## Each car occupies a lane slot about CAR_LEN long. Closing on a car in your lane you need a gap
 ## in an adjacent lane (easy on straights, hard in hairpins/chicanes) or you're held up behind it.
-## Held up long enough, aggressive drivers (Push, some rivals) start bumping. Time trials and drag
-## runs stay solo (separate runs / own lanes).
+## Held up long enough, aggressive drivers (Push, some rivals) start bumping. Drag runs stay in their
+## lanes. Time trials: rival runs are ghosts, but two or more human cars on the same run (a team's
+## entries, LAN versus) share the road and have to fight for it.
 const CAR_LEN := 0.17
 const LANE_RATE := {"str": 3.0, "lau": 2.0, "jmp": 1.5, "rgh": 1.2, "crv": 1.2, "hill": 1.5, "hp": 0.35, "chi": 0.3}
 
@@ -503,8 +524,12 @@ func _lane_free(live: Array, e: Dictionary, lane: int) -> bool:
 func _traffic(dt: float) -> void:
 	var lanes := int(tr.get("lanes", 3))
 	for e in ents: e.lat = move_toward(float(e.get("lat", e.lane)), float(e.lane), dt * 2.4)
-	if tt or drag: return
-	var live := ents.filter(func(x): return not x.fin and not x.dnf)
+	if drag: return
+	var pool: Array = ents
+	if tt:
+		pool = ents.filter(func(x): return x.human)
+		if pool.size() < 2: return
+	var live := pool.filter(func(x): return not x.fin and not x.dnf)
 	live.sort_custom(func(a, b): return a.prog > b.prog)
 	for e in live:
 		var ahead: Dictionary = {}

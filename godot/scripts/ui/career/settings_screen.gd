@@ -49,7 +49,7 @@ func _fill(b: VBoxContainer) -> void:
 	var tv := SK.card(b)
 	tv.add_child(SK.big("Game", SK.HL))
 	tv.add_child(_toggle("Auto-retire", "Retire at 8% durability so a vehicle is never destroyed.", bool(S.get("autoRetire", true)), "autoRetire"))
-	tv.add_child(_toggle("Sound", "", bool(S.get("sound", true)), "sound"))
+	tv.add_child(_toggle("Menu sounds", "Clicks and jingles in the garage.", bool(S.get("sound", true)), "sound"))
 	var sp := UIKit.hbox(3)
 	var sl := SK.small("Game speed", Color.WHITE, false)
 	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -82,6 +82,10 @@ func _fill(b: VBoxContainer) -> void:
 		ih.add_child(SK.act(SK.btn("LOAD", _ask_load, SK.RED, true), "load"))
 		sv.add_child(ih)
 		sv.add_child(SK.small("Loading replaces the current career.", SK.BD))
+	# volume
+	var av := SK.card(b)
+	av.add_child(SK.big("Sound", SK.HL))
+	av.add_child(UIKit.volume_sliders(96))
 	# help
 	var hv := SK.card(b)
 	hv.add_child(SK.big("How to play", SK.HL))

@@ -28,6 +28,7 @@ var geo: TrackGeo
 var ents: Array = []
 var my_owner := 1
 var follow := -1
+var follow_lock := -1           # entry the camera was told to follow (tap a call card's name)
 var cam_pos := Vector2.ZERO
 var cam_ang := 0.0
 var speed := 1.0
@@ -57,6 +58,7 @@ var call_widgets := {}
 var _flash := ""                # transient banner text (FINAL LAP, ...)
 var _flash_t := 0.0
 var _last_lap := 0
+var _rows := 6                  # standings board rows (fewer when two call cards need the room)
 var _map_pts := PackedVector2Array()
 var _map_sc := 1.0
 var _map_off := Vector2.ZERO
@@ -181,8 +183,10 @@ func _build_panel() -> void:
 	root.position = Vector2(2, VIEW.y + 2)
 	root.size = Vector2(VIEW.x - 4, 0)
 	add_child(root)
+	var mine := ents.filter(func(e): return is_mine(e))
+	_rows = [ROWS, ROWS, 4, 3][mini(mine.size(), 3)]
 	board = Control.new()
-	board.custom_minimum_size = Vector2(VIEW.x - 12, ROWS * 11 + 1)
+	board.custom_minimum_size = Vector2(VIEW.x - 12, _rows * 11 + 1)
 	board.draw.connect(_draw_board)
 	root.add_child(UIKit.window(board, "lcd"))
 	ticker = Control.new()
@@ -191,15 +195,33 @@ func _build_panel() -> void:
 	root.add_child(UIKit.window(ticker, "lcd"))
 	calls = UIKit.vbox(3)
 	root.add_child(calls)
-	var mine := ents.filter(func(e): return is_mine(e))
-	for e in mine: _add_call_row(e, mine.size() > 2)
+	for e in mine: _add_call_row(e, mine.size() > 1)
 	var bar := UIKit.hbox(4)
 	root.add_child(bar)
 	if net_mode != "client":
 		speed_btn = UIKit.btn("SPEED x1", _toggle_speed)
 		bar.add_child(speed_btn)
+	var vol := UIKit.btn("VOL", _toggle_vol, UIKit.BTN_LO)
+	vol.size_flags_horizontal = Control.SIZE_FILL
+	vol.custom_minimum_size = Vector2(44, 0)
+	bar.add_child(vol)
 	var skip := UIKit.btn("SKIP" if net_mode == "local" else "LEAVE", _skip, UIKit.BTN_LO)
 	bar.add_child(skip)
+
+## Volume panel over the game screen (music / effects / engines), toggled by VOL.
+var _vol_panel: Control = null
+func _toggle_vol() -> void:
+	if _vol_panel and is_instance_valid(_vol_panel):
+		_vol_panel.queue_free(); _vol_panel = null
+		return
+	var box := UIKit.vbox(4)
+	box.add_child(UIKit.label("SOUND", UIKit.GOLD, true))
+	box.add_child(UIKit.volume_sliders(96))
+	box.add_child(UIKit.btn("CLOSE", _toggle_vol, UIKit.BTN_LO))
+	_vol_panel = UIKit.window(box)
+	_vol_panel.position = Vector2(8, 70)
+	_vol_panel.custom_minimum_size = Vector2(VIEW.x - 16, 0)
+	add_child(_vol_panel)
 
 const ROWS := 6                 # standings board rows (two columns)
 const TAC_COL := {"safe": Color("#2f9a52"), "normal": Color("#3f78e0"), "push": Color("#d8402e")}
@@ -210,9 +232,16 @@ const SPARK_COL := {"b": Color("#a0603a"), "s": Color("#7a8494"), "g": Color("#b
 ## Compact (one row) when this device runs more than two entries.
 func _add_call_row(e: Dictionary, compact: bool) -> void:
 	var box := UIKit.vbox(2)
-	var nm := UIKit.label(CareerKit.asc(str(e.name)).split(" ")[0].left(9).to_upper(), Color(e.col).lightened(0.35), true)
-	nm.autowrap_mode = TextServer.AUTOWRAP_OFF
+	var nm := Button.new()
+	nm.text = CareerKit.asc(str(e.name)).split(" ")[0].left(9).to_upper()
+	nm.flat = true
+	nm.focus_mode = Control.FOCUS_NONE
+	nm.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	nm.clip_text = true
+	nm.add_theme_font_override("font", UIKit.font8)
+	nm.add_theme_font_size_override("font_size", 8)
+	for st in ["normal", "hover", "pressed", "focus", "disabled"]: nm.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	nm.pressed.connect(func(): follow_lock = int(e.idx))
 	var stat := Control.new()
 	stat.custom_minimum_size = Vector2(60, 9)
 	stat.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -221,18 +250,25 @@ func _add_call_row(e: Dictionary, compact: bool) -> void:
 	var sp := {}
 	var rt := UIKit.btn("RET", call_cmd.bind(int(e.idx), "retire", ""), UIKit.ACCENT)
 	if compact:
+		# two or three cars: name + health on one line, then S/N/P, sparks and retire in one row
+		box.add_theme_constant_override("separation", 1)
+		var r0c := UIKit.hbox(4)
+		nm.custom_minimum_size = Vector2(70, 0)
+		r0c.add_child(nm)
+		r0c.add_child(stat)
+		box.add_child(r0c)
 		var r := UIKit.hbox(2)
-		nm.custom_minimum_size = Vector2(44, 0)
-		r.add_child(nm)
 		for tc in ["safe", "normal", "push"]:
 			var b := UIKit.btn({"safe": "S", "normal": "N", "push": "P"}[tc], call_cmd.bind(int(e.idx), "tactic", tc))
-			b.custom_minimum_size = Vector2(22, 0)
+			b.custom_minimum_size = Vector2(24, 0)
 			r.add_child(b); tb[tc] = b
+		r.add_child(_gap_px(3))
 		for k in ["b", "s", "g"]:
 			var b2 := UIKit.btn("", call_cmd.bind(int(e.idx), "spark", k), SPARK_COL[k])
-			b2.custom_minimum_size = Vector2(26, 0)
+			b2.custom_minimum_size = Vector2(30, 0)
 			r.add_child(b2); sp[k] = b2
-		rt.custom_minimum_size = Vector2(30, 0)
+		r.add_child(_gap_px(3))
+		rt.custom_minimum_size = Vector2(34, 0)
 		r.add_child(rt)
 		box.add_child(r)
 	else:
@@ -253,8 +289,15 @@ func _add_call_row(e: Dictionary, compact: bool) -> void:
 		rt.text = "RETIRE"
 		r2.add_child(rt)
 		box.add_child(r2)
-	calls.add_child(UIKit.window(box, "card"))
-	call_widgets[int(e.idx)] = {"tac": tb, "spark": sp, "retire": rt, "stat": stat, "cur": ""}
+	var card := UIKit.window(box, "card")
+	if compact: card.add_theme_stylebox_override("panel", UIKit.frame_new("card", 4, 2, 4, 2))
+	calls.add_child(card)
+	call_widgets[int(e.idx)] = {"tac": tb, "spark": sp, "retire": rt, "stat": stat, "cur": "", "name": nm, "col": Color(e.col).lightened(0.35)}
+
+func _gap_px(w: int) -> Control:
+	var g := Control.new()
+	g.custom_minimum_size = Vector2(w, 0)
+	return g
 
 func _draw_call_stat(c: Control, idx: int) -> void:
 	var e: Dictionary = ents[idx]
@@ -419,6 +462,9 @@ func _visual_lanes(delta: float) -> void:
 		e.wob = sin(race_t * 9.0 + e.idx) * 0.25 if e.get("crash", 0.0) > 0 else 0.0
 
 func _pick_follow() -> int:
+	if follow_lock >= 0 and follow_lock < ents.size() and not ents[follow_lock].dnf: return follow_lock
+	for e in ents:
+		if is_mine(e) and not e.dnf: return int(e.idx)
 	for e in ents:
 		if is_mine(e): return int(e.idx)
 	var best := -1
@@ -471,6 +517,10 @@ func _update_hud() -> void:
 			b2.disabled = not live or cnt <= 0 or e2.get("boost", 0.0) > 0
 		w.retire.disabled = not live
 		(w.stat as Control).queue_redraw()
+		# the car the camera follows is named in gold (tap a name to follow that car)
+		var nb: Button = w.name
+		var fc: Color = UIKit.GOLD if int(idx) == follow and call_widgets.size() > 1 else w.col
+		for k2 in ["font_color", "font_hover_color", "font_pressed_color"]: nb.add_theme_color_override(k2, fc)
 
 static func ordinal(n: int) -> String:
 	if n % 100 >= 11 and n % 100 <= 13: return "TH"
@@ -570,7 +620,7 @@ func _draw_board() -> void:
 	var c := board
 	var ord := ents.duplicate()
 	ord.sort_custom(func(a, b): return int(a.get("pos", 99)) < int(b.get("pos", 99)))
-	var slots := ROWS * 2
+	var slots := _rows * 2
 	var show := ord.slice(0, slots)
 	var missing := ord.slice(slots).filter(func(e): return is_mine(e))
 	var k := show.size() - 1
@@ -581,8 +631,8 @@ func _draw_board() -> void:
 	var cw := (c.size.x - 4) * 0.5
 	for i in show.size():
 		var e: Dictionary = show[i]
-		var col := i / ROWS
-		var row := i % ROWS
+		var col := i / _rows
+		var row := i % _rows
 		var p := Vector2(col * (cw + 4), row * 11)
 		var mine := is_mine(e)
 		if mine: c.draw_rect(Rect2(p, Vector2(cw, 11)), Color(1.0, 0.85, 0.3, 0.18))

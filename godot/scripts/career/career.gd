@@ -106,6 +106,10 @@ func bays() -> int: return int(ws().teams) + 1
 ## +1 driver at ranks 2 and 4.
 func drvCap() -> int: return int(ws().teams) + 1 + (1 if fanRank() >= 2 else 0) + (1 if fanRank() >= 4 else 0)
 func mechCap() -> int: return int(ws().mech) + mini(4, fanRank())
+## Cars the team may enter in one race: two from the start, three from the third workshop.
+func entryCap() -> int: return 2 + (1 if int(G.ws) >= 3 else 0)
+## Formats a team can enter several cars in (the drag ladder is a two-lane, one-car-per-team affair).
+func multiEntryOk(fmt: Dictionary) -> bool: return str(fmt.get("kind", "mass")) != "drag"
 func titlesIn(tier = null, disc = null) -> int:
 	var n := 0
 	for t in G.st.titles:
@@ -801,7 +805,7 @@ func seriesRoundDone(id: String, rs: RaceSim) -> void:
 		var p: int = int(D.POINTS[i]) if i < D.POINTS.size() else 0
 		var key: String = "you" if isPlayerEnt(e) else e.team
 		a.pts[key] = int(a.pts.get(key, 0)) + p
-	a.res.append("DNF" if rs.player().dnf else me + 1)
+	a.res.append("DNF" if rs.players().all(func(x): return bool(x.dnf)) else me + 1)
 	a.round = int(a.round) + 1
 	a.pending = false
 	if int(a.round) >= S.rounds.size(): endSeries(id)
@@ -874,14 +878,13 @@ func _kinds_for(def: Dictionary) -> Array:
 	var kinds: Array = (K.CR + K.CO + K.BR + K.BO) if def.disc == "OP" else K.get(def.disc, K.CR)
 	return kinds.slice(0, mini(kinds.size(), 2 + int(def.tier) * 2))
 
-## Career race with one human entry (owner 1, team G.team) built from Career.profile and
-## Tune.raceSecs (full fuel model). opts: fmt, rivals, series, round, cond, test, tactic,
-## gridRivals + playerSlot (heats main), heat, rain (force), seed.
+## Career race: one human entry per team car (owner 1, team G.team), each built from Career.profile and
+## Tune.raceSecs (full fuel model). opts: fmt, rivals, series, round, cond, test, tactic, entries
+## ([[vid, sid], ...]; default [[vid, sid]]), gridRivals + playerSlot / playerSlots (heats main), heat,
+## rain (force), seed.
 func makeRace(def: Dictionary, vid, sid, opts: Dictionary = {}) -> RaceSim:
-	var v := veh(vid)
-	var s := staff(sid)
-	assert(not v.is_empty() and not s.is_empty(), "makeRace: unknown vehicle/driver")
-	var b: Dictionary = D.BODY[v.body]
+	var ens: Array = opts.get("entries", []) if opts.get("entries") is Array else []
+	if ens.is_empty(): ens = [[vid, sid]]
 	var fmt: Dictionary = opts.get("fmt", {})
 	if fmt.is_empty(): fmt = {"id": "sprint", "kind": "mass", "laps": def.laps, "mul": {"prize": 1, "rp": 1, "fans": 1, "wear": 1}}
 	var test := bool(opts.get("test", false))
@@ -897,30 +900,40 @@ func makeRace(def: Dictionary, vid, sid, opts: Dictionary = {}) -> RaceSim:
 	for r in rivals:
 		if not r.has("kind"): r.kind = U.pick(tk)
 	var cond: Dictionary = opts.cond if opts.get("cond") != null else Tune.forecast(def)
-	if Tune.mode() == "easy" and v.eng.fuel != "none": Tune.crewTune(v, cond, 0.99)
-	elif Tune.mode() == "standard" and v.eng.fuel != "none" and not bool(opts.get("test", false)):
-		# middle ground: tune what you like, but the crew won't race an engine-killer
-		var why := Tune.danger(v, cond)
-		if why != "":
-			Tune.crewTune(v, cond, 0.97)
-			say("Crew reset %s's tune to a safe baseline (it was %s)." % [v.name, why])
-			toast.emit("Crew reset the tune: it was %s" % why)
-	var p := profile(v, s)
-	var rsx := Tune.raceSecs(v, def, tr, cond)
-	var extra := {"isPlayer": true, "vid": v.id, "sid": s.id, "hair": s.get("hair", "#222"),
-		"fouled": bool(rsx.foul) and U.chance(0.3), "seizeRisk": bool(rsx.seize), "seized": false, "holed": false,
-		"forged": Tune.has("forged"), "tcmap": Tune.has("tcmap") and v.eng.fuel == "efi"}
-	var h := {"name": s.name, "team": G.team.name, "team_key": "you", "col": G.team.color, "kind": b.kind, "cls": b.cls,
-		"prof": p, "sk": rsx.secs, "hp": float(v.hp), "cond": float(v.eng.get("cond", 1)), "cyl": Tune.cyl(v), "owner": 1,
-		"tactic": opts.get("tactic", "normal"), "rt": U.clamp(0.2 - (float(s.shift) + float(s.analysis)) / 1200, 0.02, 0.2),
-		"sparks": G.sparks, "extra": extra, "voice": EngineAudio.voice_for_vehicle(v), "exh": EngineAudio.exhaust_for_vehicle(v)}
+	var hs := []
+	var fuel_cost := 0.0
+	for k in ens.size():
+		var v := veh(ens[k][0])
+		var s := staff(ens[k][1])
+		assert(not v.is_empty() and not s.is_empty(), "makeRace: unknown vehicle/driver")
+		var b: Dictionary = D.BODY[v.body]
+		if Tune.mode() == "easy" and v.eng.fuel != "none": Tune.crewTune(v, cond, 0.99)
+		elif Tune.mode() == "standard" and v.eng.fuel != "none" and not test:
+			# middle ground: tune what you like, but the crew won't race an engine-killer
+			var why := Tune.danger(v, cond)
+			if why != "":
+				Tune.crewTune(v, cond, 0.97)
+				say("Crew reset %s's tune to a safe baseline (it was %s)." % [v.name, why])
+				toast.emit("Crew reset the tune: it was %s" % why)
+		var p := profile(v, s)
+		var rsx := Tune.raceSecs(v, def, tr, cond)
+		var extra := {"isPlayer": true, "entry": k, "vid": v.id, "sid": s.id, "hair": s.get("hair", "#222"),
+			"fouled": bool(rsx.foul) and U.chance(0.3), "seizeRisk": bool(rsx.seize), "seized": false, "holed": false,
+			"forged": Tune.has("forged"), "tcmap": Tune.has("tcmap") and v.eng.fuel == "efi"}
+		hs.append({"name": s.name, "team": G.team.name, "team_key": "you", "col": G.team.color, "kind": b.kind, "cls": b.cls,
+			"prof": p, "sk": rsx.secs, "hp": float(v.hp), "cond": float(v.eng.get("cond", 1)), "cyl": Tune.cyl(v), "owner": 1,
+			"tactic": opts.get("tactic", "normal"), "rt": U.clamp(0.2 - (float(s.shift) + float(s.analysis)) / 1200, 0.02, 0.2),
+			"sparks": G.sparks, "extra": extra, "voice": EngineAudio.voice_for_vehicle(v), "exh": EngineAudio.exhaust_for_vehicle(v)})
+		var fuel: Dictionary = D.FUELS[v.eng.get("fuelT", "pump") if v.eng.get("fuelT") else "pump"]
+		if float(fuel.cost) > 0 and not test: fuel_cost += float(fuel.cost) * float(fmt.mul.get("wear", 1) if fmt.mul.get("wear") else 1)
 	var ro := {"fmt": fmt, "rivals": rivals, "rain": rain, "test": test, "mode": Tune.mode(), "seed": opts.get("seed", U.rng.randi())}
 	if opts.get("gridRivals") != null:
 		ro.grid_rivals = opts.gridRivals
 		ro.player_slot = int(opts.get("playerSlot", 0))
-	var rs := RaceSim.create(def, [h], ro)
-	var P := rs.player()
-	P.sparks = G.sparks
+		if opts.get("playerSlots") is Array: ro.player_slots = opts.playerSlots
+	var rs := RaceSim.create(def, hs, ro)
+	for P in rs.players(): P.sparks = G.sparks      # one shared spark pool for the team
+	var P0 := rs.player()
 	rs.auto_retire = bool(G.settings.get("autoRetire", true))
 	rs.auto_retire_eng = rs.auto_retire and Tune.mode() != "sim"
 	rs.series = opts.get("series")
@@ -928,10 +941,9 @@ func makeRace(def: Dictionary, vid, sid, opts: Dictionary = {}) -> RaceSim:
 	rs.cond = cond
 	rs.telem = Tune.has("telem")
 	rs.heat = opts.get("heat")
-	rs.gridSlot = int(P.idx)
+	rs.gridSlot = int(P0.idx)
 	rs.career = true
-	var fuel: Dictionary = D.FUELS[v.eng.get("fuelT", "pump") if v.eng.get("fuelT") else "pump"]
-	if float(fuel.cost) > 0 and not test: rs.fuelCost = float(fuel.cost) * float(fmt.mul.get("wear", 1) if fmt.mul.get("wear") else 1)
+	if fuel_cost > 0: rs.fuelCost = fuel_cost
 	return rs
 
 ## Race.useSpark: spends from G.sparks (the player's entry shares that dictionary).
@@ -995,33 +1007,103 @@ func carry(v: Dictionary, P: Dictionary) -> void:
 # ======================================================================
 # race results
 # ======================================================================
+## Score a finished race for the team. With several entries, the team's result (wins, sparks, story,
+## series "you" points come from each car's place) is its best car; every car earns its own prize and
+## wears its own machine and driver; RP and fans count the best car fully and the others at half.
 func finishRace(rs: RaceSim) -> Dictionary:
 	var def: Dictionary = rs.def
-	var P := rs.player()
+	var Ps: Array = rs.players()
+	var mul: Dictionary = rs.fmt.get("mul", {"prize": 1, "rp": 1, "fans": 1, "wear": 1})
+	var ord0 := raceOrder(rs)
+	# each entry's place
+	var places := []
+	for P in Ps:
+		var pp: int = int(P.pos)
+		if Ps.size() == 1 and rs.forcePos > 0: pp = rs.forcePos
+		elif not rs.order_override.is_empty():
+			var at := ord0.find(P)
+			if at >= 0: pp = at + 1
+		places.append(pp)
+	var lead := 0
+	for i in Ps.size():
+		var bi: bool = bool(Ps[lead].dnf)
+		if (bi and not Ps[i].dnf) or (bool(Ps[i].dnf) == bi and places[i] < places[lead]): lead = i
+	var P: Dictionary = Ps[lead]
+	var pos: int = places[lead]
+	var dnf: bool = P.dnf
 	var v := veh(P.vid)
 	var s := staff(P.sid)
-	var pos: int = rs.forcePos if rs.forcePos > 0 else int(P.pos)
-	var dnf: bool = P.dnf
-	var mul: Dictionary = rs.fmt.get("mul", {"prize": 1, "rp": 1, "fans": 1, "wear": 1})
 	var ff: float = 0.1 if dnf else (float(FF[pos - 1]) if pos - 1 < FF.size() else 0.12)
-	var out := {"pos": pos, "dnf": dnf, "prize": 0, "rp": 0, "fans": 0, "unl": [], "spark": null, "destroyed": bool(P.get("destroyed", false))}
+	var out := {"pos": pos, "dnf": dnf, "prize": 0, "rp": 0, "fans": 0, "unl": [], "spark": null, "destroyed": bool(Ps[0].get("destroyed", false)), "entries": []}
 	var before := availRaceIds()
 	var rk0 := fanRank()
-	# money
 	var rep: float = 0.4 if (rs.series == null and G.yearWins.get(def.id)) else 1.0
-	if not dnf and pos <= 12: out.prize = U.round(float(def.prize) * float(D.PRIZE_SPLIT[pos - 1]) * rep * float(mul.prize) * paceMul() / 100) * 100
 	out.rep = rep < 1
-	G.money += out.prize; G.st.earn += out.prize; G.year.earn += out.prize
-	# RP
 	var ms := mechs()
 	var mAn: float = U.sum(ms, func(m): return m.analysis) / ms.size() if ms.size() else 0.0
-	var vst: Dictionary = vs(v) if not v.is_empty() else {"fx": {"rp": 0, "fan": 0}, "adv": 0}
-	out.rp = U.round(float(def.rp) * ff * (1 + (float(s.analysis) + mAn) / 250) * (1 + facV("rp") / 100) * (1 + float(vst.fx.rp)) * (1.3 if rs.series != null else 1.0) * (0.6 if rep < 1 else 1.0) * float(mul.rp) * paceMul() * (1.1 if Tune.has("telem") else 1.0) * (1.1 if (not v.is_empty() and v.get("bflags", []).has("data")) else 1.0))
+	for i in Ps.size():
+		var Pi: Dictionary = Ps[i]
+		var vi := veh(Pi.vid)
+		var si := staff(Pi.sid)
+		var posi: int = places[i]
+		var dnfi: bool = Pi.dnf
+		var ffi: float = 0.1 if dnfi else (float(FF[posi - 1]) if posi - 1 < FF.size() else 0.12)
+		var wgt: float = 1.0 if i == lead else 0.5
+		var eo := {"vid": Pi.vid, "sid": Pi.sid, "name": str(si.get("name", "")), "veh": str(vi.get("name", "")), "pos": posi, "dnf": dnfi,
+			"prize": 0, "destroyed": bool(Pi.get("destroyed", false)), "holed": bool(Pi.get("holed", false)), "seized": bool(Pi.get("seized", false))}
+		# money
+		if not dnfi and posi <= 12: eo.prize = U.round(float(def.prize) * float(D.PRIZE_SPLIT[posi - 1]) * rep * float(mul.prize) * paceMul() / 100) * 100
+		out.prize += eo.prize
+		# RP + fans
+		var vst: Dictionary = vs(vi) if not vi.is_empty() else {"fx": {"rp": 0, "fan": 0}, "adv": 0}
+		out.rp += U.round(wgt * float(def.rp) * ffi * (1 + (float(si.analysis) + mAn) / 250) * (1 + facV("rp") / 100) * (1 + float(vst.fx.rp)) * (1.3 if rs.series != null else 1.0) * (0.6 if rep < 1 else 1.0) * float(mul.rp) * paceMul() * (1.1 if Tune.has("telem") else 1.0) * (1.1 if (not vi.is_empty() and vi.get("bflags", []).has("data")) else 1.0))
+		out.fans += U.round(wgt * float(def.R) * 0.6 * ffi * (0.5 if rep < 1 else 1.0) * float(mul.fans) * paceMul() * (1 + float(si.appeal) / 250) * (1 + facV("fans") / 100) * (1.3 if si.get("trait") == "show" else 1.0) * (1 + float(vst.fx.fan)) * (1.4 if rs.series != null else 1.0))
+		if not dnfi and si.get("trait") == "lucky" and U.chance(0.15): giveSpark("b", "Lucky!")
+		# vehicle
+		if not vi.is_empty():
+			vi.races += 1
+			if not dnfi and posi == 1: vi.wins += 1
+			if Pi.get("destroyed", false):
+				removeVehicle(vi.id)
+				addLog("%s was destroyed!" % vi.name)
+			else:
+				vi.hp = U.clamp(float(Pi.hp), 0, 1)
+				vi.xp += U.round(float(def.tier) * 12 * (ffi + 0.3))
+				while int(vi.lv) < 10 and float(vi.xp) >= vehXpNeed(vi):
+					vi.xp -= vehXpNeed(vi); vi.lv += 1; eo.vlv = vi.lv
+					if i == 0: out.vlv = vi.lv
+				for pid in vi.parts:
+					if not G.partLv.has(pid): G.partLv[pid] = {"lv": 1, "xp": 0}
+					var pl: Dictionary = G.partLv[pid]
+					if int(pl.lv) < 5:
+						pl.xp += int(def.tier) * 8 + 4
+						while int(pl.lv) < 5 and float(pl.xp) >= 40 * int(pl.lv):
+							pl.xp -= 40 * int(pl.lv); pl.lv += 1
+				engAfter(vi, rs, Pi, mul)
+				if float(vi.hp) < 0.999:
+					var days := maxi(1, int(ceil((1 - float(vi.hp)) * 14)))
+					vi.status = "repair"
+					G.jobs.append({"id": nid(), "type": "rep", "vid": vi.id, "left": days, "total": days, "req": D.RANK_REQ[D.BODY[vi.body].rank], "nob": true})
+				else: vi.status = "ready"
+		# driver
+		si.energy = maxf(0, float(si.energy) - raceEnergy(si))
+		if U.chance(0.6):
+			var k: String = U.pick(["pedal", "shift", "steer"])
+			si[k] += 1
+		# sponsors ad
+		for sp in G.spons:
+			if int(sp.ad) >= 5: continue
+			sp.adx += wgt * (float(si.appeal) + float(vst.adv)) / 8 * (ffi + 0.3)
+			while int(sp.ad) < 5 and float(sp.adx) >= 60 * int(sp.ad):
+				sp.adx -= 60 * int(sp.ad); sp.ad += 1
+				addLog("%s ad effect Lv%d!" % [D.SPON[sp.id].n, int(sp.ad)])
+		if Pi.get("holed", false): ach("holed")
+		if Pi.get("seized", false): ach("seize")
+		out.entries.append(eo)
+	G.money += out.prize; G.st.earn += out.prize; G.year.earn += out.prize
 	G.rp += out.rp
-	# fans
-	out.fans = U.round(float(def.R) * 0.6 * ff * (0.5 if rep < 1 else 1.0) * float(mul.fans) * paceMul() * (1 + float(s.appeal) / 250) * (1 + facV("fans") / 100) * (1.3 if s.get("trait") == "show" else 1.0) * (1 + float(vst.fx.fan)) * (1.4 if rs.series != null else 1.0))
 	G.fans += out.fans
-	# stats
+	# team stats (best car)
 	G.st.races += 1
 	if not dnf and pos == 1: G.st.wins += 1; G.year.wins += 1; G.yearWins[def.id] = 1
 	if not dnf and pos <= 3: G.st.podiums += 1; G.year.podiums += 1
@@ -1048,44 +1130,7 @@ func finishRace(rs: RaceSim) -> Dictionary:
 			giveSpark(t, "First " + ("win" if pos == 1 else "podium") + " here!")
 			out.spark = t
 		rr.best = pos
-	if not dnf and s.get("trait") == "lucky" and U.chance(0.15): giveSpark("b", "Lucky!")
-	# vehicle
-	if not v.is_empty():
-		v.races += 1
-		if not dnf and pos == 1: v.wins += 1
-		if P.get("destroyed", false):
-			removeVehicle(v.id)
-			addLog("%s was destroyed!" % v.name)
-		else:
-			v.hp = U.clamp(float(P.hp), 0, 1)
-			v.xp += U.round(float(def.tier) * 12 * (ff + 0.3))
-			while int(v.lv) < 10 and float(v.xp) >= vehXpNeed(v):
-				v.xp -= vehXpNeed(v); v.lv += 1; out.vlv = v.lv
-			for pid in v.parts:
-				if not G.partLv.has(pid): G.partLv[pid] = {"lv": 1, "xp": 0}
-				var pl: Dictionary = G.partLv[pid]
-				if int(pl.lv) < 5:
-					pl.xp += int(def.tier) * 8 + 4
-					while int(pl.lv) < 5 and float(pl.xp) >= 40 * int(pl.lv):
-						pl.xp -= 40 * int(pl.lv); pl.lv += 1
-			engAfter(v, rs, P, mul)
-			if float(v.hp) < 0.999:
-				var days := maxi(1, int(ceil((1 - float(v.hp)) * 14)))
-				v.status = "repair"
-				G.jobs.append({"id": nid(), "type": "rep", "vid": v.id, "left": days, "total": days, "req": D.RANK_REQ[D.BODY[v.body].rank], "nob": true})
-			else: v.status = "ready"
-	# driver
-	s.energy = maxf(0, float(s.energy) - raceEnergy(s))
-	if U.chance(0.6):
-		var k: String = U.pick(["pedal", "shift", "steer"])
-		s[k] += 1
-	# sponsors ad
-	for sp in G.spons:
-		if int(sp.ad) >= 5: continue
-		sp.adx += (float(s.appeal) + float(vst.adv)) / 8 * (ff + 0.3)
-		while int(sp.ad) < 5 and float(sp.adx) >= 60 * int(sp.ad):
-			sp.adx -= 60 * int(sp.ad); sp.ad += 1
-			addLog("%s ad effect Lv%d!" % [D.SPON[sp.id].n, int(sp.ad)])
+	if Ps.size() > 1 and not out.entries.any(func(x): return bool(x.dnf)) and places.max() <= 2: ach("onetwo")
 	# streaks & achievements
 	if not dnf and pos == 1:
 		G.st.streak = int(G.st.get("streak", 0)) + 1
@@ -1103,21 +1148,21 @@ func finishRace(rs: RaceSim) -> Dictionary:
 		if rs.heatWin: ach("heatmain")
 		if rs.drag: ach("drag1")
 	if not dnf and rs.fmt.get("id") == "endur": ach("endur")
-	if P.get("holed", false): ach("holed")
-	if P.get("seized", false): ach("seize")
 	if rs.fuelCost: G.money -= rs.fuelCost
 	checkSponsors()
 	checkAch()
 	var after := availRaceIds()
 	for x in after:
 		if not before.has(x): out.unl.append(x)
-	addLog("%s: %s (+%s)" % [def.n, "DNF" if dnf else U.ord(pos), U.money(out.prize)])
+	var res_txt := "DNF" if dnf else U.ord(pos)
+	if Ps.size() > 1: res_txt = " & ".join(out.entries.map(func(x): return "DNF" if x.dnf else U.ord(int(x.pos))))
+	addLog("%s: %s (+%s)" % [def.n, res_txt, U.money(out.prize)])
 	var rk1 := fanRank()
 	if rk1 > rk0:
 		_popup("Team Rank Up!", "Your team is now %s!\n\nBigger sponsors are calling, and better staff want to join." % D.FAN_RANKS[rk1][1], "rank_up", {"rank": rk1})
 		refreshCandidates()
 	var info := {"race_id": def.id, "fmt_id": rs.fmt.get("id", "sprint"), "pos": pos, "field": raceOrder(rs).size(), "dnf": dnf,
-		"prize": out.prize, "series_id": rs.series}
+		"prize": out.prize, "series_id": rs.series, "entries": Ps.size()}
 	# story dynasty rival (Story.rival_for): where they finished, 0 = DNF
 	var ord := raceOrder(rs)
 	for i in ord.size():

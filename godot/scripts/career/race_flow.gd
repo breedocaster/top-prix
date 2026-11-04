@@ -16,11 +16,15 @@ extends RefCounted
 ## panel keys: stage ("race"|"heat"|"main"|"drag"|"hill"), can_next, can_retune, final, plus
 ## heat: pos, dnf, order[team], dead, slot, grid_size; drag: round_name, win, et, opp, opp_et, dead;
 ## hill: run, time, table[[team, time]], dead.
+## Several team entries (opts.entries = [[vid, sid], ...], Career.entryCap): every car runs in the same
+## race / heat / hill run together; panels then also carry `mine` = one row per entry. The drag ladder
+## takes one car (Career.multiEntryOk).
 
 var kind := "race"            # race | heats | drag | hill
 var def: Dictionary
 var vid
 var sid
+var entries: Array = []       # [[vid, sid], ...]; entries[0] is the lead car (vid/sid)
 var tactic := "normal"
 var series_id = null
 var fmt: Dictionary
@@ -48,6 +52,7 @@ var _opp = null
 var run := 1
 var _best := {}
 var p_best := INF
+var _pbest := {}              # entry index -> best run
 
 ## opts.dyn: an extra rival (the story dynasty, Story.rival_for) swapped into the field in place of
 ## the weakest rival (same field size; series rival lists are copied, never edited).
@@ -59,6 +64,12 @@ func _init(d: Dictionary, v_id, s_id, tac := "normal", ser = null, fmt_id := "",
 		fmt = fs[0]
 		for f in fs:
 			if f.id == fmt_id: fmt = f
+	entries = [[vid, sid]]
+	if opts.get("entries") is Array and Career.multiEntryOk(fmt):
+		for en in opts.entries:
+			if entries.size() >= Career.entryCap(): break
+			if en[0] == vid or en[1] == sid or entries.any(func(x): return x[0] == en[0] or x[1] == en[1]): continue
+			entries.append([en[0], en[1]])
 	if ser != null: rivals = Career.G.series[ser].act.rivals
 	var dyn: Dictionary = opts.get("dyn", {}) if opts.get("dyn") is Dictionary else {}
 	if not dyn.is_empty():
@@ -80,13 +91,21 @@ static func with_rival(list: Array, r: Dictionary) -> Array:
 	return out
 
 func _make(f: Dictionary, rv, extra := {}) -> RaceSim:
-	var o := {"fmt": f, "series": series_id, "tactic": tactic}
+	var o := {"fmt": f, "series": series_id, "tactic": tactic, "entries": entries}
 	if rv != null: o.rivals = rv
 	o.merge(extra, true)
 	return Career.makeRace(def, vid, sid, o)
 
 func _player() -> Dictionary: return rs.player()
+func _players() -> Array: return rs.players()
 func _veh() -> Dictionary: return Career.veh(vid)
+func multi() -> bool: return entries.size() > 1
+func _carry_all() -> void:
+	for P in _players(): Career.carry(Career.veh(P.vid), P)
+func _all_dead() -> bool: return _players().all(func(P): return _dead(P))
+func _mark(P: Dictionary) -> String: return "P%d" % int(P.get("entry", 0))
+## Name for a team car in tables: the team (one car) or the driver (several).
+func ent_name(P: Dictionary) -> String: return str(Career.G.team.name) if not multi() else str(P.name)
 func _dead(P: Dictionary) -> bool:
 	return P.get("holed", false) or P.get("destroyed", false) or P.get("seized", false) or float(P.hp) < 0.15 or (P.get("cond") != null and float(P.cond) <= 0.1)
 func _retune_ok() -> bool: return Tune.has("quickchange") or Tune.mode() != "sim"
@@ -124,7 +143,7 @@ func finish() -> Dictionary:
 		"race", "main": result = Career.raceResult(rs)
 		"heat":
 			rs.fmt = fmt
-			_player().dnf = true
+			for P in _players(): P.dnf = true
 			result = Career.raceResult(rs)
 		"drag": result = _drag_finish()
 		"hill": result = _hill_finish()
@@ -145,9 +164,9 @@ func _heats_start() -> void:
 
 func _heat_done() -> Dictionary:
 	var P := _player()
-	Career.carry(_veh(), P)
+	_carry_all()
 	var my_ord := []
-	for e in rs.order: my_ord.append("P" if e.human else e.ref)
+	for e in rs.order: my_ord.append(_mark(e) if e.human else e.ref)
 	var timed := []
 	for r in _other: timed.append([r, Career.quickTime(def, r, _hf)])
 	var oth := U.sort_by(timed, func(x): return x[1]).map(func(x): return x[0])
@@ -155,20 +174,25 @@ func _heat_done() -> Dictionary:
 	for i in maxi(my_ord.size(), oth.size()):
 		if i < my_ord.size(): _grid.append(my_ord[i])
 		if i < oth.size(): _grid.append(oth[i])
-	_slot = _grid.find("P")
-	_heat_pos = my_ord.find("P") + 1
-	var dead := _dead(P)
+	_slot = _grid.find(_mark(P))
+	_heat_pos = my_ord.find(_mark(P)) + 1
+	var dead := _all_dead()
 	var names := []
-	for e in rs.order: names.append(Career.G.team.name if e.human else e.team)
+	for e in rs.order: names.append(ent_name(e) if e.human else e.team)
+	var mine := []
+	for Q in _players():
+		mine.append({"name": ent_name(Q), "pos": my_ord.find(_mark(Q)) + 1, "dnf": Q.dnf, "slot": _grid.find(_mark(Q)), "dead": _dead(Q)})
 	return {"stage": "heat", "pos": _heat_pos, "dnf": P.dnf, "order": names, "dead": dead, "slot": _slot, "grid_size": _grid.size(),
-		"can_next": not dead, "can_retune": not dead and _retune_ok(), "final": false}
+		"mine": mine, "can_next": not dead, "can_retune": not dead and _retune_ok(), "final": false}
 
 func _start_main() -> void:
 	var P := _player()
 	var hw: bool = _heat_pos == 1 and not P.dnf
 	var gr := _grid.filter(func(x): return not (x is String))
+	var slots := []
+	for i in entries.size(): slots.append(maxi(0, _grid.find("P%d" % i)))
 	stage = "main"
-	rs = _make(fmt, rivals, {"gridRivals": gr, "playerSlot": _slot})
+	rs = _make(fmt, rivals, {"gridRivals": gr, "playerSlot": _slot, "playerSlots": slots})
 	rs.heatWin = hw
 
 # ---------------- drag eliminations ----------------
@@ -261,6 +285,7 @@ func _hill_start() -> void:
 	run = 1
 	_best = {}
 	p_best = INF
+	_pbest = {}
 	_hill_run()
 
 func _hill_run() -> void:
@@ -271,39 +296,49 @@ func _hill_run() -> void:
 
 func _hill_done() -> Dictionary:
 	var P := _player()
-	Career.carry(_veh(), P)
+	_carry_all()
 	for e in rs.ents:
 		var t: float = e.finT if e.fin else INF
-		if e.human: p_best = minf(p_best, t)
+		if e.human:
+			var k := int(e.get("entry", 0))
+			_pbest[k] = minf(float(_pbest.get(k, INF)), t)
+			if k == 0: p_best = minf(p_best, t)
 		else: _best[e.team] = minf(float(_best.get(e.team, INF)), t)
 	var tab := []
 	for r in rivals: tab.append([r.team, float(_best.get(r.team, INF))])
-	tab.append([Career.G.team.name, p_best, true])
+	var mine := []
+	for Q in _players():
+		var k2 := int(Q.get("entry", 0))
+		tab.append([ent_name(Q), float(_pbest.get(k2, INF)), true])
+		mine.append({"name": ent_name(Q), "time": Q.finT if Q.fin else null, "best": float(_pbest.get(k2, INF))})
 	tab = U.sort_by(tab, func(x): return x[1])
-	var dead := _dead(P)
+	var dead := _all_dead()
 	var more: bool = run == 1 and not dead
-	return {"stage": "hill", "run": run, "time": P.finT if P.fin else null, "table": tab.slice(0, 8), "dead": dead,
-		"can_next": more, "can_retune": more, "final": not more}
+	return {"stage": "hill", "run": run, "time": P.finT if P.fin else null, "table": tab.slice(0, 8 + entries.size() - 1), "dead": dead,
+		"mine": mine, "can_next": more, "can_retune": more, "final": not more}
 
 func _hill_finish() -> Dictionary:
 	var P := _player()
 	var lst := []
 	for r in rivals: lst.append([r, float(_best.get(r.team, INF))])
-	lst.append(["P", p_best])
+	for Q in _players(): lst.append([Q, float(_pbest.get(int(Q.get("entry", 0)), INF))])
 	lst = U.sort_by(lst, func(x): return x[1])
 	var ents := []
 	var pos := 0
 	for i in lst.size():
 		var x: Array = lst[i]
-		if x[0] is String:
-			ents.append(P); pos = i + 1
+		if x[0] is Dictionary and bool(x[0].get("isPlayer", false)):
+			ents.append(x[0])
+			if is_same(x[0], P): pos = i + 1
+			if is_finite(x[1]): x[0].dnf = false
 		else:
 			var fin := is_finite(x[1])
 			ents.append({"team": x[0].team, "col": x[0].col, "isPlayer": false, "human": false, "dnf": not fin, "fin": fin, "dynasty": bool(x[0].get("dynasty", false))})
-	if is_finite(p_best): P.dnf = false
 	rs.order_override = ents
 	rs.forcePos = pos
 	rs.fmt = fmt
 	var out := Career.raceResult(rs)
-	if is_finite(p_best): out.best_time = p_best
+	var bt := INF
+	for k in _pbest: bt = minf(bt, float(_pbest[k]))
+	if is_finite(bt): out.best_time = bt
 	return out

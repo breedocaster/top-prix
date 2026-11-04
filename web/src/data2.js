@@ -231,6 +231,7 @@ D.ACH = [
  {id:'win50',n:'Fifty Up',d:'Win 50 races',ic:'🏆',chk:G=>G.st.wins>=50,rw:{cash:500,spark:'s'}},
  {id:'win150',n:'Dynasty',d:'Win 150 races',ic:'👑',chk:G=>G.st.wins>=150,rw:{cash:2000,spark:'g'}},
  {id:'hat',n:'Hat Trick',d:'Win 3 races in a row',ic:'🎩',rw:{rp:40}},
+ {id:'onetwo',n:'One-Two',d:'Your team takes 1st and 2nd in one race',ic:'🥇',rw:{rp:60,spark:'b'}},
  {id:'title1',n:'Champions!',d:'Win a series title',ic:'🏆',chk:G=>G.st.titles.length>=1,rw:{cash:100,spark:'s'}},
  {id:'title5',n:'Trophy Cabinet',d:'Win 5 series titles',ic:'🏆',chk:G=>G.st.titles.length>=5,rw:{cash:500}},
  {id:'world',n:'World Champions',d:'Win a World-tier series',ic:'🌍',chk:G=>G.st.titles.some(t=>D.SER[t].tier===4),rw:{cash:3000,spark:'g'}},

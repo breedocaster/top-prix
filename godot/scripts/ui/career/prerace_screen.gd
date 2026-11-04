@@ -2,13 +2,17 @@ class_name PreraceScreen
 extends CareerPage
 ## Pre-race (web ui2 UI.V.prerace): course map + surfaces, race-day conditions, format, vehicle and
 ## driver pickers, engine outlook (symptoms, warnings, crew tune), tactic, odds, START.
+## Team entries: up to Career.entryCap() cars in one race (CAR 1 / CAR 2 / + ADD), each its own machine
+## and driver; the pickers below edit the selected car.
 ## ctx: {rid, sid?: series id (a championship round: back = skip the round)}
 
 var rid := ""
 var sid = null
 var fmt_id := ""
-var sel_v = null
+var sel_v = null              # the selected car's machine / driver (mirrors picks[cur])
 var sel_d = null
+var picks: Array = []         # [{"v": vehicle id, "d": driver id}] one per team car
+var cur := 0
 var tactic := "normal"
 var _map: TrackMini
 
@@ -49,20 +53,33 @@ func _render() -> void:
 	var laps_o = fmt.laps if int(fmt.laps) != int(r.laps) else null
 	var tr := RaceSim.build_track(r, false, laps_o)
 	var cond := Tune.forecast(r)
-	# selections (web defaults: best odds vehicle, most rested driver)
+	# selections (web defaults: best odds vehicle, most rested driver), one pair per team car
 	var vs := Career.eligibleVehicles(r)
 	var okd := Career.eligibleDrivers()
 	Career.odds_cache = {}
-	if sel_v != null and not vs.any(func(x): return x.id == sel_v): sel_v = null
-	if sel_v == null and not vs.is_empty():
-		var d0: Dictionary = Career.drivers()[0]
-		var best := -1.0
-		for v in vs:
-			var o := Career.oddsRatio(r, v, d0)
-			if o > best: best = o; sel_v = v.id
-	if sel_d != null and not okd.any(func(x): return x.id == sel_d): sel_d = null
-	if sel_d == null and not okd.is_empty():
-		sel_d = U.sort_by(okd, func(s): return float(s.energy), true)[0].id
+	var cap := Career.entryCap() if Career.multiEntryOk(fmt) else 1
+	if picks.is_empty(): picks = [{"v": sel_v, "d": sel_d}]
+	if picks.size() > cap: picks = picks.slice(0, cap)
+	cur = clampi(cur, 0, picks.size() - 1)
+	var used_v := []
+	var used_d := []
+	for pk in picks:
+		if pk.v != null and (used_v.has(pk.v) or not vs.any(func(x): return x.id == pk.v)): pk.v = null
+		if pk.v == null and not vs.is_empty():
+			var d0: Dictionary = Career.drivers()[0]
+			var best := -1.0
+			for v in vs:
+				if used_v.has(v.id): continue
+				var o := Career.oddsRatio(r, v, d0)
+				if o > best: best = o; pk.v = v.id
+		if pk.v != null: used_v.append(pk.v)
+		if pk.d != null and (used_d.has(pk.d) or not okd.any(func(x): return x.id == pk.d)): pk.d = null
+		if pk.d == null:
+			var free := okd.filter(func(x): return not used_d.has(x.id))
+			if not free.is_empty(): pk.d = U.sort_by(free, func(s): return float(s.energy), true)[0].id
+		if pk.d != null: used_d.append(pk.d)
+	sel_v = picks[cur].v
+	sel_d = picks[cur].d
 	# header: series round, map, surfaces, conditions
 	if sid != null:
 		var S: Dictionary = D.SER[sid]
@@ -100,20 +117,48 @@ func _render() -> void:
 		fv.add_child(CareerKit.lbl(CareerKit.asc(f.n), Color.WHITE, false, true))
 		fv.add_child(CareerKit.line(sub, CareerKit.SUB))
 		add(CareerKit.card_btn(fv, _set_fmt.bind(f.id), "card_sel" if f.id == fmt_id else "card", false, "fmt_" + str(f.id)))
+	# team entries
+	var multi := picks.size() > 1
+	if cap >= 2 and (multi or (vs.size() >= 2 and okd.size() >= 2)):
+		add(CareerKit.sec("ENTRIES %d/%d" % [picks.size(), cap]))
+		var eh := CareerKit.hbox(3)
+		for i in picks.size():
+			var c := CareerKit.chip("CAR %d" % (i + 1), _set_cur.bind(i), i == cur, false, "entry_%d" % i)
+			c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			eh.add_child(c)
+		if picks.size() < cap and vs.size() > picks.size() and okd.size() > picks.size():
+			var ad := CareerKit.chip("+ ADD CAR", _add_entry, false, false, "entry_add")
+			ad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			eh.add_child(ad)
+		if multi:
+			var rm := CareerKit.chip("REMOVE", _remove_entry, false, false, "entry_remove")
+			rm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			eh.add_child(rm)
+		add(eh)
+		note("Every car races in the same event. Each earns its own prize and wears its own machine and driver; RP and fans count your best car in full, the others at half.", CareerKit.DIMC)
+	elif not Career.multiEntryOk(fmt) and vs.size() >= 2 and okd.size() >= 2:
+		note("Drag eliminations take one car per team.", CareerKit.DIMC)
 	# vehicle
-	add(CareerKit.sec("MACHINE"))
+	add(CareerKit.sec("MACHINE" if not multi else "MACHINE - CAR %d" % (cur + 1)))
 	if vs.is_empty():
 		var why := "No ready %smachine! " % ("" if r.cls == "any" else str(r.cls) + " ")
 		why += "Your eligible machines are busy or need an engine rebuild." if G.vehicles.any(func(x): return Career.clsOk(r, x)) else "Build one first."
 		note(why, CareerKit.WARN)
 	for v in vs:
-		add(MachinesScreen.card(v, CareerKit.stat_max(), _set_v.bind(v.id), v.id == sel_v, true))
+		var other := _owner_of("v", v.id)
+		if other >= 0 and other != cur:
+			add(CareerKit.small("CAR %d:" % (other + 1), UIKit.GOLD))
+			add(MachinesScreen.card(v, CareerKit.stat_max(), _set_cur.bind(other), false, true))
+		else:
+			add(MachinesScreen.card(v, CareerKit.stat_max(), _set_v.bind(v.id), v.id == sel_v, true))
 	var v0 := Career.veh(sel_v)
 	if not v0.is_empty(): _engine_outlook(v0, r, tr, cond, cnt)
 	# driver
-	add(CareerKit.sec("DRIVER"))
+	add(CareerKit.sec("DRIVER" if not multi else "DRIVER - CAR %d" % (cur + 1)))
 	for s in Career.drivers():
-		add(_driver_card(s))
+		var od := _owner_of("d", s.id)
+		if od >= 0 and od != cur: add(CareerKit.small("CAR %d:" % (od + 1), UIKit.GOLD))
+		add(_driver_card(s, od if od != cur else -1))
 	# tactic
 	add(CareerKit.sec("TACTIC"))
 	var th := CareerKit.hbox(3)
@@ -145,6 +190,7 @@ func _render() -> void:
 			"drag": label = "START ELIMINATIONS"
 			"heats": label = "START HEAT"
 			"tt": label = "START RUN 1" if int(fmt.get("runs", 1)) == 2 else ("START STAGE 1" if int(fmt.laps) > 1 and tr.p2p else "START RUN")
+		if multi: label += " (%d CARS)" % picks.size()
 		var go := CareerKit.btn(label, _go, Color("#2f8a4a"), false, "start")
 		go.custom_minimum_size = Vector2(0, 30)
 		footer.add_child(go)
@@ -218,7 +264,7 @@ func _engine_outlook(v: Dictionary, r: Dictionary, tr: Dictionary, cond: Diction
 	if f.get_child_count() > 0: box.add_child(f)
 	add(CareerKit.panel(box, "card"))
 
-func _driver_card(s: Dictionary) -> Control:
+func _driver_card(s: Dictionary, other := -1) -> Control:
 	var D: Dictionary = Data.D
 	var ok := float(s.energy) >= Career.raceEnergy(s)
 	var row := CareerKit.hbox(6)
@@ -240,7 +286,8 @@ func _driver_card(s: Dictionary) -> Control:
 	col.add_child(eh)
 	if not ok: col.add_child(CareerKit.line("Too tired to race", CareerKit.BAD))
 	row.add_child(col)
-	return CareerKit.card_btn(row, _set_d.bind(s.id), "card_sel" if s.id == sel_d else "card", not ok, "drv_%d" % int(s.id))
+	var cb: Callable = _set_cur.bind(other) if other >= 0 else _set_d.bind(s.id)
+	return CareerKit.card_btn(row, cb, "card_sel" if s.id == sel_d else "card", not ok, "drv_%d" % int(s.id))
 
 func _set_fmt(id: String) -> void:
 	fmt_id = id
@@ -248,10 +295,33 @@ func _set_fmt(id: String) -> void:
 
 func _set_v(id) -> void:
 	sel_v = id
+	picks[cur].v = id
 	refresh()
 
 func _set_d(id) -> void:
 	sel_d = id
+	picks[cur].d = id
+	refresh()
+
+## Which team car (index) has this machine ("v") or driver ("d"), or -1.
+func _owner_of(k: String, id) -> int:
+	for i in picks.size():
+		if picks[i][k] == id: return i
+	return -1
+
+func _set_cur(i: int) -> void:
+	cur = i
+	refresh()
+
+func _add_entry() -> void:
+	picks.append({"v": null, "d": null})
+	cur = picks.size() - 1
+	refresh()
+
+func _remove_entry() -> void:
+	if picks.size() < 2: return
+	picks.remove_at(cur)
+	cur = clampi(cur - 1, 0, picks.size() - 1)
 	refresh()
 
 func _set_tac(k: String) -> void:
@@ -264,13 +334,20 @@ func _crew_tune(cond: Dictionary) -> void:
 	refresh()
 
 func _go() -> void:
-	var v := Career.veh(sel_v)
-	var s := Career.staff(sel_d)
-	if v.is_empty() or s.is_empty(): return
-	if float(s.energy) < Career.raceEnergy(s):
-		if router: router._on_toast("Driver too tired")
-		return
-	if router: router.replace("race", {"rid": rid, "vid": sel_v, "drv": sel_d, "tactic": tactic, "sid": sid, "fmt": fmt_id})
+	var ens := []
+	for pk in picks:
+		var v := Career.veh(pk.v)
+		var s := Career.staff(pk.d)
+		if v.is_empty() or s.is_empty():
+			if router: router._on_toast("Pick a machine and driver for every car")
+			return
+		if float(s.energy) < Career.raceEnergy(s):
+			if router: router._on_toast("%s is too tired" % s.name)
+			return
+		ens.append([pk.v, pk.d])
+	var c := {"rid": rid, "vid": ens[0][0], "drv": ens[0][1], "tactic": tactic, "sid": sid, "fmt": fmt_id}
+	if ens.size() > 1: c.entries = ens
+	if router: router.replace("race", c)
 
 ## Small course map (TrackGeo polyline), drawn once.
 class TrackMini extends Control:
