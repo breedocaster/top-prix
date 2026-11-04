@@ -1,0 +1,228 @@
+{
+  "lengths": {
+    "short": {"n": "Short", "time": "about 2 h", "d": "The main story: county fair to the Crownwell Cup. One chapter per tier, then the finale.",
+      "chapters": ["ch1", "ch2", "ch3", "ch4", "fin"]},
+    "medium": {"n": "Medium", "time": "4 to 6 h", "d": "Adds a mud-season dirt-bike detour, drag-strip night with sponsor drama, and a hillclimb with a defector.",
+      "chapters": ["ch1", "mud", "ch2", "drag", "ch3", "hill", "ch4", "fin"]},
+    "long": {"n": "Long", "time": "10+ h", "d": "The full Grand Prix run: rain racing, titles on two wheels and four, a world tour and the Legend tier.",
+      "chapters": ["ch1", "mud", "ch2", "drag", "rain", "ch3", "hill", "titles", "ch4", "world", "legend", "fin"]}
+  },
+
+  "chapters": {
+    "ch1": {
+      "title": "Rust and Elbow Grease", "tier": 1, "intro": "c1_intro", "outro": "c1_outro",
+      "obj": [
+        {"t": "build", "n": 1, "txt": "Build your first machine"},
+        {"t": "win", "n": 1, "tier": 1, "txt": "Win a Rookie race"},
+        {"t": "title", "tier": 1, "txt": "Win a Rookie series"},
+        {"t": "workshop", "lv": 2, "txt": "Move to the Town Garage"}
+      ],
+      "beats": [
+        {"on": "vehicle_built", "scene": "c1_built"},
+        {"on": "race_finished", "scene": "c1_first_race"},
+        {"on": "race_finished", "win": true, "scene": "c1_first_win"},
+        {"on": "title_won", "tier": 1, "scene": "c1_title"}
+      ],
+      "dyn": {"drv": "preston", "f": 1.06, "tier": [1], "slots": ["c", "x2"]},
+      "reward": {"money": 200000, "rp": 30, "fans": 100, "sparks": {"b": 1}, "tech": ["syncgauge"]}
+    },
+
+    "mud": {
+      "title": "Mud Season", "tier": 1, "side": true, "intro": "mud_intro", "outro": "mud_outro",
+      "obj": [
+        {"t": "build", "disc": "BO", "txt": "Build a dirt bike"},
+        {"t": "race_top", "race": ["d1b", "d2b"], "pos": 3, "txt": "Podium a hare scramble"},
+        {"t": "win", "disc": "BO", "n": 1, "txt": "Win a dirt-bike race"}
+      ],
+      "beats": [
+        {"on": "vehicle_built", "disc": "BO", "scene": "mud_built"},
+        {"on": "race_finished", "disc": "BO", "scene": "mud_first_race"}
+      ],
+      "dyn": {"drv": "preston", "f": 1.05, "tier": [1, 2], "disc": ["BO"], "slots": ["b", "c"]},
+      "reward": {"money": 150000, "rp": 25, "unl": {"train": ["mxcamp"], "fac": ["dirtyard"]}}
+    },
+
+    "ch2": {
+      "title": "Main Street Muscle", "tier": 2, "intro": "c2_intro", "outro": "c2_outro",
+      "obj": [
+        {"t": "tech", "id": ["wideband"], "txt": "Research a wideband O2"},
+        {"t": "race_top", "race": ["c2c", "o2c", "b2c", "d2c"], "pos": 3, "txt": "Podium a National headliner"},
+        {"t": "title", "tier": 2, "txt": "Win a National series"},
+        {"t": "workshop", "lv": 3, "txt": "Move to the Race Workshop"}
+      ],
+      "beats": [
+        {"on": "research_done", "tech": ["wideband"], "scene": "c2_wideband"},
+        {"on": "race_finished", "nth": 2, "scene": "c2_rosie_offer"},
+        {"on": "title_won", "tier": 2, "scene": "c2_title"}
+      ],
+      "dyn": {"drv": "preston", "f": 1.08, "tier": [2], "slots": ["c", "x2"]},
+      "reward": {"money": 500000, "rp": 60, "fans": 300, "sparks": {"s": 1}}
+    },
+
+    "drag": {
+      "title": "Friday Night Drags", "tier": 2, "side": true, "intro": "drag_intro", "outro": "drag_outro",
+      "obj": [
+        {"t": "win", "disc": "DR", "n": 1, "txt": "Win a drag race"},
+        {"t": "tech", "id": ["racefuel"], "txt": "Research race fuel"},
+        {"t": "sponsor", "new": true, "n": 1, "txt": "Sign a new sponsor"}
+      ],
+      "beats": [
+        {"on": "race_finished", "disc": "DR", "scene": "drag_first"},
+        {"on": "sponsor_signed", "scene": "drag_sponsor"}
+      ],
+      "dyn": {"drv": "preston", "f": 1.06, "tier": [1, 2], "disc": ["DR"], "slots": ["c", "x2"]},
+      "reward": {"money": 400000, "rp": 50, "sparks": {"b": 1}, "unl": {"train": ["drag"]}}
+    },
+
+    "rain": {
+      "title": "Rain Dance", "tier": 2, "side": true, "intro": "rain_intro", "outro": "rain_outro",
+      "obj": [
+        {"t": "wc", "key": "w:terr:wet", "n": 1, "txt": "Win a wet race"},
+        {"t": "tech", "id": ["tirepress"], "txt": "Research tire pressures"},
+        {"t": "race_n", "n": 3, "txt": "Run 3 races"}
+      ],
+      "beats": [
+        {"on": "race_finished", "nth": 1, "scene": "rain_race"}
+      ],
+      "dyn": {"drv": "preston", "f": 1.06, "tier": [2], "slots": ["b", "c"]},
+      "reward": {"money": 450000, "rp": 50, "unl": {"train": ["rainschool"], "fac": ["skidpad"]}}
+    },
+
+    "ch3": {
+      "title": "Fuel Injection Blues", "tier": 3, "intro": "c3_intro", "outro": "c3_outro",
+      "obj": [
+        {"t": "tech", "id": ["efi"], "txt": "Research throttle-body EFI"},
+        {"t": "build", "efi": true, "txt": "Run an EFI machine"},
+        {"t": "title", "tier": 3, "txt": "Win a Continental series"},
+        {"t": "workshop", "lv": 4, "txt": "Move to the Factory HQ"}
+      ],
+      "beats": [
+        {"on": "race_finished", "nth": 1, "scene": "c3_silas"},
+        {"on": "research_done", "tech": ["efi"], "scene": "c3_efi"},
+        {"on": "obj", "idx": 1, "scene": "c3_efi_build"},
+        {"on": "title_won", "tier": 3, "scene": "c3_title"}
+      ],
+      "dyn": {"drv": "silas", "f": 1.10, "tier": [3], "slots": ["c", "x2"]},
+      "reward": {"money": 1200000, "rp": 120, "fans": 1500, "sparks": {"s": 1}}
+    },
+
+    "hill": {
+      "title": "King of the Hill", "tier": 3, "side": true, "intro": "hill_intro", "outro": "hill_outro",
+      "obj": [
+        {"t": "win", "hill": true, "n": 1, "txt": "Win a hillclimb"},
+        {"t": "race_top", "race": ["p3b", "h3c"], "pos": 3, "txt": "Podium above the clouds"},
+        {"t": "tech", "id": ["mapsens"], "txt": "Research MAP + baro"}
+      ],
+      "beats": [
+        {"on": "race_finished", "hill": true, "scene": "hill_climb"}
+      ],
+      "dyn": {"drv": "preston", "f": 1.07, "tier": [2, 3], "disc": ["HC"], "races": ["p3b"], "slots": ["a", "b", "c"]},
+      "reward": {"money": 900000, "rp": 80, "set": "midge_joined",
+        "staff": [{"role": "mec", "name": "Midge Ostrowski", "hair": "#ddd", "skin": "#8d5524", "appeal": 18, "tech": 70, "analysis": 55, "lv": 3, "salary": 18000}]}
+    },
+
+    "titles": {
+      "title": "Two Wheels and Four", "tier": 3, "side": true, "intro": "titles_intro", "outro": "titles_outro",
+      "obj": [
+        {"t": "title", "cls": "car", "txt": "Win a car series title"},
+        {"t": "title", "cls": "bike", "txt": "Win a bike series title"},
+        {"t": "build", "n": 4, "txt": "Own 4 machines"}
+      ],
+      "beats": [
+        {"on": "title_won", "scene": "titles_mid"}
+      ],
+      "dyn": {"drv": "silas", "f": 1.08, "tier": [3], "slots": ["c"]},
+      "reward": {"money": 1500000, "rp": 100, "sparks": {"g": 1}, "unl": {"body": ["sidecar"]}}
+    },
+
+    "ch4": {
+      "title": "World Stage", "tier": 4, "intro": "c4_intro", "outro": "c4_outro",
+      "obj": [
+        {"t": "title", "tier": 4, "txt": "Win a World series"},
+        {"t": "fans", "n": 20000, "txt": "Reach 20,000 fans"}
+      ],
+      "by_len": {
+        "short": {"obj": [
+          {"t": "win", "tier": 4, "n": 1, "txt": "Win a World race"},
+          {"t": "fans", "n": 6000, "txt": "Reach 6,000 fans"}
+        ]}
+      },
+      "beats": [
+        {"on": "race_finished", "nth": 1, "scene": "c4_world_race"},
+        {"on": "race_finished", "win": true, "tier": 4, "scene": "c4_world_win"}
+      ],
+      "dyn": {"drv": "silas", "f": 1.12, "tier": [4], "slots": ["c", "x2"]},
+      "reward": {"money": 3000000, "rp": 200, "fans": 5000, "sparks": {"g": 1}}
+    },
+
+    "world": {
+      "title": "World Tour", "tier": 4, "side": true, "intro": "world_intro", "outro": "world_outro",
+      "obj": [
+        {"t": "title", "tier": 4, "n": 2, "txt": "Win 2 World series"},
+        {"t": "veh_lv", "lv": 6, "txt": "Raise a machine to Lv 6"}
+      ],
+      "beats": [
+        {"on": "title_won", "tier": 4, "scene": "world_mid"}
+      ],
+      "dyn": {"drv": "silas", "f": 1.13, "tier": [4], "slots": ["c", "x1", "x2"]},
+      "reward": {"money": 4000000, "rp": 250, "sparks": {"g": 1}}
+    },
+
+    "legend": {
+      "title": "Somebody Finish This", "tier": 5, "side": true, "intro": "legend_intro", "outro": "legend_outro",
+      "obj": [
+        {"t": "win", "tier": 5, "n": 1, "txt": "Win a Legend race"},
+        {"t": "veh_lv", "lv": 8, "txt": "Raise a machine to Lv 8"}
+      ],
+      "beats": [
+        {"on": "race_finished", "win": true, "tier": 5, "scene": "legend_win"}
+      ],
+      "dyn": {"drv": "silas", "f": 1.15, "tier": [5], "slots": ["a", "b", "c"]},
+      "reward": {"money": 5000000, "rp": 300, "sparks": {"g": 1}}
+    },
+
+    "fin": {
+      "title": "The Crownwell Cup", "tier": 4, "finale": true, "intro": "fin_intro", "outro": "fin_outro",
+      "obj": [
+        {"t": "veh_lv", "lv": 5, "txt": "Raise a machine to Lv 5"},
+        {"t": "beat_dynasty", "race": ["c4c", "o4c", "b4c", "d4c", "p4b", "r4c", "h4c"], "txt": "Beat Crownwell in the Cup"}
+      ],
+      "by_len": {
+        "medium": {"obj": [
+          {"t": "veh_lv", "lv": 6, "txt": "Raise a machine to Lv 6"},
+          {"t": "beat_dynasty", "race": ["c4x2", "o4x2", "b4x2", "d4x2", "p4x3", "r4x2", "h4x2"], "txt": "Beat Crownwell in the Cup"}
+        ]},
+        "long": {"tier": 5, "obj": [
+          {"t": "title", "series": ["s5l"], "txt": "Win King of All Terrain"},
+          {"t": "beat_dynasty", "race": ["l5x2"], "txt": "Beat Crownwell: Ultimate Crown"}
+        ]}
+      },
+      "beats": [
+        {"on": "race_finished", "dyn": true, "beat": false, "scene": "fin_lost"}
+      ],
+      "dyn": {"drv": "silas", "f": 1.16},
+      "reward": {"money": 10000000, "rp": 500, "fans": 20000, "sparks": {"g": 2}, "unl": {"body": ["comet", "arrow"]}}
+    }
+  },
+
+  "free_dyn": {"drv": "silas", "f": 1.15, "tier": [4, 5], "slots": ["x2"]},
+
+  "global_beats": [
+    {"on": "race_finished", "dnf": true, "scene": "g_dnf"},
+    {"on": "sponsor_signed", "id": ["cornoil"], "noflag": "cornoil_gone", "scene": "g_cornoil"}
+  ],
+
+  "radio": {
+    "win": ["{radio}: {team} wins the {race}! The diner is handing out free pie.",
+            "{radio}: Another one for {team} at the {race}. Walt nearly fell off his stool.",
+            "{radio}: {team} takes the {race}. Hazel was seen almost smiling."],
+    "podium": ["{radio}: P{pos} at the {race} for {team}. Hazel calls it a decent start.",
+               "{radio}: {team} on the box at the {race}. Rosie wants a rematch already."],
+    "dnf": ["{radio}: Trouble at the {race}. Hazel is already muttering about jets.",
+            "{radio}: {team} did not finish the {race}. Dewey has the toolbox open."],
+    "dyn_win": ["{radio}: {team} beat {rival} at the {race}! Victoria Crownwell left early.",
+                "{radio}: {drv} of {rival} beaten at the {race}. The Clarion is reprinting."],
+    "dyn_lose": ["{radio}: {drv} takes the {race} for {rival}. 'Next time,' says Rosie.",
+                 "{radio}: {rival} ahead at the {race}. Hazel is rejetting in the parking lot."]
+  }
+}

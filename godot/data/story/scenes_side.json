@@ -1,0 +1,162 @@
+{
+  "mud_intro": {"lines": [
+    {"who": "walt", "expr": "worried", "text": "Spring mud warning! Roads shut. Tractors stuck. Cows confused."},
+    {"who": "dewey", "expr": "happy", "text": "Mud season! My cousin's got an MX track out behind the soybeans!"},
+    {"who": "rosie", "expr": "neutral", "text": "Dirt bikes? Aren't those just mopeds that hate you?"},
+    {"who": "hazel", "expr": "happy", "text": "Yep. Build a dirt bike. Two-strokes scream, four-strokes pull."},
+    {"who": "hazel", "expr": "angry", "text": "And premix the two-strokes. 32 to 1. If you eyeball it, I'll eyeball you."},
+    {"who": "walt", "expr": "neutral", "text": "The Creekbed Hare Scramble is this month. Bring boots. Bring two pairs."}
+  ]},
+
+  "mud_built": {"lines": [
+    {"who": "dewey", "expr": "happy", "text": "I rebuilt Grandpa's tractor carb at nine. This is just smaller. And angrier."},
+    {"who": "hazel", "expr": "neutral", "text": "Round-slide carb, needle clip, main jet. Clip down richens the midrange."},
+    {"who": "rosie", "expr": "happy", "text": "It's loud. I love it. Can I keep it?"}
+  ]},
+
+  "mud_first_race": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "Rosie came back so muddy her mom rented her out as a scarecrow!"},
+    {"who": "rosie", "expr": "happy", "text": "Worth it. I got dirt in places dirt shouldn't know about."}
+  ]},
+
+  "mud_outro": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "Mud on their faces, trophy in their hands. That's Tinplate, folks."},
+    {"who": "dewey", "expr": "neutral", "text": "My cousin says we can use the track anytime. The cows like Rosie."},
+    {"who": "hazel", "expr": "happy", "text": "You've got a dirt program now, kid. Augie would've loved it. He hated mud."}
+  ]},
+
+  "drag_intro": {"fx": {"money": 100000, "drop_sponsor": "cornoil", "set": "cornoil_gone"}, "lines": [
+    {"who": "barb", "expr": "worried", "text": "Hon, terrible news. Crownwell Holdings bought Corn Belt Oil this morning."},
+    {"who": "barb", "expr": "worried", "text": "They voided every racing contract that isn't Crownwell. I'm so sorry."},
+    {"who": "barb", "expr": "neutral", "text": "I did make them pay the exit fee. In full. In cash. Here."},
+    {"who": "hazel", "expr": "angry", "text": "Can't beat us on track, so she buys the oil. Classic Crownwell."},
+    {"who": "hazel", "expr": "happy", "text": "Well. Friday night, drag strip. That's where I got my name. Come on."},
+    {"who": "hazel", "expr": "neutral", "text": "1977. County Line Quarter. I won it on jetting alone. Hence: Jets."},
+    {"who": "dewey", "expr": "neutral", "text": "So: win a drag race, research race fuel and find a new sponsor."}
+  ]},
+
+  "drag_first": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "Lights on the tree! Yellow, yellow, yellow, GREEN! And they're gone, folks!"},
+    {"who": "hazel", "expr": "neutral", "text": "Launch is everything. Good reaction, clean shift, and pray for traction."}
+  ]},
+
+  "drag_sponsor": {"lines": [
+    {"who": "barb", "expr": "happy", "text": "A new sponsor! Good. Now guess who got a new job? This gal!"},
+    {"who": "barb", "expr": "happy", "text": "Hot Dog Hut, regional marketing! Snappy dogs, snappy laps!"}
+  ]},
+
+  "drag_outro": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "Friday Night Drags belong to Tinplate! Hazel 'Jets' Pruitt is grinning. Rare!"},
+    {"who": "hazel", "expr": "happy", "text": "Don't get used to it."},
+    {"who": "barb", "expr": "happy", "text": "And Crownwell can keep their oil. We've got hot dogs!"}
+  ]},
+
+  "rain_intro": {"lines": [
+    {"who": "walt", "expr": "worried", "text": "Race weekend forecast: rain. Then more rain. Then a surprise. Also rain."},
+    {"who": "hazel", "expr": "neutral", "text": "Wet track: smooth hands, early brakes, stay off the painted lines."},
+    {"who": "hazel", "expr": "neutral", "text": "Rain tires, softer setup. Cool damp air is dense, so richen it a hair."},
+    {"who": "rosie", "expr": "angry", "text": "Smooth hands? I don't own smooth hands."},
+    {"who": "hazel", "expr": "happy", "text": "Then borrow mine. Win a wet race and I'll buy the pizza."},
+    {"who": "walt", "expr": "neutral", "text": "Rainy Day Derby and the Monsoon Mile are on the calendar. Bring towels."}
+  ]},
+
+  "rain_race": {"lines": [
+    {"who": "rosie", "expr": "neutral", "text": "Boss... Preston's in the ditch on the back straight. His crew left him."},
+    {"who": "rosie", "expr": "neutral", "text": "We could tow him out with the pickup. Or let him swim.",
+      "choices": [
+        {"t": "Tow him out.", "set": "towed", "fx": {"fans": 100},
+          "reply": [{"who": "preston", "expr": "neutral", "text": "...Thanks. Don't tell Mother. Please."}]},
+        {"t": "Let him swim.", "set": "swim",
+          "reply": [{"who": "rosie", "expr": "happy", "text": "Kidding. I already hooked the chain. He says thanks. Kinda."}]}
+      ]},
+    {"who": "walt", "expr": "happy", "text": "A Tinplate pickup towing a Crownwell car! Somebody get the Clarion a photo!"}
+  ]},
+
+  "rain_outro": {"lines": [
+    {"who": "hazel", "expr": "happy", "text": "That was a wet win, kid. Smooth as gravy. I owe somebody a pizza."},
+    {"who": "rosie", "expr": "happy", "text": "Extra cheese. Extra everything. Extra-extra."},
+    {"who": "preston", "expr": "neutral", "if": "towed", "text": "I, uh, left a fruit basket at your door. It's from me. Not Mother."}
+  ]},
+
+  "hill_intro": {"lines": [
+    {"who": "walt", "expr": "neutral", "text": "Hillclimb season! One machine, one mountain, one clock. And thin air."},
+    {"who": "hazel", "expr": "neutral", "text": "Every thousand meters up, the air thins. Same jets, less air. Runs rich."},
+    {"who": "hazel", "expr": "angry", "text": "So jet DOWN going up. Carbs don't adjust themselves. EFI wants a baro sensor."},
+    {"who": "midge", "expr": "neutral", "text": "She's right. Midge Ostrowski, chief engineer, Crownwell. Twenty-two years."},
+    {"who": "midge", "expr": "neutral", "text": "Off the record? Your jetting at altitude last month beat ours."},
+    {"who": "hazel", "expr": "neutral", "text": "...I like her. I don't want to. But I do."}
+  ]},
+
+  "hill_climb": {"lines": [
+    {"who": "midge", "expr": "worried", "text": "Preston wrecked on the climb. He ignored my call and Victoria blamed me."},
+    {"who": "midge", "expr": "worried", "text": "Twenty-two years, and I'm why her boy can't brake. I'm done."},
+    {"who": "midge", "expr": "neutral", "text": "Your team listens to its mechanics. Is there room for one more?",
+      "choices": [
+        {"t": "Welcome aboard.", "set": "midge_welcome",
+          "reply": [{"who": "midge", "expr": "happy", "text": "Ha! I brought my own torque wrench. Show me where the coffee is."}]},
+        {"t": "Can we trust you?", "set": "midge_doubt",
+          "reply": [{"who": "midge", "expr": "neutral", "text": "Don't trust me. Trust my torque wrench. It's never lied to anybody."}]}
+      ]},
+    {"who": "dewey", "expr": "happy", "text": "A real chief engineer! Can I ask you about cam timing? Like, all of it?"},
+    {"who": "midge", "expr": "neutral", "text": "Finish the hill program first. Then I'm yours. Then the cams are yours."}
+  ]},
+
+  "hill_outro": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "King of the Hill: Tinplate! And a defection! Midge Ostrowski switches teams!"},
+    {"who": "victoria", "expr": "angry", "text": "Midge. After twenty-two years. You will regret this."},
+    {"who": "midge", "expr": "happy", "text": "I regret the twenty-two years, Victoria. Not this."}
+  ]},
+
+  "titles_intro": {"lines": [
+    {"who": "hazel", "expr": "neutral", "text": "Augie raced both. Said a bike teaches you what a car forgives."},
+    {"who": "dewey", "expr": "happy", "text": "So a car title AND a bike title? I'll need more garage. And sleep."},
+    {"who": "midge", "expr": "neutral", "text": "Two programs, one crew. Crownwell never managed it. Too many egos."},
+    {"who": "walt", "expr": "happy", "text": "Folks, nobody's won titles on two wheels and four in the same era. Nobody!"}
+  ]},
+
+  "titles_mid": {"lines": [
+    {"who": "rosie", "expr": "happy", "text": "That's one! Hey Dewey, which one's next, wheels-wise?"},
+    {"who": "dewey", "expr": "neutral", "text": "The other number of wheels."}
+  ]},
+
+  "titles_outro": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "Two wheels AND four! Tinplate does what Crownwell never could!"},
+    {"who": "hazel", "expr": "happy", "text": "Augie, you old goat. They did it. Both ways."}
+  ]},
+
+  "world_intro": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "One World title's nice. Two opens the Legend tier. Ask anybody. Ask me!"},
+    {"who": "barb", "expr": "happy", "text": "Hon, Hot Dog Hut is going international! Snappy dogs, worldwide laps!"},
+    {"who": "victoria", "expr": "neutral", "text": "Two titles. Ambitious. Crownwell holds four. My father held nine."},
+    {"who": "hazel", "expr": "angry", "text": "Her father beat Augie in the '79 Cup. Bent a rule, broke a heart."}
+  ]},
+
+  "world_mid": {"lines": [
+    {"who": "preston", "expr": "neutral", "text": "Mother's furious you're winning. I've never seen her this... awake."},
+    {"who": "preston", "expr": "happy", "text": "I've been tuning my own car at night. Midge left notes. Don't tell anyone."}
+  ]},
+
+  "world_outro": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "Two World titles! The Legend tier is OPEN! I'm out of exclamation points!"},
+    {"who": "hazel", "expr": "neutral", "text": "Legend tier. Volcanoes. Sky highways. Glacier planets. Don't ask, just race."}
+  ]},
+
+  "legend_intro": {"lines": [
+    {"who": "hazel", "expr": "neutral", "text": "Found something in Augie's footlocker. His notebook. 1979."},
+    {"who": "hazel", "expr": "neutral", "text": "The Crownwell Cup. Augie against Victoria's father. Augie lost by a nose."},
+    {"who": "hazel", "expr": "angry", "text": "Bent wastegate rule. Everybody knew. Nobody said. Augie never raced again."},
+    {"who": "hazel", "expr": "neutral", "text": "The last page says: 'Somebody finish this.' That's you, kid."},
+    {"who": "dewey", "expr": "neutral", "text": "Then we build. Get a machine to Lv 8 and win at Legend level."}
+  ]},
+
+  "legend_win": {"lines": [
+    {"who": "silas", "expr": "neutral", "text": "A Legend win. You're at my level now. Don't stop."},
+    {"who": "silas", "expr": "happy", "text": "The Ultimate Crown. She's booked it for the Cup. I'll be there."}
+  ]},
+
+  "legend_outro": {"lines": [
+    {"who": "victoria", "expr": "neutral", "text": "King of All Terrain. Final round, the Ultimate Crown. That is the Cup."},
+    {"who": "victoria", "expr": "happy", "text": "My father beat Augie Moss there. I intend to keep it in the family."},
+    {"who": "hazel", "expr": "angry", "text": "Not this time, Victoria."}
+  ]}
+}

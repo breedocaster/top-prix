@@ -1,0 +1,29 @@
+{
+  "ending": {"kind": "ending",
+    "lines": [
+      {"text": "The Crownwell Cup sits on a shelf in a tin-can factory in Tinplate, Indiana."},
+      {"who": "rosie", "expr": "happy", "text": "Pizza's on me! Thirty minutes or it's free! ...It's free. It's all free!"},
+      {"who": "dewey", "expr": "happy", "text": "I'm framing the float bowl. Is that weird? I'm framing it."},
+      {"who": "midge", "expr": "happy", "if": "midge_joined", "text": "Twenty-two years building for Crownwell. One year for us. Better year."},
+      {"who": "barb", "expr": "happy", "text": "Hon, the phones won't stop! Every sponsor in the world wants a fender!"},
+      {"who": "hazel", "expr": "happy", "text": "Augie always said the shed was never the point. The people in it were."}
+    ],
+    "epilogue": [
+      {"who": "walt", "expr": "neutral", "text": "WTPL signing off. But the garage door's still up, folks. It always is."},
+      {"who": "preston", "expr": "neutral", "text": "Next season, Shed Kid. I'm building my own car. Mother hates it."},
+      {"who": "silas", "expr": "happy", "text": "I'll be watching. Rematch whenever you like."},
+      {"who": "hazel", "expr": "neutral", "text": "Free play's open, kid. More races, more titles, more machines to build."},
+      {"who": "hazel", "expr": "happy", "text": "Take your machines to the LAN races. Show your friends what Tinplate builds."}
+    ]},
+
+  "g_dnf": {"lines": [
+    {"who": "hazel", "expr": "neutral", "text": "Engines break. Drivers bounce. We fix the one and hug the other."},
+    {"who": "rosie", "expr": "angry", "text": "I'm not hugging anybody."},
+    {"who": "hazel", "expr": "happy", "text": "Then hug the engine. Check the plugs and the wear before you race again."}
+  ]},
+
+  "g_cornoil": {"lines": [
+    {"who": "barb", "expr": "happy", "text": "Welcome to the Corn Belt family, hon! Our logo looks great on you!"},
+    {"who": "barb", "expr": "neutral", "text": "Enter a few races for us and the bonus perks unlock. Easy as pie."}
+  ]}
+}

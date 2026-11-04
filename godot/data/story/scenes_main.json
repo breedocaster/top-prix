@@ -1,0 +1,236 @@
+{
+  "c1_intro": {"lines": [
+    {"text": "Tinplate, Indiana. Pop. 1,204. Home of a water tower shaped like a spark plug."},
+    {"who": "walt", "expr": "happy", "text": "WTPL 1340, the Voice of Tinplate! Walt Pickering here with your noon news."},
+    {"who": "walt", "expr": "neutral", "text": "Augie Moss, who fixed every mower in the county, has left his shed to kin."},
+    {"who": "walt", "expr": "worried", "text": "And the Crownwell family wants it. They want everything. Back after this."},
+    {"text": "A shed. Two wrenches. One raccoon. And a note: DON'T SELL TO THE CROWNWELLS."},
+    {"who": "hazel", "expr": "neutral", "text": "So you're Augie's kin. You've got his chin. Let's hope you've got his ears."},
+    {"who": "hazel", "expr": "neutral", "text": "Hazel Pruitt. Call me Jets. I've rejetted more carbs than you've had birthdays."},
+    {"who": "hazel", "expr": "neutral", "text": "Augie and I raced together for forty years. Mostly against the Crownwells."},
+    {"who": "hazel", "expr": "neutral", "text": "So. You gonna sell to them like the rest of this town did?",
+      "choices": [
+        {"t": "Not a chance.", "set": "stubborn", "fx": {"fans": 20},
+          "reply": [{"who": "hazel", "expr": "happy", "text": "Ha! Augie's chin AND Augie's mouth. Good."}]},
+        {"t": "What's the offer?", "set": "curious", "fx": {"rp": 5},
+          "reply": [{"who": "hazel", "expr": "angry", "text": "Wrong answer, but honest. Augie would've laughed. Then thrown a wrench."}]}
+      ]},
+    {"who": "dewey", "expr": "worried", "text": "Um. Hi. I'm Dewey Brandt. I fix tractors. Your raccoon is in the carburetor."},
+    {"who": "hazel", "expr": "neutral", "text": "Dewey can fix anything with an engine. He can't talk to anything with a face."},
+    {"who": "dewey", "expr": "worried", "text": "That's... fair."},
+    {"who": "rosie", "expr": "happy", "text": "Rosie Alvarez, Sal's Pizza! Thirty minutes or it's free. Never once been free."},
+    {"who": "rosie", "expr": "neutral", "text": "Heard you need a driver. I got a moped, a temper and zero fear. Hire me."},
+    {"who": "hazel", "expr": "neutral", "text": "First, build a machine. Body, layout, carbs. Dewey will turn the wrenches."},
+    {"who": "hazel", "expr": "happy", "text": "Race it, win something. Then we'll talk about a real garage."}
+  ]},
+
+  "c1_built": {"lines": [
+    {"who": "dewey", "expr": "happy", "text": "It runs! It RUNS! ...Mostly. The raccoon moved out, anyway."},
+    {"who": "hazel", "expr": "neutral", "text": "Lesson one, kid. Rich runs slow and safe. Lean runs fast and hot."},
+    {"who": "hazel", "expr": "angry", "text": "Too lean and you'll put a hole in a piston. I've seen it. I've DONE it."},
+    {"who": "hazel", "expr": "neutral", "text": "Jets meter the fuel. Bigger jet, richer mix. One size at a time. Always."},
+    {"who": "rosie", "expr": "happy", "text": "Can I drive it yet? I'll be gentle. I'm lying, but I'll try."}
+  ]},
+
+  "c1_first_race": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "WTPL here! The Moss shed has raced! Folks, the shed RACED!"},
+    {"who": "preston", "expr": "happy", "text": "Cute lawnmower. Did your uncle leave you the grass too?"},
+    {"who": "rosie", "expr": "angry", "text": "Who's the haircut?"},
+    {"who": "dewey", "expr": "worried", "text": "Preston Crownwell. His mom owns seven car lots, the bank and half the fair."},
+    {"who": "preston", "expr": "neutral", "text": "Crownwell has won the county fair 22 years running. Enjoy the view, Shed Kid."},
+    {"who": "hazel", "expr": "angry", "text": "That boy's never turned a wrench in his life. Rosie, eat his lunch next time."},
+    {"who": "rosie", "expr": "happy", "text": "Oh, I'm eating his lunch AND his dessert."}
+  ]},
+
+  "c1_first_win": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "A WIN for the Moss shed! I nearly dropped my sandwich, folks!"},
+    {"who": "barb", "expr": "happy", "text": "Hon! Barb Dunleavy, Corn Belt Oil! Keeping engines slick since forever!"},
+    {"who": "barb", "expr": "neutral", "text": "We sponsor winners. And folks who might win. And the pie booth."},
+    {"who": "barb", "expr": "happy", "text": "How about it, hon? Our logo on your fender, a little cash up front?",
+      "choices": [
+        {"t": "Where do I sign?", "set": "barb_quick", "fx": {"money": 20000},
+          "reply": [{"who": "barb", "expr": "happy", "text": "That's what I like! Here's a signing bonus. It was in my purse."}]},
+        {"t": "What's the catch?", "set": "barb_catch", "fx": {"fans": 40},
+          "reply": [{"who": "barb", "expr": "happy", "text": "The catch is you wear a corn hat in the fair parade. Very flattering."}]}
+      ]},
+    {"who": "hazel", "expr": "neutral", "text": "Sign her in the Sponsors menu, kid. Corn Belt's good people."}
+  ]},
+
+  "c1_title": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "Rookie champions! From a shed! This is going on the Clarion's front page!"},
+    {"who": "victoria", "expr": "neutral", "text": "So this is Augie's little shed. How quaint. Victoria Crownwell."},
+    {"who": "victoria", "expr": "happy", "text": "Cute trophy. Preston won one just like it. When he was nine."},
+    {"who": "victoria", "expr": "neutral", "text": "Let's be adults. I'll buy the shed, the name and the raccoon. Name a price.",
+      "choices": [
+        {"t": "It's not for sale.", "set": "refused1", "fx": {"fans": 50},
+          "reply": [{"who": "victoria", "expr": "angry", "text": "Everything is for sale, dear. Some things just haven't heard the price."}]},
+        {"t": "The raccoon left.", "set": "raccoon", "fx": {"rp": 5},
+          "reply": [{"who": "victoria", "expr": "angry", "text": "...Charming. I'll ask again once you've lost something."}]}
+      ]},
+    {"who": "hazel", "expr": "angry", "text": "Forty years she's tried to buy Augie out. Forty years he said no."}
+  ]},
+
+  "c1_outro": {"lines": [
+    {"text": "The old Feed & Seed on Main Street. Four bays, one roof, zero raccoons."},
+    {"who": "dewey", "expr": "happy", "text": "A real lift! A parts washer! I might cry. I'm not gonna cry. I'm crying."},
+    {"who": "rosie", "expr": "happy", "text": "Rookie champs, baby! Next stop: the Nationals!"},
+    {"who": "hazel", "expr": "happy", "text": "Don't get cocky. National cars run faster, and the air don't care who you are."}
+  ]},
+
+  "c2_intro": {"lines": [
+    {"who": "walt", "expr": "neutral", "text": "WTPL Sports. The Tinplate team moves up to National racing this season."},
+    {"who": "hazel", "expr": "neutral", "text": "Back in my day we read spark plugs like tea leaves. Tan's good. Black's rich."},
+    {"who": "hazel", "expr": "angry", "text": "White means you're about to buy a piston. Don't make white."},
+    {"who": "hazel", "expr": "neutral", "text": "Research a wideband O2 sensor. It reads the mix live. Don't tell Augie."},
+    {"who": "dewey", "expr": "worried", "text": "He's... not around to tell, Hazel."},
+    {"who": "hazel", "expr": "neutral", "text": "I know, son. I still talk to him. He still doesn't listen."},
+    {"who": "walt", "expr": "happy", "text": "Big ones this year: Thunder Valley, Snowbound, Monsoon Mile, the Half-Mile!"}
+  ]},
+
+  "c2_wideband": {"lines": [
+    {"who": "dewey", "expr": "happy", "text": "The wideband's in! It reads air-fuel ratio. Like, live. Like magic."},
+    {"who": "hazel", "expr": "neutral", "text": "Not magic. Math. About 12.8 to 1 at full throttle, near 14.7 cruising."},
+    {"who": "hazel", "expr": "neutral", "text": "Rich at idle's fine. Lean at wide open is how engines die young."},
+    {"who": "hazel", "expr": "happy", "text": "...Fine. It's a little bit magic."}
+  ]},
+
+  "c2_rosie_offer": {"lines": [
+    {"who": "rosie", "expr": "neutral", "text": "Boss. Got a sec? Preston offered me a seat. Crownwell factory car. Real money."},
+    {"who": "rosie", "expr": "neutral", "text": "Pizza never paid like this. My mom could finally fix her roof."},
+    {"who": "rosie", "expr": "neutral", "text": "So... what do you think?",
+      "choices": [
+        {"t": "Your call, Rosie.", "set": "rosie_trust", "fx": {"fans": 50},
+          "reply": [{"who": "rosie", "expr": "happy", "text": "...Huh. Nobody ever said that to me before. Lemme think on it."}]},
+        {"t": "We need you here.", "set": "rosie_asked", "fx": {"rp": 10},
+          "reply": [{"who": "rosie", "expr": "angry", "text": "Need, huh? ...Okay. That's a good word. Lemme think on it."}]}
+      ]},
+    {"who": "hazel", "expr": "neutral", "text": "Crownwell buys drivers like they buy car lots. Doesn't mean they keep 'em."}
+  ]},
+
+  "c2_title": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "NATIONAL CHAMPIONS! The Feed & Seed crew did it, folks!"},
+    {"who": "rosie", "expr": "happy", "text": "Boss. I told Preston no. I'm a Tinplate driver. Pizza's still on me, though."},
+    {"who": "rosie", "expr": "happy", "if": "rosie_trust", "text": "You let me choose. That's why I'm staying."},
+    {"who": "rosie", "expr": "neutral", "if": "rosie_asked", "text": "You said you needed me. Turns out I needed to hear it."},
+    {"who": "preston", "expr": "angry", "text": "You turned down CROWNWELL? For a feed store?"},
+    {"who": "rosie", "expr": "happy", "text": "It's a garage now. Keep up, haircut."}
+  ]},
+
+  "c2_outro": {"lines": [
+    {"text": "The old Starlite Drive-In. The big screen makes a heck of a billboard."},
+    {"who": "dewey", "expr": "happy", "text": "Six bays. A dyno room. We can watch movies on the screen at night!"},
+    {"who": "hazel", "expr": "neutral", "text": "Continental racing next. Different countries, different air."},
+    {"who": "hazel", "expr": "neutral", "text": "And kid... it's time we talked about fuel injection."},
+    {"who": "dewey", "expr": "happy", "text": "YES!"},
+    {"who": "hazel", "expr": "angry", "text": "Don't 'yes' me. I'm still mad about it."}
+  ]},
+
+  "c3_intro": {"lines": [
+    {"who": "walt", "expr": "neutral", "text": "WTPL World Desk! Which is my desk, turned to face the window."},
+    {"who": "hazel", "expr": "angry", "text": "Fuel injection. Computers telling engines what to drink. Augie'd be sick."},
+    {"who": "dewey", "expr": "neutral", "text": "Augie bought a laptop in 2009, Hazel. I found it under the raccoon nest."},
+    {"who": "hazel", "expr": "angry", "text": "...Traitor."},
+    {"who": "dewey", "expr": "neutral", "text": "EFI is a carb made of numbers. A VE table. Every cell is a little jet."},
+    {"who": "hazel", "expr": "neutral", "text": "Every cell's a jet? ...Huh. Okay. Say more."},
+    {"who": "dewey", "expr": "happy", "text": "Research throttle-body EFI. Then build a machine on it, or convert one."}
+  ]},
+
+  "c3_silas": {"lines": [
+    {"who": "silas", "expr": "neutral", "text": "You're the Tinplate team. Silas Vane. They call me the Silver Fox."},
+    {"who": "silas", "expr": "neutral", "text": "Your driver brakes late. Good. She'll learn to brake later."},
+    {"who": "rosie", "expr": "angry", "text": "Was that a compliment or a threat?"},
+    {"who": "silas", "expr": "happy", "text": "Yes."},
+    {"who": "walt", "expr": "worried", "text": "Silas Vane, folks. Three world titles. Never smiles. Except just now. Brr."}
+  ]},
+
+  "c3_efi": {"lines": [
+    {"who": "hazel", "expr": "neutral", "text": "So this is a VE table. Rows are load, columns are RPM. Each one's a jet."},
+    {"who": "hazel", "expr": "happy", "text": "Rejet only 4,000 RPM at full load and leave idle alone? ...Oh my."},
+    {"who": "dewey", "expr": "happy", "text": "Told you!"},
+    {"who": "hazel", "expr": "angry", "text": "Don't. Gimme the laptop. And coffee. And don't talk to me for an hour."}
+  ]},
+
+  "c3_efi_build": {"lines": [
+    {"who": "dewey", "expr": "happy", "text": "EFI's live! Base map loaded! She fired on the first crank!"},
+    {"who": "hazel", "expr": "happy", "text": "Idles like a sewing machine. Augie, you old goat. You were right."},
+    {"who": "rosie", "expr": "happy", "text": "Does it go faster?"},
+    {"who": "hazel", "expr": "neutral", "text": "It goes smarter. Faster is your job. Go tune the map."}
+  ]},
+
+  "c3_title": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "Live on WTPL: Tinplate mechanic Dewey Brandt! Dewey, what's the secret?"},
+    {"who": "dewey", "expr": "worried", "text": "I, uh. Um. The, uh... secret is..."},
+    {"who": "hazel", "expr": "neutral", "text": "Breathe, son. Talk to him like he's a tractor."},
+    {"who": "dewey", "expr": "neutral", "text": "...It's not magic. It's float height. And honest welds. And Hazel."},
+    {"who": "walt", "expr": "happy", "text": "Float height, folks! Write that down! I'm writing it down!"},
+    {"who": "dewey", "expr": "happy", "text": "I did a radio! I DID A RADIO!"}
+  ]},
+
+  "c3_outro": {"lines": [
+    {"text": "The old Tinplate Can Company. The town made tin cans here for ninety years."},
+    {"text": "Now it makes race machines. Half the town showed up to sweep the floors."},
+    {"who": "barb", "expr": "happy", "text": "Hon, it's beautiful! I brought a casserole! And a camera crew!"},
+    {"who": "hazel", "expr": "happy", "text": "World tier, kid. Crownwell's home turf. Let's go mess it up."}
+  ]},
+
+  "c4_intro": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "Tinplate goes WORLD! Population 1,204. Fans? A whole lot more!"},
+    {"who": "victoria", "expr": "neutral", "text": "Congratulations. You've become expensive. That's why I'm here."},
+    {"who": "victoria", "expr": "neutral", "text": "My final offer. The factory, the team, the name. Everyone has a number.",
+      "choices": [
+        {"t": "Ours is zero.", "set": "refused2", "fx": {"fans": 200},
+          "reply": [{"who": "victoria", "expr": "angry", "text": "Zero. How very small town of you."}]},
+        {"t": "Race us for it.", "set": "challenged", "fx": {"rp": 20},
+          "reply": [{"who": "victoria", "expr": "happy", "text": "A wager? Oh, I like you. Win on the world stage first. Then we'll talk."}]}
+      ]},
+    {"who": "hazel", "expr": "angry", "text": "Same offer, different hat. Forty years of it."},
+    {"who": "hazel", "expr": "neutral", "text": "Win on the world stage, kid. Make them say Tinplate on foreign TV."}
+  ]},
+
+  "c4_world_race": {"lines": [
+    {"who": "preston", "expr": "neutral", "text": "Hey. Shed Kid. ...Your crew actually likes you, huh?"},
+    {"who": "preston", "expr": "neutral", "text": "Mother hired my crew. Mother hired my friends. Mother hired my dog trainer."},
+    {"who": "rosie", "expr": "neutral", "text": "...You okay, haircut?"},
+    {"who": "preston", "expr": "angry", "text": "I'm FINE. Forget I said anything. Crownwells don't lose. Or talk."}
+  ]},
+
+  "c4_world_win": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "A WORLD WIN! Tinplate, Indiana, folks! Look it up! It's on maps now!"},
+    {"who": "silas", "expr": "neutral", "text": "Clean race. You'll want to do that again when it matters."},
+    {"who": "silas", "expr": "happy", "text": "The Crownwell Cup. She's going to ask you. Say yes."}
+  ]},
+
+  "c4_outro": {"lines": [
+    {"who": "victoria", "expr": "neutral", "text": "Very well. The Crownwell Cup. You, me, my best machine, my best driver."},
+    {"who": "victoria", "expr": "happy", "text": "Win, and I'll never make another offer. Lose, and you sell me the factory."},
+    {"who": "hazel", "expr": "angry", "text": "She's betting the factory on one race?"},
+    {"who": "hazel", "expr": "happy", "text": "...Good. Augie lost the Cup in '79 by a nose. We owe him a nose."},
+    {"who": "rosie", "expr": "happy", "text": "I got a nose for this."},
+    {"who": "dewey", "expr": "worried", "text": "That's not how noses work."}
+  ]},
+
+  "fin_intro": {"lines": [
+    {"text": "Cup week. Tinplate closes the schools. The diner names a pie after Rosie."},
+    {"who": "dewey", "expr": "neutral", "text": "Boss. I built something. Hazel helped. Okay, Hazel yelled and I built."},
+    {"who": "dewey", "expr": "happy", "text": "Augie's notes, Hazel's jetting, my welds. We call it the Tinplate Special."},
+    {"who": "midge", "expr": "happy", "if": "midge_joined", "text": "And my cam timing. Victoria never let me try it. Her loss."},
+    {"who": "hazel", "expr": "neutral", "text": "Machines don't win races. People who build machines win races."},
+    {"who": "hazel", "expr": "happy", "text": "Build her up, tune her right, and beat Silas Vane. Simple."},
+    {"who": "silas", "expr": "neutral", "text": "I look forward to it. Truly. Bring everything you have."},
+    {"who": "victoria", "expr": "neutral", "text": "The grid is set. Crownwell Racing has never lost the Cup. Not once."}
+  ]},
+
+  "fin_lost": {"lines": [
+    {"who": "silas", "expr": "neutral", "text": "Close. Closer than anyone in years. Again?"},
+    {"who": "hazel", "expr": "angry", "text": "Again. Rejet, rethink, rerun. We go AGAIN."}
+  ]},
+
+  "fin_outro": {"lines": [
+    {"who": "walt", "expr": "happy", "text": "THEY DID IT! TINPLATE WINS THE CROWNWELL CUP! I'm standing on my desk!"},
+    {"who": "silas", "expr": "happy", "text": "Well driven. Nine years since I lost a race I wanted. Thank you."},
+    {"who": "preston", "expr": "happy", "text": "Mother's furious. Best day of my life. Next year, Shed Kid."},
+    {"who": "victoria", "expr": "angry", "text": "...A deal is a deal. No more offers."},
+    {"who": "victoria", "expr": "neutral", "text": "Augie Moss would have been insufferable about this. Well raced."},
+    {"who": "hazel", "expr": "happy", "text": "We got him his nose, kid. After all these years. We got him his nose."}
+  ]}
+}
