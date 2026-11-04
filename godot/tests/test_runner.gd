@@ -34,6 +34,7 @@ func run(m, name: String) -> void:
 		"net_client": await t_net_client("coop")
 		"vs_host": await t_net_host("versus")
 		"vs_client": await t_net_client("versus")
+		"bake": t_bake()
 		_: print("unknown test ", name); fails = 1
 	done()
 
@@ -168,16 +169,50 @@ func t_shots() -> void:
 	await shot("%02d_garage" % (k + 1))
 	main.lan_screen("coop")
 	await shot("%02d_lan" % (k + 2))
-	# sprite sheet contact print
-	var img := Image.create(SpriteForge.CELL.x * 8, SpriteForge.CELL.y * 6, false, Image.FORMAT_RGBA8)
-	img.fill(Color("#3f8f3a"))
-	var kinds := ["hatch", "rally", "formula", "naked", "sport", "mx"]
+	_contact_sheet("sprites.png")
+
+## Bake the super-deformed vehicle sheets to art/vehicles/*.png (index colours; palette-swapped at runtime).
+func t_bake() -> void:
+	var dir := ProjectSettings.globalize_path("res://art/vehicles")
+	DirAccess.make_dir_recursive_absolute(dir)
+	var only := OS.get_environment("BAKE_ONLY")
+	for k in SpriteForge.KINDS:
+		if only != "" and not only.split(",").has(k): continue
+		var t0 := Time.get_ticks_msec()
+		var img := SpriteForge.bake_vehicle(k)
+		img.save_png(dir.path_join(k + ".png"))
+		print("baked %-9s %5d ms" % [k, Time.get_ticks_msec() - t0])
+	var pdir := ProjectSettings.globalize_path("res://art/props")
+	DirAccess.make_dir_recursive_absolute(pdir)
+	var strip := Image.create(SpriteForge.PCELL.x * SpriteForge.PROPS.size(), SpriteForge.PCELL.y, false, Image.FORMAT_RGBA8)
+	strip.fill(Color("#4a9c42"))
+	for i in SpriteForge.PROPS.size():
+		var pn: String = SpriteForge.PROPS[i]
+		if only != "" and not only.split(",").has(pn) and not only.split(",").has("props"): continue
+		var pimg := SpriteForge.bake_prop(pn)
+		pimg.save_png(pdir.path_join(pn + ".png"))
+		strip.blend_rect(SpriteForge.colorize_sd(pimg, Color.WHITE), Rect2i(Vector2i.ZERO, SpriteForge.PCELL), Vector2i(i * SpriteForge.PCELL.x, 0))
+		print("baked prop %s" % pn)
+	strip.resize(strip.get_width() * 2, strip.get_height() * 2, Image.INTERPOLATE_NEAREST)
+	strip.save_png(shots_dir.path_join("props_sd.png"))
+	_contact_sheet("sprites_sd.png", true)
+
+func _contact_sheet(file: String, from_disk := false) -> void:
+	var cell := SpriteForge.VCELL
+	var kinds := ["hatch", "gt", "rally", "pickup", "formula", "buggy", "sport", "mx", "naked", "kart"]
+	var img := Image.create(cell.x * 9, cell.y * kinds.size(), false, Image.FORMAT_RGBA8)
+	img.fill(Color("#4a9c42"))
 	for row in kinds.size():
-		var sheet := SpriteForge.vehicle_sheet(kinds[row], Color(Data.D.TEAM_COLORS[row])).get_image()
+		var idx: Image
+		var path := ProjectSettings.globalize_path(SpriteForge.vehicle_path(kinds[row]))
+		if from_disk and FileAccess.file_exists(path): idx = Image.load_from_file(path)
+		else: idx = SpriteForge.vehicle_tex(kinds[row]).get_image()
+		var sheet := SpriteForge.colorize_sd(idx, Color(Data.D.TEAM_COLORS[row % Data.D.TEAM_COLORS.size()]))
 		for f in 8:
-			img.blend_rect(sheet, Rect2i(f * 2 * SpriteForge.CELL.x, 0, SpriteForge.CELL.x, SpriteForge.CELL.y), Vector2i(f * SpriteForge.CELL.x, row * SpriteForge.CELL.y))
-	img.resize(img.get_width() * 3, img.get_height() * 3, Image.INTERPOLATE_NEAREST)
-	img.save_png(shots_dir.path_join("sprites.png"))
+			img.blend_rect(sheet, Rect2i(f * 2 * cell.x, 0, cell.x, cell.y), Vector2i(f * cell.x, row * cell.y))
+		img.blend_rect(sheet, Rect2i(2 * cell.x, cell.y, cell.x, cell.y), Vector2i(8 * cell.x, row * cell.y))   # wheelie
+	img.resize(img.get_width() * 2, img.get_height() * 2, Image.INTERPOLATE_NEAREST)
+	img.save_png(shots_dir.path_join(file))
 
 func _secs(t: float) -> void:
 	await get_tree().create_timer(t).timeout

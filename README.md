@@ -57,7 +57,7 @@ Open `godot/project.godot` in Godot 4.7 (Compatibility renderer, portrait 256×5
 
 **Milestone 1 (this version):**
 - **SNES-style race view.** A Mode 7–style perspective floor draws a course painted from the sim's section list. Loops close exactly, rally/hillclimb stages meander, drag strips run straight. The sky and three parallax strips turn with the camera. Trackside props and vehicles are depth-sorted, scaled billboards.
-- **Pre-rendered 16-bit sprites.** Voxel models of every body kind are rendered at 16 angles with a fixed light and a 4-shade hue-shifted ramp plus outline. Each team gets a palette swap, and colors are snapped to the SNES 15-bit color space.
+- **Penny Racers / Choro-Q style sprites at SNES detail.** Every body kind is a super-deformed toy car or chibi bike: squeezed body, bubble cabin, bigger rear tyres, headlight "eyes", race-number roundel and a coin slot in the tail. They are built from signed-distance primitives and pre-rendered at 16 angles with smooth glossy shading, light dithering and an outline, plus a coin-wheelie pose for sparks and drag launches. Sheets are baked to `godot/art/` (`--test=bake`) and palette-swapped per team on the GPU. Colours are snapped to the SNES 15-bit space.
 - **Shared content.** `node web/tools/export_godot.js` dumps the web build's data to `godot/data/game_data.json` and writes parity fixtures. The race sim, track generator and vehicle/driver profiles are ported to GDScript. The RNG and hash are bit-exact, so the same race id gives the same track in both builds.
 - **Quick race** with any preset machine, or with the machines from your web career: in the web game export the save, then paste the `GG1:` code into Garage → Import. Odds against the field are shown per race.
 - **LAN multiplayer** for phones on the same Wi-Fi. The host is authoritative: it runs the sim and streams snapshots at 15 Hz, and clients send race calls (Safe/Normal/Push, Spark, Retire) for their own entry. Hosts are found automatically through a UDP broadcast beacon, with manual IP join as a fallback.
@@ -65,12 +65,15 @@ Open `godot/project.godot` in Godot 4.7 (Compatibility renderer, portrait 256×5
   - **Versus:** each player races for their own team in a circuit race (AI field optional), a head-to-head drag run, or a hillclimb time trial.
 - **Android:** `export_presets.cfg` sets the INTERNET, ACCESS_NETWORK_STATE, ACCESS_WIFI_STATE and CHANGE_WIFI_MULTICAST_STATE permissions. Godot's `PacketPeerUDP` docs note that some Android devices need the multicast permission to receive broadcast packets.
 
+**Android APKs:** `tools/godot-android/build-apk.sh godot` (see `tools/godot-android/README.md`). The GitHub Actions workflow builds an APK on every push to `main`.
+
 **Not yet in the port:** engines race crew-tuned (ideal fueling), heats and the 8-car drag ladder, the management career, the carb/EFI/sync/dyno benches, and the shared co-op and versus careers. Those are milestones 2 and 3.
 
 Godot tests (run from `godot/`; the rendered ones need a display, e.g. `xvfb-run`):
 
 ```bash
 godot --headless --path . -- --test=sim       # web parity (RNG, tracks, profiles) + race batches, co-op scoring, drag/hill
+godot --headless --path . -- --test=bake      # re-bake vehicle/prop sprite sheets into art/
 godot --path . -- --test=shots                # screenshots of menus and races to tests/shots/
 godot --path . -- --test=net_host &           # two-process LAN co-op race over 127.0.0.1 ...
 godot --path . -- --test=net_client           # ... (vs_host / vs_client for a versus drag duel)

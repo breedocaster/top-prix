@@ -5,7 +5,7 @@ extends Node2D
 
 var rv: RaceView
 var props := []        # [world Vector2, ImageTexture, scale]
-var sheets := {}       # ent idx -> ImageTexture
+var sheets := {}       # ent idx -> indexed Texture2D (palette-swapped on the GPU)
 var shadow := Color(0.05, 0.03, 0.12, 0.45)
 var rain := false
 var t := 0.0
@@ -27,7 +27,7 @@ func place_props(geo: TrackGeo, theme: Dictionary, seed: int, env: String) -> vo
 		var w := geo.pts[i] + nrm * side * d
 		if _clear(geo, w, W * 0.5 + 16):
 			var k: String = kinds[rng.randi() % kinds.size()]
-			props.append([w, SpriteForge.prop_texture(k), 2.2 if k in ["pine", "snowpine", "oak", "palm", "cactus"] else 1.6])
+			props.append([w, SpriteForge.prop_texture(k), {"pine": 1.4, "snowpine": 1.4, "oak": 1.4, "palm": 1.4, "cactus": 1.7, "rock": 1.2}.get(k, 1.0)])
 		i += rng.randi_range(9, 22)
 	# grandstands around the start in stadium-like settings
 	if env in ["stadium", "night", "rain"] and not geo.tr.drag:
@@ -75,31 +75,35 @@ func _draw() -> void:
 		var sz := Vector2(tex.get_width(), tex.get_height()) * s
 		if q.x + sz.x * 0.5 < -4 or q.x - sz.x * 0.5 > rv.VIEW.x + 4: continue
 		items.append([q.z, tex, Rect2(0, 0, tex.get_width(), tex.get_height()), Rect2(Vector2(q.x - sz.x * 0.5, q.y - sz.y + 2 * s).round(), sz.round()), false, 0.0])
-	var cell := Vector2(SpriteForge.CELL)
+	var cell := Vector2(SpriteForge.VCELL)
 	for e in rv.ents:
 		if e.get("dnf", false) and not e.get("crash_show", false) and e.get("retired", false): continue
 		var smp: Dictionary = rv.geo.sample(e.rprog, e.rlane)
 		var q := project(smp.pos)
 		if q.z <= 0 or q.z > far: continue
-		var s: float = rv.FOCAL / q.z
+		var s: float = rv.FOCAL / q.z * SpriteForge.WORLD_PER_PX
 		var rel := wrapf(smp.ang - rv.cam_ang + e.get("wob", 0.0), -PI, PI)
 		var fr := posmod(int(round(rel / (TAU / SpriteForge.FRAMES))), SpriteForge.FRAMES)
-		var tex: ImageTexture = sheets.get(int(e.idx))
+		var tex: Texture2D = sheets.get(int(e.idx))
 		if tex == null: continue
 		var air: float = e.get("air", 0.0)
-		var lift := sin(clampf(air, 0, 1) * PI) * 14.0 * s if air > 0 else 0.0
+		var lift := sin(clampf(air, 0, 1) * PI) * 22.0 * s if air > 0 else 0.0
 		var bounce := 1.0 if (e.get("crash", 0.0) > 0 and int(t * 20) % 2 == 0) else 0.0
+		# Penny Racers coin-wheelie: sparks and drag launches pop the nose up
+		var pose := 1 if (e.get("boost", 0.0) > 0 or (rv.tr.drag and rv.race_t < rv.sim_tree() + 0.9 and rv.race_t > 0.0)) else 0
 		var sz := cell * s
-		var pos := Vector2(q.x - SpriteForge.CELL.x * 0.5 * s, q.y - (SpriteForge.CELL.y - 4) * s - lift - bounce * s)
-		items.append([q.z - 0.01, tex, Rect2(fr * cell.x, 0, cell.x, cell.y), Rect2(pos.round(), sz.round()), true, lift, q, s, e])
+		var pos := Vector2(q.x - SpriteForge.VCELL.x * 0.5 * s, q.y - (SpriteForge.VCELL.y - 5) * s - lift - bounce * s)
+		items.append([q.z - 0.01, tex, Rect2(fr * cell.x, pose * cell.y, cell.x, cell.y), Rect2(pos.round(), sz.round()), true, lift, q, s, e])
 	items.sort_custom(func(a, b): return a[0] > b[0])
 	for it in items:
 		if it[4]:
 			var q2: Vector3 = it[6]
 			var s2: float = it[7]
-			var sw := 18.0 * s2
-			draw_rect(Rect2(Vector2(q2.x - sw * 0.5, q2.y - 2.0 * s2).round(), Vector2(sw, max(1.0, 3.0 * s2)).round()), shadow)
-		draw_texture_rect_region(it[1], it[3], it[2])
+			var sw := 28.0 * s2
+			draw_rect(Rect2(Vector2(q2.x - sw * 0.5, q2.y - 3.0 * s2).round(), Vector2(sw, max(1.0, 5.0 * s2)).round()), shadow)
+			draw_texture_rect_region(it[1], it[3], it[2], SpriteForge.row_color(int(it[8].idx)))
+		else:
+			draw_texture_rect_region(it[1], it[3], it[2])
 		if it[4]:
 			var e2: Dictionary = it[8]
 			if e2.get("boost", 0.0) > 0 and int(t * 12) % 2 == 0:

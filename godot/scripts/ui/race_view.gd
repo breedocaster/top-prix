@@ -9,8 +9,8 @@ signal finished(result: Dictionary)
 const VIEW := Vector2(256, 224)
 const HORIZON := 70.0
 const FOCAL := 128.0
-const CAM_H := 46.0
-const CAM_DIST := 78.0
+const CAM_H := 40.0
+const CAM_DIST := 66.0
 const FOG_FAR := 1100.0
 const SNAP_HZ := 15.0
 
@@ -124,8 +124,15 @@ func _build(rain: bool) -> void:
 	layer.rain = rain
 	layer.place_props(geo, theme, URng.fnv(def.id) & 0xFFFF, env)
 	screen.add_child(layer)
+	var cols := []
 	for e in ents:
-		layer.sheets[int(e.idx)] = SpriteForge.vehicle_sheet(e.kind, Color(e.col))
+		layer.sheets[int(e.idx)] = SpriteForge.vehicle_tex(e.kind)
+		cols.append(Color(e.col))
+	var pm := ShaderMaterial.new()
+	pm.shader = load("res://shaders/palette_swap.gdshader")
+	pm.set_shader_parameter("palette", SpriteForge.palette(cols))
+	layer.material = pm
+	for e in ents:
 		e.rprog = float(e.prog)
 		e.rlane = _lane_off(e)
 	# HUD over the game screen
@@ -337,6 +344,9 @@ func _process(delta: float) -> void:
 				e.prog_x = e.prog + e.v * min(e.snap_age, 0.25)
 	_update_render(delta)
 	_update_hud()
+
+func sim_tree() -> float:
+	return sim.tree if sim else (1.8 if tr.drag else 0.0)
 
 func _lane_off(e: Dictionary) -> float:
 	if tr.drag: return -0.9 if int(e.lane) % 2 == 0 else 0.9

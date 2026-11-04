@@ -1,0 +1,73 @@
+# Builds Android APKs for a Godot project with tools/godot-android (no Android Studio, no Gradle).
+# - In this repo: runs on pushes to main that touch the game, on v* tags (APKs attached to the release),
+#   and on demand (Actions tab > Android APK > Run workflow). APKs land in the run's "apk" artifact.
+# - From any other repo: call it as a reusable workflow:
+#     jobs:
+#       apk:
+#         uses: breedocaster/top-prix/.github/workflows/godot-android.yml@main
+#         with: { project: ".", apk_name: "TrestleRun" }
+#         secrets: inherit        # optional: ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD / ANDROID_KEY_ALIAS
+name: Android APK
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+    paths: ["godot/**", "tools/godot-android/**", ".github/workflows/godot-android.yml"]
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      project: { type: string, default: "." }
+      apk_name: { type: string, default: "game" }
+      godot_version: { type: string, default: "" }
+      kit_repo: { type: string, default: "breedocaster/top-prix" }
+      kit_ref: { type: string, default: "main" }
+    secrets:
+      ANDROID_KEYSTORE_B64: { required: false }
+      ANDROID_KEYSTORE_PASSWORD: { required: false }
+      ANDROID_KEY_ALIAS: { required: false }
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-24.04
+    env:
+      PROJECT: ${{ inputs.project || 'godot' }}
+      APK: ${{ inputs.apk_name || 'TopPrix' }}
+      GODOT_VERSION: ${{ inputs.godot_version }}
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_B64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.kit_repo || 'breedocaster/top-prix' }}
+          ref: ${{ inputs.kit_ref || 'main' }}
+          path: .godot-android-kit
+          sparse-checkout: tools/godot-android
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/godot-android
+          key: godot-android-${{ runner.os }}-${{ inputs.godot_version || 'auto' }}-v1
+      - name: Debug APK
+        run: bash .godot-android-kit/tools/godot-android/build-apk.sh "$PROJECT" debug "dist/$APK-debug.apk"
+      - name: Release APK (signed with your upload key, if configured)
+        if: env.HAS_KEY == 'true'
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          GODOT_ANDROID_KEYSTORE_RELEASE_USER: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          echo "$KS_B64" | base64 -d > "$RUNNER_TEMP/release.keystore"
+          export GODOT_ANDROID_KEYSTORE_RELEASE_PATH="$RUNNER_TEMP/release.keystore"
+          bash .godot-android-kit/tools/godot-android/build-apk.sh "$PROJECT" release "dist/$APK-release.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: dist/*.apk
+      - name: Attach to the GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/*.apk
