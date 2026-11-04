@@ -34,7 +34,7 @@ const TERRS := ["on", "off", "wet", "ice"]
 const SPARK_N := {"b": "Bronze", "s": "Silver", "g": "Gold"}
 const SPARK_MUL := {"b": 1.5, "s": 2.0, "g": 3.0}
 const FF := [1, .75, .6, .45, .38, .32, .28, .24, .2, .18, .16, .15]
-const RIVAL_N := [0, 5, 7, 9, 11, 11]
+const RIVAL_N := [0, 5, 7, 10, 13, 15]   # bigger grids as you climb the tiers
 const EVENT_W := [3, 3, 2, 2, 1, 2, 2, 1, 2, 1, 1]
 
 func _init() -> void:
@@ -102,6 +102,10 @@ func say(t: String) -> void:
 	addLog(t)
 	toast.emit(t)
 func bays() -> int: return int(ws().teams) + 1
+## Team size grows with the workshop and, within it, with fame: +1 mechanic per fan rank (max +4),
+## +1 driver at ranks 2 and 4.
+func drvCap() -> int: return int(ws().teams) + 1 + (1 if fanRank() >= 2 else 0) + (1 if fanRank() >= 4 else 0)
+func mechCap() -> int: return int(ws().mech) + mini(4, fanRank())
 func titlesIn(tier = null, disc = null) -> int:
 	var n := 0
 	for t in G.st.titles:
@@ -435,8 +439,8 @@ func hire(cid) -> bool:
 		if x.id == cid: c = x; break
 	if c == null: return false
 	var W := ws()
-	if c.role == "drv" and drivers().size() >= int(W.teams) + 1: toast.emit("Driver limit (%d) — upgrade workshop" % (int(W.teams) + 1)); return false
-	if c.role == "mec" and mechs().size() >= int(W.mech): toast.emit("Mechanic limit (%d) — upgrade workshop" % int(W.mech)); return false
+	if c.role == "drv" and drivers().size() >= drvCap(): toast.emit("Driver limit (%d) — grow your fame or workshop" % drvCap()); return false
+	if c.role == "mec" and mechs().size() >= mechCap(): toast.emit("Mechanic limit (%d) — grow your fame or workshop" % mechCap()); return false
 	var fee: float = float(c.salary) * 3
 	if G.money < fee: toast.emit("Not enough money"); return false
 	G.money -= fee

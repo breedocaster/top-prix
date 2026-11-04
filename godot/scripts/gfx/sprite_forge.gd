@@ -205,7 +205,7 @@ static func colorize(idx: Image, team: Color) -> Image:
 
 # ---------------- super-deformed vehicles (Penny Racers style) ----------------
 const VCELL := Vector2i(48, 48)
-const WORLD_PER_PX := 0.58      # sprite px -> world px (keeps the footprint inside a lane)
+const WORLD_PER_PX := 0.5       # sprite px -> world px (a car fills ~3/4 of a 26 px lane)
 const LEVELS := 8                # 0..5 lit ramp, 6 = specular glint, 7 spare
 const GLOSSY := [M.BODY, M.ACCENT, M.GLASS, M.HELMET, M.LIGHT, M.METAL, M.RED, M.PLATE]
 const KINDS := ["hatch", "sedan", "kart", "roadster", "coupe", "gt", "super", "formula", "proto", "pickup", "truck", "rally",

@@ -137,7 +137,8 @@ func t_sim() -> void:
 		if rr.is_empty(): continue
 		for def3 in rr.slice(0, 3):
 			var g := TrackGeo.build(RaceSim.build_track(def3, false), def3.id)
-			ok(g.bbox.size.x <= TrackGeo.MAX_TEX and g.bbox.size.y <= TrackGeo.MAX_TEX, "%s texture %s" % [def3.id, g.bbox.size])
+			var tx: Vector2 = g.bbox.size / g.tex_scale
+			ok(tx.x <= TrackGeo.MAX_TEX and tx.y <= TrackGeo.MAX_TEX and tx.x * tx.y <= TrackGeo.MAX_TEXELS + 1.0, "%s texture %s" % [def3.id, tx])
 			if g.closed: ok(g.pts[0].distance_to(g.pts[g.pts.size() - 1]) < 0.01, "%s closes" % def3.id)
 
 # ---------------- screenshots ----------------

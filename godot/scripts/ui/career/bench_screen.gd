@@ -125,14 +125,18 @@ func _veh_line(b: VBoxContainer) -> void:
 	var fuel := "Electric"
 	if e != null and e.fuel == "efi": fuel = "EFI  %d CYL" % cyl
 	elif e != null and e.fuel == "carb": fuel = "%s x%d" % [str(Data.D.CARBS[e.carb].n).split(" (")[0], Tune.nCarbs(v)]
-	var v2 := SK.card(b)
+	var v2 := SK.card(b, "" if _ready_ok() else "warn", 1)
 	var h := UIKit.hbox(4)
 	h.add_child(SK.big(v.name, Color.WHITE))
 	if not _ready_ok(): h.add_child(SK.tag(str(v.status).to_upper(), SK.BD))
+	if e != null and e.fuel != "none":
+		var ec := float(e.cond)
+		var el := SK.small("ENG %d%%" % int(roundf(ec * 100)), SK.GD if ec >= 0.7 else (SK.HL if ec >= 0.4 else SK.BD), false)
+		el.size_flags_horizontal = Control.SIZE_SHRINK_END
+		el.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(el)
 	v2.add_child(h)
-	var line := fuel
-	if e != null and e.fuel != "none": line += "  ENG %d%%" % int(roundf(float(e.cond) * 100))
-	v2.add_child(SK.small(line, SK.SUB))
+	v2.add_child(SK.small(fuel, SK.SUB))
 	if not _ready_ok(): v2.add_child(SK.small("Vehicle must be Ready to change the tune.", SK.BD))
 
 func _cond_line(c: Dictionary) -> String:
@@ -144,11 +148,8 @@ func _cond_line(c: Dictionary) -> String:
 	return s
 
 func _cond_chips(b: VBoxContainer, label := "TUNING FOR") -> void:
-	var v2 := SK.card(b, "note")
+	var v2 := SK.group(b, label)
 	var h := UIKit.hbox(2)
-	var l := SK.small(label, SK.SUB, false)
-	l.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	v2.add_child(l)
 	h.add_child(SK.act(SK.chip("SHOP", cond_race == "" and cond_tag == "", _cond_shop), "cond:shop"))
 	if cond_tag == "test":
 		h.add_child(SK.act(SK.chip(str(cond.get("name", "Test")), true, func(): pass), "cond:test"))
@@ -183,7 +184,9 @@ func _cond_picked(id) -> void:
 
 ## Stepper registered for in-place updates.
 func _step(b: Control, key: String, label: String, value: String, desc: String, cb: Callable, dis := false, light := false) -> Control:
-	var st := SK.stepper(label, value, desc, cb, dis, light)
+	var bare: bool = not light and b.has_meta("group")
+	if bare and b.get_child_count() > 0: b.add_child(UIKit.rule())
+	var st := SK.stepper(label, value, desc, cb, dis, light, bare)
 	SK.act(st.get_meta("minus"), "dec:" + key)
 	SK.act(st.get_meta("plus"), "inc:" + key)
 	vals[key] = st.get_meta("value")
@@ -192,7 +195,7 @@ func _step(b: Control, key: String, label: String, value: String, desc: String, 
 
 # ---------------- zone table + symptoms ----------------
 func _zone_card(b: VBoxContainer, wb: bool) -> void:
-	var c := SK.card(b)
+	var c := SK.group(b, "Mixture", "WIDEBAND AFR" if wb else "NO WIDEBAND")
 	var zt := ZoneTable.new(ev.lam, ev.kd, wb)
 	c.add_child(zt)
 	zone_tab = zt
@@ -202,7 +205,8 @@ func _zone_card(b: VBoxContainer, wb: bool) -> void:
 			c.add_child(SK.small("No wideband - read plugs and symptoms. (Tech: Wideband O2)", SK.DIM))
 			plug_lbl = SK.small("", SK.HL)
 			c.add_child(plug_lbl)
-	symp_lbl = SK.small("", Color.WHITE)
+	c.add_child(UIKit.rule())
+	symp_lbl = SK.small("", Color("#e8ecf8"))
 	c.add_child(symp_lbl)
 	_update_live()
 
@@ -243,26 +247,25 @@ func _refresh_vals() -> void:
 		if vals.has("set:" + k): vals["set:" + k].text = _set_val(k)
 
 func _log_card(b: VBoxContainer, lg: Dictionary) -> void:
-	b.add_child(SK.section("Last datalog"))
-	var c := SK.card(b)
-	c.add_child(SK.small("%s - %s" % [lg.src, Career.dateStr(int(lg.d))], SK.HL))
+	var c := SK.group(b, "Last datalog", SK.ascii(Career.dateStr(int(lg.d))).to_upper())
+	c.add_child(SK.small(str(lg.src), SK.HL))
 	c.add_child(SK.small(str(lg.cond), SK.DIM))
 	c.add_child(ZoneTable.new(lg.lam, lg.kd, bool(lg.get("wb", false))))
 	if float(lg.get("imb", 0)) > 1.2: c.add_child(SK.small("Carbs out of sync at the time", SK.HL))
 
 func _fuel_chips(b: VBoxContainer) -> void:
 	var e: Dictionary = v.eng
+	var g := SK.group(b, "Fuel")
 	var h := UIKit.hbox(2)
-	var l := SK.small("FUEL", SK.SUB, false)
-	l.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	h.add_child(l)
 	for k in Data.D.FUELS:
 		var F: Dictionary = Data.D.FUELS[k]
 		var ok: bool = not F.get("tech") or Tune.has(F.tech)
-		h.add_child(SK.act(SK.chip(str(F.n).to_upper(), str(e.get("fuelT", "pump")) == k, _fuel.bind(k), not ok), "fuel:" + k))
-	b.add_child(h)
+		var fc := SK.act(SK.chip(str(F.n).to_upper(), str(e.get("fuelT", "pump")) == k, _fuel.bind(k), not ok), "fuel:" + k)
+		fc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(fc)
+	g.add_child(h)
 	if str(e.get("fuelT", "pump")) == "e85":
-		b.add_child(SK.small("E85 needs ~32% more fuel. Jet up a lot!" if e.fuel == "carb" else ("Flex sensor adjusts the EFI automatically." if Tune.has("e85") else ""), SK.HL))
+		g.add_child(SK.small("E85 needs ~32% more fuel. Jet up a lot!" if e.fuel == "carb" else ("Flex sensor adjusts the EFI automatically." if Tune.has("e85") else ""), SK.HL))
 
 func _fuel(k: String) -> void:
 	Career.setFuelT(vid, k)
@@ -337,6 +340,7 @@ func _fill_carb(b: VBoxContainer) -> void:
 	var wb := Tune.has("wideband")
 	var n := Tune.nCarbs(v)
 	_cond_chips(b)
+	b.add_child(CareerKit.sec("FLOW BENCH"))
 	var cv := CarbView.new(self)
 	b.add_child(cv)
 	canvases.append(cv)
@@ -353,22 +357,25 @@ func _fill_carb(b: VBoxContainer) -> void:
 	canvases.append(ch.marker)
 	_zone_card(b, wb)
 	_fuel_chips(b)
-	b.add_child(SK.section("%s%s" % [str(C_.n).split(" (")[0], (" x%d" % n) if n > 1 else ""]))
 	var std := Tune.mode() == "standard"
+	var jg := SK.group(b, "%s%s" % [str(C_.n).split(" (")[0], (" x%d" % n) if n > 1 else ""], "JETS", "", 4)
+	jg.set_meta("group", true)
 	for p in C_.p:
 		if std and not Tune.STD_KEYS.has(str(p.k)): continue
-		_step(b, "jet:" + p.k, p.n, _jet_val(p), str(p.get("d", "")), _jet.bind(p.k), not _ready_ok())
+		_step(jg, "jet:" + p.k, p.n, _jet_val(p), str(p.get("d", "")), _jet.bind(p.k), not _ready_ok())
 	var tdesc := "Base timing vs. stock" if Tune.mode() == "sim" else "More advance = more power until it knocks. Hot days and pump gas knock sooner."
 	if not std:
-		_step(b, "timing", "Ignition advance", "%s%d" % ["+" if int(e.timing) > 0 else "", int(e.timing)], tdesc, _timing, not _ready_ok())
+		_step(jg, "timing", "Ignition advance", "%s%d" % ["+" if int(e.timing) > 0 else "", int(e.timing)], tdesc, _timing, not _ready_ok())
 	else:
-		b.add_child(SK.small("Standard: float, pump, power valve and timing are crew-set. Go too far and the crew resets it to a safe tune before the race.", SK.DIM))
+		jg.add_child(UIKit.rule())
+		jg.add_child(SK.small("Standard: float, pump, power valve and timing are crew-set. Go too far and the crew resets it to a safe tune before the race.", SK.DIM))
 		var why := Tune.danger(v, cond)
-		if why != "": b.add_child(SK.small("CREW LIMIT: %s - they'll reset this before racing." % why, SK.RED))
-	_crew_row(b, "RESET TO STOCK", _stock_jets, "stock")
+		if why != "":
+			var wc := SK.card(jg, "warn")
+			wc.add_child(SK.small("CREW LIMIT: %s - they'll reset this before racing." % why, SK.BD))
 	if n > 1:
-		var sh := SK.small("%d carbs to balance - see the SYNC tab." % n, SK.HL)
-		b.add_child(sh)
+		jg.add_child(SK.small("%d carbs to balance - see the SYNC tab." % n, SK.HL))
+	_crew_row(b, "RESET TO STOCK", _stock_jets, "stock")
 	if e.get("log") != null: _log_card(b, e.log)
 
 func _jet_val(p: Dictionary) -> String:
@@ -378,14 +385,15 @@ func _jet_val(p: Dictionary) -> String:
 	return s + SK.ascii(str(p.get("u", "")))
 
 func _crew_row(b: VBoxContainer, reset_label: String, reset_cb: Callable, reset_act: String) -> void:
+	var g := SK.group(b, "Crew")
 	if Tune.mode() == "standard" and Tune.has("crewchief"):
 		var cb := SK.act(SK.btn("CREW TUNE (%s)" % SK.money(Tune.crewCost()), _crew_tune, SK.GREEN, true, float(Career.G.money) < Tune.crewCost() or not _ready_ok()), "crew")
-		b.add_child(cb)
-	b.add_child(SK.act(SK.btn(reset_label, reset_cb, SK.GREY, true, not _ready_ok()), reset_act))
+		g.add_child(cb)
+	g.add_child(SK.act(SK.btn(reset_label, reset_cb, SK.GREY, true, not _ready_ok()), reset_act))
 	if Tune.mode() == "standard" and not Tune.has("crewchief"):
-		b.add_child(SK.small("Tech: Crew Chief Program lets the crew tune it for a fee.", SK.DIM))
+		g.add_child(SK.small("Tech: Crew Chief Program lets the crew tune it for a fee.", SK.DIM))
 	elif Tune.mode() == "easy":
-		b.add_child(SK.small("Easy mode: the crew re-tunes before every race.", SK.GD))
+		g.add_child(SK.small("Easy mode: the crew re-tunes before every race.", SK.GD))
 
 func _jet(dir: int, k: String) -> void:
 	Career.adjJet(vid, k, dir)
@@ -409,7 +417,7 @@ func _crew_tune() -> void:
 func _sweep() -> void:
 	bs.sweep = not bs.sweep
 	var b := SK.find_act(body, "sweep")
-	if b: b.add_theme_stylebox_override("normal", UIKit.sb(SK.GREEN if bs.sweep else UIKit.BTN, UIKit.BG, 2, 4))
+	if b: UIKit.style_btn(b, SK.GREEN if bs.sweep else UIKit.BTN, [3, 4, 3, 4])
 
 func _snap() -> void: BG.snap(bs)
 
@@ -505,35 +513,36 @@ func sel_cells() -> Array:
 		out.append([int(p[0]), int(p[1])])
 	return out
 
+## Laptop (light screen) button: bevelled light-grey face, white + blue ink when selected.
 func _lbtn(text: String, cb: Callable, act: String, on := false, dis := false) -> Button:
 	var b := UIKit.btn(text, cb)
 	b.add_theme_font_override("font", UIKit.font8)
 	b.add_theme_font_size_override("font_size", 8)
-	var face := Color("#ffffff") if on else Color("#d5dae2")
-	var edge := Color("#1f4e8f") if on else Color("#8a93a3")
-	for k in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
-		var c := face
-		if k == "hover": c = face.lightened(0.3)
-		elif k.begins_with("pressed") or k == "hover_pressed": c = face.darkened(0.15)
-		elif k == "disabled": c = Color("#b0b6c0")
-		var st := UIKit.sb(c, edge, 1, 3)
-		st.content_margin_left = 1; st.content_margin_right = 1
-		b.add_theme_stylebox_override(k, st)
+	UIKit.style_btn(b, Color("#ffffff") if on else Color("#c8ced8"), [1, 4, 1, 3], true)
 	for c2 in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
 		b.add_theme_color_override(c2, Color("#1f4e8f") if on else Color("#111111"))
+	b.add_theme_color_override("font_shadow_color", SK.NO_SHADOW)
 	b.add_theme_color_override("font_disabled_color", Color("#6a7080"))
 	b.disabled = dis
 	b.custom_minimum_size = Vector2(0, 18)
 	SK.act(b, act)
 	return b
 
+## Dark ink, no shadow (labels on the laptop's light screen).
+static func _ink(l: Label) -> Label:
+	l.add_theme_color_override("font_shadow_color", SK.NO_SHADOW)
+	return l
+
 func _fill_efi(b: VBoxContainer) -> void:
 	var e: Dictionary = v.eng
 	var f: Dictionary = e.efi
 	_cond_chips(b)
 	# laptop
+	b.add_child(CareerKit.sec("ECU LAPTOP"))
 	var lap := PanelContainer.new()
-	lap.add_theme_stylebox_override("panel", UIKit.sb(Color("#2b2f3a"), Color("#0b0d12"), 3, 4))
+	var bezel: StyleBoxTexture = UIKit.frame_tint(Color("#3a404e"), "card").duplicate()
+	bezel.content_margin_left = 4; bezel.content_margin_right = 4; bezel.content_margin_top = 4; bezel.content_margin_bottom = 3
+	lap.add_theme_stylebox_override("panel", bezel)
 	b.add_child(lap)
 	var lv := UIKit.vbox(0)
 	lap.add_child(lv)
@@ -541,8 +550,8 @@ func _fill_efi(b: VBoxContainer) -> void:
 	scr.add_theme_stylebox_override("panel", UIKit.sb(Color("#eef1f5"), Color("#000000"), 2, 2))
 	lv.add_child(scr)
 	var base := ColorRect.new()
-	base.color = Color("#4a505e")
-	base.custom_minimum_size = Vector2(0, 5)
+	base.color = Color("#5a6070")
+	base.custom_minimum_size = Vector2(0, 3)
 	lv.add_child(base)
 	var sv := UIKit.vbox(3)
 	scr.add_child(sv)
@@ -553,8 +562,8 @@ func _fill_efi(b: VBoxContainer) -> void:
 	if Tune.has("iat"): extra += "+IAT"
 	if Tune.has("knock"): extra += "+KNK"
 	var th := UIKit.hbox(2)
-	th.add_child(SK.small("TUNERSTUDIO-ISH", Color.WHITE, false))
-	var tl := SK.small(load_s + extra, Color("#bcd4ff"), false)
+	th.add_child(_ink(SK.small("TUNERSTUDIO-ISH", Color.WHITE, false)))
+	var tl := _ink(SK.small(load_s + extra, Color("#bcd4ff"), false))
 	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	th.add_child(tl)
 	top.add_child(th)
@@ -587,23 +596,23 @@ func _fill_efi(b: VBoxContainer) -> void:
 		else: r3.free()
 		var hp := PanelContainer.new()
 		hp.add_theme_stylebox_override("panel", UIKit.sb(Color("#fffbe0"), Color("#c9b36a"), 1, 3))
-		hint_lbl = SK.small("", Color("#222222"))
+		hint_lbl = _ink(SK.small("", Color("#222222")))
 		hp.add_child(hint_lbl)
 		sv.add_child(hp)
 	elif etab == "log":
 		if e.get("log") != null:
 			var lg2: Dictionary = e.log
-			sv.add_child(SK.small("%s - %s" % [lg2.src, Career.dateStr(int(lg2.d))], Color("#1f4e8f")))
+			sv.add_child(_ink(SK.small("%s - %s" % [lg2.src, Career.dateStr(int(lg2.d))], Color("#1f4e8f"))))
 			sv.add_child(ZoneTable.new(lg2.lam, lg2.kd, bool(lg2.get("wb", false))))
-			sv.add_child(SK.small("Cells logged: %s" % ("yes - VE Analyze can use it" if lg2.get("cells") != null else "no"), Color("#334466")))
+			sv.add_child(_ink(SK.small("Cells logged: %s" % ("yes - VE Analyze can use it" if lg2.get("cells") != null else "no"), Color("#334466"))))
 		else:
-			sv.add_child(SK.small("No datalog yet. Run a dyno pull or a test day.", Color("#334466")))
+			sv.add_child(_ink(SK.small("No datalog yet. Run a dyno pull or a test day.", Color("#334466"))))
 		sv.add_child(_lbtn("GO TO DYNO", _set_tab.bind("dyno"), "goto:dyno"))
 	else:
 		_step(sv, "ae", "Accel enrichment (TPSdot)", "%d%%" % int(f.ae), "Extra fuel on throttle snaps - fixes the bog off hairpins", _ae, false, true)
 		var info := "LOAD: %s\nIAT: %s\nKNOCK CONTROL: %s\nLAUNCH: %s" % ["MAP (baro corrected)" if Tune.has("mapsens") else "TPS - goes rich at altitude",
 			"on" if Tune.has("iat") else "not fitted", "on" if Tune.has("knock") else "not fitted", "2-step armed" if Tune.has("launch") else "-"]
-		sv.add_child(SK.small(info, Color("#334466")))
+		sv.add_child(_ink(SK.small(info, Color("#334466"))))
 	_zone_card(b, true)
 	_fuel_chips(b)
 	_crew_row(b, "RELOAD THE BASE MAP", _ask_base, "base")
@@ -715,14 +724,16 @@ func _fill_sync(b: VBoxContainer) -> void:
 	var n: int = e.sync.size()
 	var bi := Tune.syncBase(n)
 	var g := Tune.has("syncgauge")
-	b.add_child(SK.section("%s sync (%d)" % ["Throttle-body" if e.fuel == "efi" else "Carb", n]))
+	var sg := SK.group(b, "%s sync (%d)" % ["Throttle-body" if e.fuel == "efi" else "Carb", n], "GAUGES" if g else "BY EAR")
 	var sv := SyncView.new(self)
-	b.add_child(sv)
+	sg.add_child(sv)
 	canvases.append(sv)
-	b.add_child(SK.small("Match every column to the base carb. Sync drifts as you race." if g else "Without gauges you adjust by ear - coarse steps and no readout. (Tech: Vacuum Sync Gauges)", SK.SUB))
+	sg.add_child(SK.small("Match every column to the base carb. Sync drifts as you race." if g else "Without gauges you adjust by ear - coarse steps and no readout. (Tech: Vacuum Sync Gauges)", SK.SUB))
+	var sc := SK.group(b, "Sync screws", "BASE #%d" % (bi + 1), "", 4)
+	sc.set_meta("group", true)
 	for i in n:
 		if i == bi: continue
-		_step(b, "sync:%d" % i, "#%d sync screw" % (i + 1), _sync_val(i), "", _sync.bind(i), not _ready_ok())
+		_step(sc, "sync:%d" % i, "#%d sync screw" % (i + 1), _sync_val(i), "", _sync.bind(i), not _ready_ok())
 	_zone_card(b, Tune.has("wideband"))
 
 func _sync(dir: int, i: int) -> void:
@@ -753,8 +764,9 @@ func _fill_dyno(b: VBoxContainer) -> void:
 		SK.note(b, "Electric motor - nothing to log on the dyno.", SK.HL)
 		return
 	_cond_chips(b, "PULL CONDITIONS")
+	var dg := SK.group(b, "Dyno cell", "LV%d" % Career.facLv("dyno"))
 	var dv := DynoView.new(self)
-	b.add_child(dv)
+	dg.add_child(dv)
 	canvases.append(dv)
 	var spr := SK.veh_sprite(Data.D.BODY[v.body].kind, 0, _mat, 4, Rect2(0, 0, 48, 48))
 	spr.position = Vector2(40, 38)
@@ -763,9 +775,9 @@ func _fill_dyno(b: VBoxContainer) -> void:
 	var d = bs.dyno
 	var running: bool = d is Dictionary and d.vid == v.id and d.running
 	dyno_btn = SK.act(SK.btn("PULLING..." if running else "RUN A WOT PULL", _dyno_run, SK.GREEN, false, running or not _ready_ok()), "dyno")
-	b.add_child(dyno_btn)
+	dg.add_child(dyno_btn)
 	if d is Dictionary and d.vid == v.id and d.done:
-		b.add_child(SK.small("Peak %d hp. Datalog saved - check the %s tab." % [int(roundf(float(d.peak))), "EFI LOG" if e.fuel == "efi" else "CARBS"], SK.GD))
+		dg.add_child(SK.small("Peak %d hp. Datalog saved - check the %s tab." % [int(roundf(float(d.peak))), "EFI LOG" if e.fuel == "efi" else "CARBS"], SK.GD))
 	_zone_card(b, Tune.has("wideband"))
 	if e.get("log") != null: _log_card(b, e.log)
 
@@ -812,6 +824,10 @@ func _fill_setup(b: VBoxContainer) -> void:
 	var bike: bool = Data.D.BODY[v.body].cls == "bike"
 	var st: Dictionary = v.setup
 	SK.note(b, "Setup changes how speed, acceleration and grip show up on each track. Locked rows need Tech.")
+	var cg := SK.group(b, "Chassis", "BIKE" if bike else "CAR", "", 4)
+	cg.set_meta("group", true)
+	var root := b
+	b = cg
 	if bike:
 		var ratio := float(st.r) / float(st.f)
 		var rel := ratio / Tune.stockRatio(v)
@@ -826,13 +842,15 @@ func _fill_setup(b: VBoxContainer) -> void:
 	_step(b, "set:psi", "Tire pressure", _set_val("psi"), _lock("tirepress") if not Tune.has("tirepress") else "Stock %d - air down for dirt, up a touch for tarmac" % int(Tune.stockPsi(v)), _setup.bind("psi"), not Tune.has("tirepress"))
 	if not bike:
 		_step(b, "set:wing", "Wing angle", _set_val("wing"), _lock("aero") if not Tune.has("aero") else "More wing = more cornering grip, less top speed", _setup.bind("wing"), not Tune.has("aero"))
+	b = root
 	_cond_chips(b, "SETTING UP FOR")
+	var g2 := SK.group(b, "Crew")
 	var h := UIKit.hbox(3)
 	var rn: String = "(PICK RACE)" if cond_race == "" else str(Data.D.RACE[cond_race].n)
 	h.add_child(SK.act(SK.btn("CREW SETUP", _crew_setup, SK.GREEN, true, cond_race == "" or Career.drivers().is_empty()), "crew_setup"))
 	h.add_child(SK.act(SK.btn("STOCK SETUP", _stock_setup, SK.GREY, true), "stock_setup"))
-	b.add_child(h)
-	b.add_child(SK.small("Crew setup for: %s" % SK.ascii(rn), SK.DIM))
+	g2.add_child(h)
+	g2.add_child(SK.small("Crew setup for: %s" % SK.ascii(rn), SK.SUB))
 
 func _setup(dir: int, key: String) -> void:
 	Career.adjSetup(vid, key, dir)

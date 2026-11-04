@@ -17,6 +17,7 @@ var top_box: VBoxContainer     ## pinned above the tabs; not cleared by refresh(
 var tabs_row: HBoxContainer
 var _title: Label
 var _money: Label
+var _rp: Label
 var _tabs: Array = []          # [[id, label], ...]
 
 func _init() -> void:
@@ -45,11 +46,16 @@ func refresh() -> void:
 	var sv := scroll.scroll_vertical
 	CareerKit.clear(body)
 	CareerKit.clear(footer)
-	_money.text = U.money(float(Career.G.get("money", 0)))
-	_money.add_theme_color_override("font_color", CareerKit.BAD if float(Career.G.get("money", 0)) < 0 else CareerKit.MONEY)
+	_update_money()
 	_render_tabs()
 	_render()
 	_restore_scroll.call_deferred(sv)
+
+func _update_money() -> void:
+	var mv := float(Career.G.get("money", 0))
+	_money.text = U.money(mv)
+	_money.add_theme_color_override("font_color", CareerKit.BAD if mv < 0 else CareerKit.MONEY)
+	if _rp: _rp.text = "RP %s" % U.num(float(Career.G.get("rp", 0)))
 
 func _restore_scroll(v: int) -> void:
 	if scroll: scroll.scroll_vertical = v
@@ -76,34 +82,22 @@ func _frame() -> void:
 	add_child(CareerKit.bg_rect())
 	var m := MarginContainer.new()
 	m.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for k in ["left", "right"]: m.add_theme_constant_override("margin_" + k, 4)
+	for k in ["left", "right"]: m.add_theme_constant_override("margin_" + k, 3)
 	m.add_theme_constant_override("margin_top", 3)
-	m.add_theme_constant_override("margin_bottom", 4)
+	m.add_theme_constant_override("margin_bottom", 3)
 	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(m)
-	var root := CareerKit.vbox(4)
+	var root := CareerKit.vbox(3)
 	m.add_child(root)
-	var head := CareerKit.hbox(4)
-	var hp := CareerKit.panel(head, "hud")
-	root.add_child(hp)
-	var bk := CareerKit.btn("<", back, UIKit.BTN_LO, false, "back")
-	bk.custom_minimum_size = Vector2(26, 22)
-	CareerKit.shrink(bk)
-	head.add_child(bk)
-	_title = CareerKit.lbl("", UIKit.GOLD, true, false)
-	_title.add_theme_color_override("font_shadow_color", CareerKit.OUTLINE)
-	_title.add_theme_constant_override("shadow_offset_x", 1)
-	_title.add_theme_constant_override("shadow_offset_y", 1)
-	_title.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(_title)
-	_money = CareerKit.lbl(U.money(float(Career.G.get("money", 0))), CareerKit.MONEY, false, false)
-	CareerKit.shrink(_money, true)
-	_money.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_money.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	head.add_child(_money)
+	var tb := CareerKit.top_bar(back)
+	root.add_child(tb.panel)
+	_title = tb.title
+	_money = tb.money
+	_rp = tb.rp
+	_update_money()
 	top_box = CareerKit.vbox(3)
 	root.add_child(top_box)
-	tabs_row = CareerKit.hbox(3)
+	tabs_row = CareerKit.hbox(2)
 	root.add_child(tabs_row)
 	scroll = ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
@@ -121,9 +115,7 @@ func _render_tabs() -> void:
 	tabs_row.visible = not _tabs.is_empty()
 	for t in _tabs:
 		var on: bool = str(t[0]) == tab
-		var b := CareerKit.chip(str(t[1]), go_tab.bind(str(t[0])), on, false, "tab_" + str(t[0]))
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.custom_minimum_size = Vector2(0, 20)
+		var b := CareerKit.tab_btn(str(t[1]), go_tab.bind(str(t[0])), on, "tab_" + str(t[0]))
 		tabs_row.add_child(b)
 
 # ---------------- helpers for subclasses ----------------

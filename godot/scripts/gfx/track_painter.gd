@@ -7,7 +7,7 @@ var dark := false
 
 static func make_viewport(g: TrackGeo, night: bool) -> SubViewport:
 	var vp := SubViewport.new()
-	vp.size = Vector2i(ceili(g.bbox.size.x), ceili(g.bbox.size.y))
+	vp.size = Vector2i(ceili(g.bbox.size.x / g.tex_scale), ceili(g.bbox.size.y / g.tex_scale))
 	vp.transparent_bg = true
 	vp.disable_3d = true
 	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
@@ -15,7 +15,8 @@ static func make_viewport(g: TrackGeo, night: bool) -> SubViewport:
 	var p := TrackPainter.new()
 	p.geo = g
 	p.dark = night
-	p.position = -g.bbox.position
+	p.scale = Vector2.ONE / g.tex_scale
+	p.position = -g.bbox.position / g.tex_scale
 	vp.add_child(p)
 	return vp
 
@@ -57,6 +58,11 @@ func _draw() -> void:
 			if i % 2 == 0:
 				for side in [-1.0, 1.0]:
 					draw_rect(Rect2((p + nrm * side * (W * 0.5 - 4.0)).floor(), Vector2(2, 2)), _col("#e8e8e0"))
+			# dashed lane dividers: each car gets its own strip of road
+			if (i / 3) % 2 == 0:
+				for k in range(1, geo.lanes):
+					var off3 := (k - geo.lanes * 0.5) * TrackGeo.LANE_PX
+					draw_rect(Rect2((p + nrm * off3).floor(), Vector2(2, 2)), base.lightened(0.22))
 			if (s.type == "crv" or s.type == "hp" or s.type == "chi") and i % 2 == 0:
 				var c := _col("#d8402e") if (i / 2) % 2 == 0 else _col("#f2f2ee")
 				for side in [-1.0, 1.0]:
@@ -70,7 +76,7 @@ func _draw() -> void:
 				var off2 := rng.randf_range(-W * 0.45, W * 0.45)
 				draw_rect(Rect2((p + nrm * off2).floor(), Vector2(3, 2)), base.lightened(0.15) if surf != "mud" else base.darkened(0.3))
 		if s.type == "jmp":
-			var u: float = (i * TrackGeo.STEP - geo.sec_px[geo.sec_index_at_px(i * TrackGeo.STEP)]) / (s.len * geo.unit)
+			var u: float = (i * TrackGeo.STEP - geo.sec_px[geo.sec_index_at_px(i * TrackGeo.STEP)]) / geo.sec_len[geo.sec_index_at_px(i * TrackGeo.STEP)]
 			if u > 0.25 and u < 0.42 and i % 2 == 0:
 				_cross(p, nrm, W, _col("#f2c21e") if (i / 2) % 2 == 0 else _col("#2a2a30"))
 			if u >= 0.42 and u < 0.5:

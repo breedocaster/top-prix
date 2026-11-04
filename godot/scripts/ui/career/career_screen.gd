@@ -191,7 +191,13 @@ func _build_home() -> void:
 	nextbar.add_theme_font_size_override("font_size", 8)
 	nextbar.add_theme_color_override("font_color", UIKit.GOLD)
 	nextbar.add_theme_color_override("font_hover_color", Color.WHITE)
-	for st in ["normal", "hover", "pressed", "hover_pressed"]: nextbar.add_theme_stylebox_override(st, CareerKit.sb("card"))
+	nextbar.add_theme_color_override("font_pressed_color", Color.WHITE)
+	UIKit.shadow(nextbar)
+	nextbar.add_theme_stylebox_override("normal", UIKit.frame_new("msg", 5, 4, 5, 4))
+	nextbar.add_theme_stylebox_override("hover", UIKit.frame_new("card_gold", 5, 4, 5, 4))
+	nextbar.add_theme_stylebox_override("pressed", UIKit.frame_new("card_gold", 5, 5, 5, 3))
+	nextbar.add_theme_stylebox_override("hover_pressed", UIKit.frame_new("card_gold", 5, 5, 5, 3))
+	nextbar.add_theme_stylebox_override("focus", StyleBoxEmpty.new())
 	nextbar.custom_minimum_size = Vector2(0, 18)
 	nextbar.pressed.connect(_on_nextbar)
 	nextbar.set_meta("tid", "nextbar")
@@ -203,22 +209,18 @@ func _build_home() -> void:
 	low.add_child(grid)
 	for m in MENU:
 		var id: String = m[0]
-		var col := UIKit.BTN
-		if id == "build": col = Color("#2f8a4a")
-		elif id == "races": col = Color("#c0392b")
-		var b := CareerKit.btn(m[1], _on_menu.bind(id), col, false, "menu_" + id)
-		b.custom_minimum_size = Vector2(0, 26)
+		var b := _menu_button(id, m[1])
 		grid.add_child(b)
 		menu_btns[id] = b
 		var dot := Badge.new()
 		dot.visible = false
 		b.add_child(dot)
 		dot.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
-		dot.position = Vector2(b.size.x - 9, 2)
-		b.resized.connect(func(): dot.position = Vector2(b.size.x - 9, 2))
+		dot.position = Vector2(b.size.x - 10, 3)
+		b.resized.connect(func(): dot.position = Vector2(b.size.x - 10, 3))
 		badges[id] = dot
 	var ap := PanelContainer.new()
-	ap.add_theme_stylebox_override("panel", CareerKit.sb("card"))
+	ap.add_theme_stylebox_override("panel", UIKit.frame_new("window", 6, 5, 4, 5))
 	ap.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	low.add_child(ap)
 	var sc := ScrollContainer.new()
@@ -229,52 +231,102 @@ func _build_home() -> void:
 	act_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	sc.add_child(act_box)
 
+const MENU_COL := {"build": Color("#2f8a4a"), "races": Color("#c0392b")}
+
+## Home menu button: 16x16 pixel icon over an 8 px label, bevelled face (green BUILD, red RACES).
+func _menu_button(id: String, text: String) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.icon = UIKit.icon(id)
+	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	b.vertical_icon_alignment = VERTICAL_ALIGNMENT_TOP
+	b.focus_mode = Control.FOCUS_NONE
+	b.add_theme_font_override("font", UIKit.font8)
+	b.add_theme_font_size_override("font_size", 8)
+	b.add_theme_constant_override("h_separation", 2)
+	UIKit.style_btn(b, MENU_COL.get(id, UIKit.BTN), [2, 3, 2, 3])
+	b.custom_minimum_size = Vector2(0, 30)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.pressed.connect(_on_menu.bind(id))
+	b.set_meta("tid", "menu_" + id)
+	return b
+
 func _center_garage(holder: Control) -> void:
 	var x := roundf((holder.size.x - GarageView.W) / 2.0)
 	gv.position = Vector2(x, 0)
 	fx_layer.position = Vector2(x, 0)
 
+## Status bar (header frame): date | fan rank | time buttons, then money / RP / fans with icons and
+## the three spark counts on the right.
 func _build_status() -> Control:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", CareerKit.sb("hud"))
+	p.add_theme_stylebox_override("panel", UIKit.frame_new("header", 5, 3, 5, 4))
 	var v := CareerKit.vbox(2)
 	p.add_child(v)
-	var r1 := CareerKit.hbox(8)
+	var r1 := CareerKit.hbox(6)
 	v.add_child(r1)
 	_date = CareerKit.lbl("", UIKit.GOLD, false, false)
 	CareerKit.shrink(_date)
 	_date.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	r1.add_child(_date)
-	_rank = CareerKit.lbl("", CareerKit.FANC.darkened(0.15), false, false)
+	_rank = CareerKit.lbl("", CareerKit.FANC.darkened(0.1), false, false)
 	_rank.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	r1.add_child(_rank)
+	var sp_box := CareerKit.hbox(1)
+	sp_box.size_flags_horizontal = Control.SIZE_SHRINK_END
+	r1.add_child(sp_box)
 	for sp in [0, 1, 2]:
 		var b := CareerKit.chip(["II", "1x", "2x"][sp], _speed_btn.bind(sp), false, false, "speed_%d" % sp)
 		b.custom_minimum_size = Vector2(22, 16)
 		CareerKit.shrink(b, true)
-		r1.add_child(b)
+		sp_box.add_child(b)
 		_speed[sp] = b
-	var r2 := CareerKit.hbox(8)
+	var r2 := CareerKit.hbox(3)
+	r2.custom_minimum_size = Vector2(0, 10)
 	v.add_child(r2)
-	_money = CareerKit.lbl("", CareerKit.MONEY, false, false)
-	_rp = CareerKit.lbl("", CareerKit.RPC, false, false)
-	_fans = CareerKit.lbl("", CareerKit.FANC, false, false)
-	_sparks = CareerKit.lbl("", UIKit.GOLD, false, false)
-	for l in [_money, _rp, _fans]:
-		CareerKit.shrink(l)
-		r2.add_child(l)
-	_sparks.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_money = _stat(r2, "coin", CareerKit.MONEY)
+	_rp = _stat(r2, "rp", CareerKit.RPC)
+	_fans = _stat(r2, "fans", CareerKit.FANC)
+	var fill := Control.new()
+	fill.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r2.add_child(fill)
+	_sparks = Label.new()        # kept for callers; the counts show in _spark_lbls
+	_sparks.visible = false
 	r2.add_child(_sparks)
+	for k in ["b", "s", "g"]:
+		_spark_lbls[k] = _stat(r2, "spark_" + k, CareerKit.SPARK_COL[k], 0)
 	return p
+
+var _spark_lbls := {}
+var _speed_state := -99
+
+## Icon + number pair for the status bar; returns the number label.
+func _stat(row: HBoxContainer, icon: String, col: Color, gap := 6) -> Label:
+	var ic := UIKit.icon_rect(icon)
+	row.add_child(ic)
+	var l := CareerKit.lbl("", col, false, false)
+	CareerKit.shrink(l)
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(l)
+	if gap > 0:
+		var g := Control.new()
+		g.custom_minimum_size = Vector2(gap - 3, 0)
+		g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(g)
+	return l
 
 class Badge extends Control:
 	func _init() -> void:
-		size = Vector2(7, 7)
+		size = Vector2(8, 8)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
-		draw_rect(Rect2(0, 0, 7, 7), Color("#140c24"))
-		draw_rect(Rect2(1, 1, 5, 5), Color("#ff4a3a"))
-		draw_rect(Rect2(2, 2, 2, 1), Color("#ffb0a0"))
+		draw_rect(Rect2(1, 0, 6, 8), Color("#140c24"))
+		draw_rect(Rect2(0, 1, 8, 6), Color("#140c24"))
+		draw_rect(Rect2(1, 1, 6, 6), Color("#ff4a3a"))
+		draw_rect(Rect2(2, 2, 3, 1), Color("#ffc0b0"))
+		draw_rect(Rect2(2, 3, 1, 1), Color("#ffc0b0"))
+		draw_rect(Rect2(1, 6, 6, 1), Color("#a8201a"))
 
 # ======================================================================
 # time
@@ -353,18 +405,22 @@ func _update_status() -> void:
 	_rank.text = CareerKit.asc(Career.fanRankName()).to_upper()
 	_money.text = U.money(float(G.money))
 	_money.add_theme_color_override("font_color", CareerKit.BAD if float(G.money) < 0 else CareerKit.MONEY)
-	_rp.text = "RP %s" % U.num(float(G.rp))
-	_fans.text = "FANS %s" % U.num(float(G.fans))
+	_rp.text = U.num(float(G.rp))
+	_fans.text = U.num(float(G.fans))
 	var sp: Dictionary = G.sparks
 	_sparks.text = "B%d S%d G%d" % [int(sp.get("b", 0)), int(sp.get("s", 0)), int(sp.get("g", 0))]
+	for k in ["b", "s", "g"]:
+		var n := int(sp.get(k, 0))
+		var l: Label = _spark_lbls[k]
+		l.text = str(n)
+		l.add_theme_color_override("font_color", CareerKit.SPARK_COL[k] if n > 0 else CareerKit.DIMC)
 	var cur := speed()
 	(_speed[2] as Button).text = "4x" if cur == 4 else "2x"
+	if cur == _speed_state: return
+	_speed_state = cur
 	for k in _speed:
 		var on: bool = (int(k) == cur) if int(k) < 2 else cur >= 2
-		var c := UIKit.GOLD.darkened(0.35) if on else Color("#22408a")
-		var b: Button = _speed[k]
-		b.add_theme_stylebox_override("normal", UIKit.sb(c, CareerKit.OUTLINE, 1, 4))
-		b.add_theme_stylebox_override("hover", UIKit.sb(c.lightened(0.15), CareerKit.OUTLINE, 1, 4))
+		UIKit.style_btn(_speed[k], UIKit.GOLD if on else Color("#22408a"), [3, 3, 3, 3], true)
 
 func _garage_state() -> Dictionary:
 	var G: Dictionary = Career.G
@@ -467,7 +523,7 @@ func _update_activity() -> void:
 	CareerKit.clear(act_box)
 	act_box.add_child(CareerKit.sec("WORKSHOP %d/%d BAYS" % [G.jobs.size(), Career.bays()]))
 	if rows.is_empty():
-		act_box.add_child(CareerKit.line("All bays free." if not G.vehicles.is_empty() else "Empty shed. Time to BUILD!", CareerKit.DIMC))
+		act_box.add_child(CareerKit.line("All bays free." if not G.vehicles.is_empty() else "Empty shed. Time to BUILD!", CareerKit.SUB))
 	for r in rows:
 		var h := CareerKit.hbox(4)
 		var tl := CareerKit.lbl(r[1] + (" !" if r[4] else ""), UIKit.GOLD if r[4] else JOB_COL.get(r[0], CareerKit.TXT), false, false)
@@ -478,21 +534,42 @@ func _update_activity() -> void:
 		h.add_child(CareerKit.bar(r[3], JOB_COL.get(r[0], CareerKit.GOOD), 52, 6))
 		var c := CareerKit.card_btn(h, _on_job.bind(r[5], r[4]), "card_gold" if r[4] else "card", false, "job_%d" % int(r[5]))
 		act_box.add_child(c)
+	act_box.add_child(CareerKit.gap(1))
 	act_box.add_child(CareerKit.sec("DRIVERS"))
 	for d in drv:
 		var h2 := CareerKit.hbox(4)
 		h2.add_child(CareerKit.lbl(d[0], CareerKit.TXT, false, false))
-		h2.add_child(CareerKit.bar(float(d[1]) / maxf(1.0, d[2]), Color("#ffb347") if float(d[1]) < 30 else CareerKit.GOOD, 60, 6))
-		var n := CareerKit.lbl(str(d[1]), CareerKit.SUB, false, false)
+		var low := float(d[1]) < 30
+		h2.add_child(CareerKit.bar(float(d[1]) / maxf(1.0, d[2]), Color("#ffb347") if low else CareerKit.GOOD, 56, 6))
+		var n := CareerKit.lbl(str(d[1]), Color("#ffb347") if low else CareerKit.SUB, false, false)
 		n.custom_minimum_size = Vector2(24, 0)
 		n.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		CareerKit.shrink(n, true)
 		h2.add_child(n)
 		act_box.add_child(h2)
+	act_box.add_child(CareerKit.gap(1))
 	act_box.add_child(CareerKit.sec("NEWS"))
 	for nw in news:
-		var l := CareerKit.small("%s  %s" % [CareerKit.asc(Career.dateStr(nw[0])), nw[1]], CareerKit.SUB)
-		act_box.add_child(l)
+		act_box.add_child(_news_line(CareerKit.asc(Career.dateStr(nw[0])), CareerKit.asc(nw[1])))
+
+## One news item: the date in muted gold, then the text, wrapped as one 8 px paragraph.
+func _news_line(date: String, text: String) -> RichTextLabel:
+	var r := RichTextLabel.new()
+	r.bbcode_enabled = true
+	r.fit_content = true
+	r.scroll_active = false
+	r.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	r.add_theme_font_override("normal_font", UIKit.font8)
+	r.add_theme_font_size_override("normal_font_size", 8)
+	r.add_theme_constant_override("line_separation", 3)
+	r.add_theme_color_override("default_color", Color("#d4dcf4"))
+	r.add_theme_color_override("font_shadow_color", UIKit.SHADOW)
+	r.add_theme_constant_override("shadow_offset_x", 1)
+	r.add_theme_constant_override("shadow_offset_y", 1)
+	r.text = "[color=#d8b860]%s[/color]  %s" % [date.replace("[", "("), text.replace("[", "(")]
+	return r
 
 # ======================================================================
 # home input

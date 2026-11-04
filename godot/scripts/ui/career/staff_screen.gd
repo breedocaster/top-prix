@@ -44,7 +44,9 @@ func _build_lut() -> void:
 func _fill_team(b: VBoxContainer) -> void:
 	var W := Career.ws()
 	var sal := U.sum(Career.G.staff, func(s): return s.salary)
-	SK.note(b, "Drivers %d/%d  Mechanics %d/%d\nSalaries %s/month" % [Career.drivers().size(), int(W.teams) + 1, Career.mechs().size(), int(W.mech), SK.money(sal)])
+	var fame := ""
+	if Career.drvCap() > int(W.teams) + 1 or Career.mechCap() > int(W.mech): fame = "  (+fame)"
+	SK.note(b, "Drivers %d/%d  Mechanics %d/%d%s\nSalaries %s/month" % [Career.drivers().size(), Career.drvCap(), Career.mechs().size(), Career.mechCap(), fame, SK.money(sal)])
 	b.add_child(SK.section("Drivers"))
 	for s in Career.drivers():
 		var row := _card(b, s)
@@ -137,7 +139,7 @@ func _card(parent: Control, s: Dictionary) -> HBoxContainer:
 	var top := UIKit.hbox(5)
 	v.add_child(top)
 	var port := PanelContainer.new()
-	port.add_theme_stylebox_override("panel", UIKit.sb(Color("#0d1330"), Color("#2c3b70"), 1, 1))
+	port.add_theme_stylebox_override("panel", UIKit.frame_new("inset", 1, 1, 1, 1))
 	port.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var spr := SK.crew_sprite(s.role, int(_rows.get(s.id, 0)), _lut_mat, "stand", 2)
 	spr.src = Rect2(spr.src.position + Vector2(0, 2), Vector2(24, 26))

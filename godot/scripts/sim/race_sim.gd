@@ -147,7 +147,7 @@ static func mk_rivals(d: Dictionary, n: int, rng: RandomNumberGenerator, exclude
 	return out
 
 static func default_rival_count(d: Dictionary) -> int:
-	return [0, 5, 7, 9, 11, 11][int(d.tier)]
+	return [0, 5, 7, 10, 13, 15][int(d.tier)]
 
 # ---------------- create ----------------
 ## humans: [{name, team, team_key, col, kind, cls, prof:{S,A,H,t,pm,mis,wear,dur}, sk:Array, hp, cond, cyl, owner, rt, sparks:{}}]

@@ -71,14 +71,12 @@ func refresh() -> void:
 
 func _draw() -> void:
 	var w := size.x
-	draw_rect(Rect2(0, 0, w, H), DialogueBox.OUTLINE)
-	draw_rect(Rect2(1, 1, w - 2, H - 2), DialogueBox.EDGE2)
-	draw_rect(Rect2(2, 2, w - 4, H - 4), SpriteForge.snes(Color("#1a2766")))
-	draw_rect(Rect2(2, 2, w - 4, 10), SpriteForge.snes(Color("#22328a")))
+	draw_style_box(UIKit.frame("header"), Rect2(0, 0, w, H))
 	for i in _pips.size():
-		var x := w - 6 - (_pips.size() - i) * 6
+		var x := w - 7 - (_pips.size() - i) * 6
 		draw_rect(Rect2(x, 15, 5, 5), DialogueBox.OUTLINE)
 		draw_rect(Rect2(x + 1, 16, 3, 3), UIKit.OK if _pips[i] else Color("#3a4470"))
+		if _pips[i]: draw_rect(Rect2(x + 1, 16, 2, 1), Color("#a8f0a8"))
 
 func _gui_input(e: InputEvent) -> void:
 	if (e is InputEventMouseButton and e.pressed and e.button_index == MOUSE_BUTTON_LEFT) or (e is InputEventScreenTouch and e.pressed):

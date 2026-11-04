@@ -72,7 +72,9 @@ func _workshop(b: VBoxContainer) -> void:
 	var W := Career.ws()
 	var v := SK.card(b, "sel")
 	v.add_child(SK.big(W.n, SK.HL))
-	v.add_child(SK.small("Drivers %d  Mechanics %d  Vehicles %d  Facilities %d  Sponsors %d" % [int(W.teams) + 1, int(W.mech), int(W.veh), int(W.fac), int(W.spon)], SK.SUB))
+	v.add_child(SK.small("Drivers %d  Mechanics %d  Vehicles %d  Facilities %d  Sponsors %d" % [Career.drvCap(), Career.mechCap(), int(W.veh), int(W.fac), int(W.spon)], SK.SUB))
+	if Career.drvCap() > int(W.teams) + 1 or Career.mechCap() > int(W.mech):
+		v.add_child(SK.small("+fame: fans earn extra staff slots", Color("#ff9fcf")))
 	var n = Career.wsNeed()
 	if n == null:
 		v.add_child(SK.small("Top workshop reached! " + ("Legend races are open." if Career.legendOpen() else "Win 2 World series to unlock Legend races."), SK.GD))
@@ -80,8 +82,9 @@ func _workshop(b: VBoxContainer) -> void:
 	var N: Dictionary = Data.D.WORKSHOPS[int(Career.G.ws) + 1]
 	v.add_child(SK.section("Next: " + N.n))
 	var perks := []
-	perks.append(["Drivers", int(W.teams) + 1, int(N.teams) + 1])
-	perks.append(["Mechanics", int(W.mech), int(N.mech)])
+	# both sides include the fame bonus, so moving up never looks like a loss
+	perks.append(["Drivers", Career.drvCap(), Career.drvCap() - (int(W.teams) + 1) + int(N.teams) + 1])
+	perks.append(["Mechanics", Career.mechCap(), Career.mechCap() - int(W.mech) + int(N.mech)])
 	perks.append(["Vehicles", int(W.veh), int(N.veh)])
 	perks.append(["Facilities", int(W.fac), int(N.fac)])
 	perks.append(["Sponsors", int(W.spon), int(N.spon)])

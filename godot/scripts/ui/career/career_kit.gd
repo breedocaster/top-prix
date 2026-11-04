@@ -1,9 +1,9 @@
 class_name CareerKit
 extends RefCounted
-## Shared look for the career screens (not a screen itself): SNES window / card frames baked into
-## 9-slice textures once, ASCII-safe labels (DotGothic16 16 px, PressStart2P 8 px), card buttons,
-## chips, bars, section rules and the tiled menu background. Everything here is built on demand;
-## nothing draws per frame except the few _draw() widgets, which only redraw when told to.
+## Shared look for the career screens (not a screen itself), on top of the UIKit skin: SNES window /
+## card frames (UIKit.frame), ASCII-safe labels (DotGothic16 16 px, PressStart2P 8 px, 1 px shadows),
+## card buttons, chips, bars, section rules and the tiled menu background. Everything here is built on
+## demand; nothing draws per frame except the few _draw() widgets, which only redraw when told to.
 
 const TXT := Color("#eef1fa")
 const SUB := Color("#9aa6c8")
@@ -27,7 +27,6 @@ const REPL := {"—": "-", "–": "-", "·": "|", "×": "x", "°": "", "→": ">
 	"↑": "+", "↓": "-", "≤": "<=", "≥": ">=", "é": "e", "è": "e", "ü": "u", "ö": "o", "ä": "a"}
 
 static var _sb_cache := {}
-static var _bg: ImageTexture
 
 # ---------------- text ----------------
 ## ASCII-only copy of any text (game data carries em dashes, middle dots, emoji icons).
@@ -74,6 +73,7 @@ static func lbl(text, col: Color = TXT, big := false, wrap := true) -> Label:
 		l.autowrap_mode = TextServer.AUTOWRAP_OFF
 		l.clip_text = true
 		l.text_overrun_behavior = TextServer.OVERRUN_TRIM_CHAR
+	UIKit.shadow(l)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	return l
@@ -106,71 +106,32 @@ static func heading(text, col: Color = UIKit.GOLD) -> Label:
 	l.add_theme_font_size_override("font_size", 16)
 	l.add_theme_color_override("font_color", col)
 	l.add_theme_color_override("font_outline_color", OUTLINE)
-	l.add_theme_constant_override("outline_size", 4)
+	l.add_theme_constant_override("outline_size", 2)
+	l.add_theme_color_override("font_shadow_color", OUTLINE)
+	l.add_theme_constant_override("shadow_offset_x", 0)
+	l.add_theme_constant_override("shadow_offset_y", 2)
+	l.add_theme_constant_override("shadow_outline_size", 2)
 	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
 
 # ---------------- frames ----------------
-## 9-slice frames: "win" (SNES window: outline, double light border, banded blue gradient),
-## "card", "card_sel", "card_dim", "card_gold", "card_red", "hud", "chip".
+## 9-slice frames from the shared UIKit skin: "win" (SNES window), "hud" (header bar), "card",
+## "card_sel", "card_dim", "card_gold", "card_red", "card_green", "inset", "note", "chip".
+const _KIND := {"win": "window", "hud": "header"}
+
 static func sb(kind: String) -> StyleBox:
 	if _sb_cache.has(kind): return _sb_cache[kind]
-	var s := StyleBoxTexture.new()
-	var img: Image
-	var m := 4
-	match kind:
-		"win":
-			img = _frame_img(16, 64, Color("#2c3f9e"), Color("#0e1748"), Color("#f2f2ee"), Color("#8a96b8"), 8)
-			s.content_margin_left = 8; s.content_margin_right = 8; s.content_margin_top = 7; s.content_margin_bottom = 7
-		"hud":
-			img = _frame_img(12, 24, Color("#22328a"), Color("#141d58"), Color("#f2f2ee"), Color("#5a68a8"), 3)
-			s.content_margin_left = 5; s.content_margin_right = 5; s.content_margin_top = 3; s.content_margin_bottom = 3
-		"card_sel":
-			img = _frame_img(12, 12, Color("#26357a"), Color("#1c2864"), UIKit.GOLD, Color("#a08420"), 1)
-			m = 3
-		"card_dim":
-			img = _frame_img(12, 12, Color("#161a2c"), Color("#161a2c"), Color("#3a405a"), Color("#262a40"), 1)
-			m = 3
-		"card_gold":
-			img = _frame_img(12, 12, Color("#3a3216"), Color("#2a2410"), UIKit.GOLD, Color("#806a20"), 1)
-			m = 3
-		"card_red":
-			img = _frame_img(12, 12, Color("#3a1620"), Color("#2a1018"), Color("#ff7a7a"), Color("#80303a"), 1)
-			m = 3
-		"chip":
-			img = _frame_img(8, 8, Color("#22408a"), Color("#22408a"), Color("#5a78c8"), Color("#22408a"), 1)
-			m = 2
-		_:
-			img = _frame_img(12, 12, Color("#18224e"), Color("#121a40"), Color("#5a6aa8"), Color("#2a3870"), 1)
-			m = 3
-	if not kind in ["win", "hud"]:
-		s.content_margin_left = 5; s.content_margin_right = 5; s.content_margin_top = 4; s.content_margin_bottom = 4
-		if kind == "chip":
-			s.content_margin_left = 4; s.content_margin_right = 4; s.content_margin_top = 2; s.content_margin_bottom = 2
-	s.texture = ImageTexture.create_from_image(img)
-	s.texture_margin_left = m; s.texture_margin_right = m; s.texture_margin_top = m; s.texture_margin_bottom = m
-	s.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
-	s.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+	var s: StyleBox
+	if kind == "chip": s = UIKit.btn_style(Color("#22408a"), "normal", [4, 2, 4, 2], true)
+	else: s = UIKit.frame(_KIND.get(kind, kind))
 	_sb_cache[kind] = s
 	return s
 
 ## Frame image: 1 px outline, `bw` px light edge (+1 px darker inner edge), banded gradient fill.
+## (Legacy helper; the skin itself is UIKit.frame_img.)
 static func _frame_img(w: int, h: int, top: Color, bottom: Color, edge: Color, edge2: Color, bands: int) -> Image:
-	var img := Image.create(w, h, false, Image.FORMAT_RGBA8)
-	img.fill(OUTLINE)
-	var inner := Rect2i(1, 1, w - 2, h - 2)
-	img.fill_rect(inner, SpriteForge.snes(edge))
-	var b := 2 if w >= 16 else 1
-	img.fill_rect(inner.grow(-b + 1).grow(-1), SpriteForge.snes(edge2))
-	var fill := inner.grow(-b)
-	if w >= 16: fill = fill.grow(-1)
-	var n := maxi(1, bands)
-	for i in n:
-		var y0 := fill.position.y + int(floor(fill.size.y * float(i) / n))
-		var y1 := fill.position.y + int(floor(fill.size.y * float(i + 1) / n))
-		img.fill_rect(Rect2i(fill.position.x, y0, fill.size.x, y1 - y0), SpriteForge.snes(top.lerp(bottom, float(i) / maxf(1, n - 1))))
-	return img
+	return UIKit.frame_img(w, h, 1, [[edge.to_html(false), edge2.to_html(false)]], top, bottom, bands)
 
 static func panel(child: Control, kind := "card") -> PanelContainer:
 	var p := PanelContainer.new()
@@ -191,8 +152,11 @@ static func card_btn(content: Control, cb: Callable, kind := "card", dis := fals
 	b.mouse_filter = Control.MOUSE_FILTER_STOP
 	var clear := StyleBoxEmpty.new()
 	for st in ["normal", "disabled", "focus"]: b.add_theme_stylebox_override(st, clear)
-	var hov := StyleBoxFlat.new(); hov.bg_color = Color(1, 1, 1, 0.07)
-	var prs := StyleBoxFlat.new(); prs.bg_color = Color(1, 1, 1, 0.14)
+	var hov := StyleBoxFlat.new(); hov.bg_color = Color(1, 1, 1, 0.08)
+	var prs := StyleBoxFlat.new(); prs.bg_color = Color(0, 0, 0.1, 0.25)
+	for st2 in [hov, prs]:
+		st2.set_corner_radius_all(0)
+		st2.anti_aliasing = false
 	b.add_theme_stylebox_override("hover", hov)
 	b.add_theme_stylebox_override("pressed", prs)
 	b.add_theme_stylebox_override("hover_pressed", prs)
@@ -207,11 +171,12 @@ static func btn(text, cb: Callable, col: Color = UIKit.BTN, small_font := false,
 	if small_font:
 		b.add_theme_font_override("font", UIKit.font8)
 		b.add_theme_font_size_override("font_size", 8)
-		b.custom_minimum_size = Vector2(16, 18)
+		b.custom_minimum_size = Vector2(16, 20)
+		UIKit.style_btn(b, col, [4, 4, 4, 4])
 	if tid != "": b.set_meta("tid", tid)
 	return b
 
-## Toggle chip (8 px font). on = gold.
+## Toggle chip (8 px font). on = gold face with dark ink, off = navy.
 static func chip(text, cb: Callable, on := false, dis := false, tid := "") -> Button:
 	_fonts()
 	var b := Button.new()
@@ -221,14 +186,7 @@ static func chip(text, cb: Callable, on := false, dis := false, tid := "") -> Bu
 	b.add_theme_font_override("font", UIKit.font8)
 	b.add_theme_font_size_override("font_size", 8)
 	b.custom_minimum_size = Vector2(0, 18)
-	var c := UIKit.GOLD.darkened(0.35) if on else Color("#22408a")
-	b.add_theme_stylebox_override("normal", UIKit.sb(c, OUTLINE, 1, 4))
-	b.add_theme_stylebox_override("hover", UIKit.sb(c.lightened(0.15), OUTLINE, 1, 4))
-	b.add_theme_stylebox_override("pressed", UIKit.sb(c.darkened(0.2), OUTLINE, 1, 4))
-	b.add_theme_stylebox_override("hover_pressed", UIKit.sb(c.darkened(0.2), OUTLINE, 1, 4))
-	b.add_theme_stylebox_override("disabled", UIKit.sb(Color("#262a40"), OUTLINE, 1, 4))
-	b.add_theme_color_override("font_color", Color.WHITE if not on else Color("#fff6c8"))
-	b.add_theme_color_override("font_disabled_color", DIMC)
+	UIKit.style_btn(b, UIKit.GOLD if on else Color("#22408a"), [4, 3, 4, 3], true)
 	if cb.is_valid(): b.pressed.connect(cb)
 	if tid != "": b.set_meta("tid", tid)
 	return b
@@ -258,18 +216,34 @@ static func gap(h := 4) -> Control:
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return c
 
-## Section rule: "-- TITLE ------------" in gold 8 px.
+## Section rule: "> TITLE ============" in gold 8 px (marker block, label, two-tone rule).
 static func sec(text, col: Color = UIKit.GOLD) -> Control:
 	var h := hbox(4)
+	var mk := Marker.new()
+	mk.col = col
+	h.add_child(mk)
 	var l := lbl(text, col, false, false)
 	CareerKit.shrink(l)
 	h.add_child(l)
 	var r := Rule.new()
-	r.col = col.darkened(0.45)
+	r.col = col.darkened(0.55)
+	r.col2 = col.darkened(0.25)
 	r.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(r)
 	h.custom_minimum_size = Vector2(0, 12)
 	return h
+
+## 4x6 bevelled block in front of section titles.
+class Marker extends Control:
+	var col := UIKit.GOLD
+	func _init() -> void:
+		custom_minimum_size = Vector2(4, 8)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	func _draw() -> void:
+		draw_rect(Rect2(0, 0, 4, 8), CareerKit.OUTLINE)
+		draw_rect(Rect2(0, 0, 3, 7), col)
+		draw_rect(Rect2(0, 0, 3, 1), col.lightened(0.5))
 
 ## Two labels on one line: left (expands, clipped) and right (shrinks).
 static func pair(left, right, lc: Color = TXT, rc: Color = SUB, big_left := false) -> HBoxContainer:
@@ -284,12 +258,17 @@ static func pair(left, right, lc: Color = TXT, rc: Color = SUB, big_left := fals
 
 class Rule extends Control:
 	var col := Color("#5a4a20")
+	var col2 := Color(0, 0, 0, 0)
 	func _init() -> void:
 		custom_minimum_size = Vector2(8, 8)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 	func _draw() -> void:
 		var y := floorf(size.y / 2.0)
-		draw_rect(Rect2(0, y, size.x, 1), col)
+		if col2.a > 0:
+			draw_rect(Rect2(0, y - 1, size.x, 1), col2)
+			draw_rect(Rect2(0, y, size.x, 1), col)
+		else:
+			draw_rect(Rect2(0, y, size.x, 1), col)
 
 ## Horizontal bar with an outline; frac 0..1.
 class Bar extends Control:
@@ -306,10 +285,12 @@ class Bar extends Control:
 		var r := Rect2(Vector2.ZERO, size).grow(-0.0)
 		draw_rect(r, Color("#140c24"))
 		draw_rect(r.grow(-1), back)
+		draw_rect(Rect2(1, size.y - 2, size.x - 2, 1), back.lightened(0.12))
 		var w := floorf((size.x - 2) * frac)
 		if w > 0:
 			draw_rect(Rect2(1, 1, w, size.y - 2), col)
-			draw_rect(Rect2(1, 1, w, 1), col.lightened(0.35))
+			draw_rect(Rect2(1, 1, w, 1), col.lightened(0.4))
+			if size.y >= 6: draw_rect(Rect2(1, size.y - 2, w, 1), col.darkened(0.3))
 
 static func bar(frac: float, col: Color, w := 0, h := 6) -> Bar:
 	var b := Bar.new()
@@ -410,25 +391,60 @@ static func odds(r: float) -> Array:
 	var o: Array = Career.oddsLabel(r)
 	return [str(o[0]), Color(str(o[1]))]
 
-## Tiled two-tone background (SNES menu pattern), shared.
+## Tiled two-tone background (SNES menu pattern), shared with UIKit.
 static func bg_tex() -> ImageTexture:
-	if _bg: return _bg
-	var img := Image.create(16, 16, false, Image.FORMAT_RGBA8)
-	var a := SpriteForge.snes(Color("#0b1030"))
-	var b := SpriteForge.snes(Color("#0e1438"))
-	for y in 16:
-		for x in 16:
-			img.set_pixel(x, y, b if ((x + y) % 16 < 8) != ((x - y + 16) % 16 < 8) else a)
-	_bg = ImageTexture.create_from_image(img)
-	return _bg
+	return UIKit.bg_tex()
 
 static func bg_rect() -> TextureRect:
-	var t := TextureRect.new()
-	t.texture = bg_tex()
-	t.stretch_mode = TextureRect.STRETCH_TILE
-	t.set_anchors_preset(Control.PRESET_FULL_RECT)
-	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return t
+	return UIKit.bg_rect()
+
+# ---------------- screen chrome (shared by CareerPage and the part-B SubScreens) ----------------
+## Header bar: [<] TITLE ........ $money / RP n. Returns {panel, back, title, money, rp}.
+## The back button carries both metas (tid "back" and act "back").
+static func top_bar(back_cb: Callable) -> Dictionary:
+	_fonts()
+	var hp := PanelContainer.new()
+	hp.add_theme_stylebox_override("panel", UIKit.frame("header"))
+	var h := hbox(5)
+	hp.add_child(h)
+	var bb := Button.new()
+	bb.focus_mode = Control.FOCUS_NONE
+	bb.icon = UIKit.icon("back")
+	bb.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIKit.style_btn(bb, UIKit.BTN_LO, [4, 3, 4, 3])
+	bb.custom_minimum_size = Vector2(24, 22)
+	bb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	bb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	bb.set_meta("tid", "back")
+	bb.set_meta("act", "back")
+	bb.pressed.connect(back_cb)
+	h.add_child(bb)
+	var tl := lbl("", UIKit.GOLD, true, false)
+	tl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	h.add_child(tl)
+	var rv := vbox(1)
+	rv.size_flags_horizontal = Control.SIZE_SHRINK_END
+	rv.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var ml := lbl("", MONEY, false, false)
+	shrink(ml, true)
+	ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rv.add_child(ml)
+	var rl := lbl("", RPC, false, false)
+	shrink(rl, true)
+	rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	rv.add_child(rl)
+	h.add_child(rv)
+	return {"panel": hp, "back": bb, "title": tl, "money": ml, "rp": rl}
+
+## Tab button for a tab strip: gold when selected, navy otherwise; fills its share of the row.
+static func tab_btn(text, cb: Callable, on: bool, tid := "") -> Button:
+	var b := chip(text, cb, on, false, tid)
+	UIKit.style_btn(b, UIKit.GOLD if on else Color("#22408a"), [1, 4, 1, 3], true)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.custom_minimum_size = Vector2(0, 20)
+	b.clip_text = true
+	return b
 
 ## Remove and free every child.
 static func clear(n: Node) -> void:

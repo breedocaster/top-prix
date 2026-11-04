@@ -1,7 +1,8 @@
 extends RefCounted
 ## Widgets shared by the career sub-screens (staff, research, sponsors, facilities, records, settings,
-## test day, bench). Built on UIKit (pixel theme): DotGothic16 for names/buttons, PressStart2P 8 px
-## for dense details, MiniFont 3x5 inside drawn canvases. Everything shown goes through ascii().
+## test day, bench). Built on the UIKit skin (same frames, buttons and chips as CareerKit):
+## DotGothic16 for names/buttons, PressStart2P 8 px for dense details, MiniFont 3x5 inside drawn
+## canvases. Everything shown goes through ascii().
 
 const MiniFont := preload("res://scripts/ui/career/mini_font.gd")
 
@@ -22,6 +23,8 @@ const GREEN := Color("#2f8f3a")
 const RED := Color("#b8382a")
 const GREY := Color("#3a3f55")
 const CAP_COL := "#e2b53a"
+const FANC := Color("#ff9fcf")
+const NO_SHADOW := Color(0, 0, 0, 0)
 
 const _REPL := {"×": "x", "–": "-", "—": "-", "·": "-", "→": "->", "←": "<-", "°": "", "★": "*", "☆": ".",
 	"⚠": "!", "…": "...", "“": "\"", "”": "\"", "‘": "'", "’": "'", "é": "e", "è": "e", "ü": "u", "ö": "o",
@@ -69,27 +72,13 @@ static func big(text, col: Color = Color.WHITE, wrap := false) -> Label:
 	return l
 
 static func section(text: String) -> Control:
-	var h := UIKit.hbox(4)
-	var l := small(text.to_upper(), HL, false)
-	l.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	h.add_child(l)
-	var line := ColorRect.new()
-	line.color = Color("#2c3b70")
-	line.custom_minimum_size = Vector2(4, 2)
-	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	line.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	h.add_child(line)
-	return h
+	return CareerKit.sec(ascii(text).to_upper(), HL)
 
 # ---------------- cards ----------------
-static func card_style(state := "") -> StyleBoxFlat:
-	match state:
-		"done": return UIKit.sb(DONE, DONE_EDGE, 2, 5)
-		"lock": return UIKit.sb(LOCK, LOCK_EDGE, 2, 5)
-		"sel": return UIKit.sb(Color("#22305a"), SEL_EDGE, 2, 5)
-		"note": return UIKit.sb(Color("#13204a"), Color("#2c3b70"), 1, 5)
-		"warn": return UIKit.sb(Color("#3a1c1c"), Color("#b8382a"), 2, 5)
-	return UIKit.sb(CARD, CARD_EDGE, 2, 5)
+const _CARD_KIND := {"done": "card_green", "lock": "card_dim", "sel": "card_sel", "note": "note", "warn": "card_red", "gold": "card_gold"}
+
+static func card_style(state := "") -> StyleBox:
+	return UIKit.frame(_CARD_KIND.get(state, "card"))
 
 ## Card panel; returns the inner VBox (the panel is its parent).
 static func card(parent: Control, state := "", sep := 2) -> VBoxContainer:
@@ -99,6 +88,34 @@ static func card(parent: Control, state := "", sep := 2) -> VBoxContainer:
 	var v := UIKit.vbox(sep)
 	p.add_child(v)
 	parent.add_child(p)
+	return v
+
+## Titled group box: a header strip (gold 8 px title, optional right-hand text) over a card.
+## Returns the inner VBox. Used to group related controls (bench: conditions, mixture, jets...).
+static func group(parent: Control, title: String, right := "", state := "", sep := 3) -> VBoxContainer:
+	var outer := UIKit.vbox(0)
+	outer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var hp := PanelContainer.new()
+	hp.add_theme_stylebox_override("panel", UIKit.frame("group_head"))
+	var hh := UIKit.hbox(4)
+	var tl := small(ascii(title).to_upper(), HL, false)
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tl.clip_text = true
+	hh.add_child(tl)
+	if right != "":
+		var rl := small(right, SUB, false)
+		rl.size_flags_horizontal = Control.SIZE_SHRINK_END
+		rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		hh.add_child(rl)
+	hp.add_child(hh)
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", UIKit.frame(_CARD_KIND.get(state, "card")))
+	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var v := UIKit.vbox(sep)
+	p.add_child(v)
+	outer.add_child(hp)
+	outer.add_child(p)
+	parent.add_child(outer)
 	return v
 
 static func note(parent: Control, text, col: Color = SUB) -> Label:
@@ -114,12 +131,8 @@ static func btn(text, cb: Callable, color: Color = UIKit.BTN, small_font := fals
 	if small_font:
 		b.add_theme_font_override("font", UIKit.font8)
 		b.add_theme_font_size_override("font_size", 8)
-		var faces := {"normal": color, "hover": color.lightened(0.15), "pressed": color.darkened(0.25), "hover_pressed": color.darkened(0.25), "disabled": Color("#3a3f55")}
-		for k in faces:
-			var st := UIKit.sb(faces[k], UIKit.BG, 2, 4)
-			st.content_margin_left = 3; st.content_margin_right = 3
-			st.content_margin_top = 4; st.content_margin_bottom = 4
-			b.add_theme_stylebox_override(k, st)
+		UIKit.style_btn(b, color, [3, 4, 3, 4])
+		b.custom_minimum_size.y = 20
 	b.disabled = disabled
 	return b
 
@@ -133,10 +146,12 @@ static func sbtn(text, cb: Callable, color: Color = UIKit.BTN, w := 0, disabled 
 
 ## Toggle chip (8 px). on = gold face with dark text.
 static func chip(text, on: bool, cb: Callable, disabled := false) -> Button:
-	var b := btn(text, cb, HL if on else Color("#22408a"), true, disabled)
-	if on:
-		for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
-			b.add_theme_color_override(c, Color("#140c24"))
+	var b := UIKit.btn(ascii(text), cb, UIKit.BTN)
+	b.add_theme_font_override("font", UIKit.font8)
+	b.add_theme_font_size_override("font_size", 8)
+	UIKit.style_btn(b, HL if on else Color("#22408a"), [3, 3, 3, 3], true)
+	b.custom_minimum_size.y = 18
+	b.disabled = disabled
 	return b
 
 static func row(items: Array, sep := 4) -> HBoxContainer:
@@ -146,36 +161,51 @@ static func row(items: Array, sep := 4) -> HBoxContainer:
 	return h
 
 # ---------------- stepper ----------------
-## [label] [-] value [+] with the description on its own full-width line underneath.
-## Meta "minus" / "plus" / "value" hold the widgets.
-static func stepper(label: String, value: String, desc: String, cb: Callable, disabled := false, light := false) -> Control:
+## [label] [-] [ value ] [+] with the description on its own full-width line underneath. The value
+## sits in a dark LCD well. light = the EFI laptop's light screen. Meta "minus" / "plus" / "value"
+## hold the widgets ("value" is the Label).
+## bare = no frame of its own (rows inside a group(), separated by rules).
+static func stepper(label: String, value: String, desc: String, cb: Callable, disabled := false, light := false, bare := false) -> Control:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", UIKit.sb(Color("#dde3ec") if light else Color("#2c3d7c"), Color("#8a93a3") if light else Color("#5a70bd"), 1, 4))
+	if light: p.add_theme_stylebox_override("panel", UIKit.sb(Color("#dde3ec"), Color("#8a93a3"), 1, 4))
+	elif bare: p.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	else: p.add_theme_stylebox_override("panel", UIKit.frame_new("card", 4, 3, 4, 3))
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var vb := UIKit.vbox(2)
 	p.add_child(vb)
-	var h := UIKit.hbox(3)
+	var h := UIKit.hbox(2)
 	vb.add_child(h)
 	var l := small(label, Color("#111a33") if light else Color.WHITE)
+	if light: l.add_theme_color_override("font_shadow_color", NO_SHADOW)
 	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(l)
-	var m := btn("-", cb.bind(-1), Color("#3f6fd0"), false, disabled)
+	var face := Color("#3f6fd0")
+	var m := btn("-", cb.bind(-1), face, true, disabled)
 	m.size_flags_horizontal = Control.SIZE_SHRINK_END
 	m.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	m.custom_minimum_size = Vector2(26, 22)
+	m.custom_minimum_size = Vector2(24, 22)
 	h.add_child(m)
+	var well := PanelContainer.new()
+	well.add_theme_stylebox_override("panel", UIKit.frame("lcd") if not light else UIKit.sb(Color("#f8fafc"), Color("#8a93a3"), 1, 3))
+	well.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	well.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var v := small(value, Color("#1f4e8f") if light else HL, false)
+	if light: v.add_theme_color_override("font_shadow_color", NO_SHADOW)
 	v.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	v.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	v.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	v.custom_minimum_size = Vector2(64, 0)
-	h.add_child(v)
-	var pl := btn("+", cb.bind(1), Color("#3f6fd0"), false, disabled)
+	v.custom_minimum_size = Vector2(58, 12)
+	well.add_child(v)
+	h.add_child(well)
+	var pl := btn("+", cb.bind(1), face, true, disabled)
 	pl.size_flags_horizontal = Control.SIZE_SHRINK_END
 	pl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	pl.custom_minimum_size = Vector2(26, 22)
+	pl.custom_minimum_size = Vector2(24, 22)
 	h.add_child(pl)
-	if desc != "": vb.add_child(small(desc, Color("#334466") if light else SUB))
+	if desc != "":
+		var d := small(desc, Color("#334466") if light else DIM)
+		if light: d.add_theme_color_override("font_shadow_color", NO_SHADOW)
+		vb.add_child(d)
 	p.set_meta("minus", m)
 	p.set_meta("plus", pl)
 	p.set_meta("value", v)
@@ -188,12 +218,14 @@ class Bar extends Control:
 	var col2 := Color(0, 0, 0, 0)
 	func _draw() -> void:
 		var r := Rect2(Vector2.ZERO, size).abs()
-		draw_rect(r, Color("#2c3b70"))
-		draw_rect(r.grow(-1), Color("#0d1330"))
+		draw_rect(r, Color("#140c24"))
+		draw_rect(r.grow(-1), Color("#0a0f2a"))
+		draw_rect(Rect2(1, size.y - 2, size.x - 2, 1), Color("#1a2450"))
 		var w := floorf((size.x - 2) * clampf(frac, 0.0, 1.0))
 		if w <= 0: return
 		draw_rect(Rect2(1, 1, w, size.y - 2), col)
 		if col2.a > 0: draw_rect(Rect2(1, 1, w, 1), col2)
+		if size.y >= 6: draw_rect(Rect2(1, size.y - 2, w, 1), col.darkened(0.3))
 
 static func bar(frac: float, col: Color = Color("#8ef58e"), h := 6) -> Control:
 	var b := Bar.new()
@@ -411,7 +443,9 @@ static func fit_btn(b: Button, pad := 8.0) -> Button:
 ## Text in an 8 px-padded panel strip (a "chip" that is just a label).
 static func tag(text, col: Color = HL, bg: Color = Color("#2a2f55"), max_w := 190.0) -> PanelContainer:
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", UIKit.sb(bg, Color("#140c24"), 1, 2))
+	var st: StyleBoxTexture = UIKit.frame_tint(bg, "card").duplicate()
+	st.content_margin_left = 3; st.content_margin_right = 3; st.content_margin_top = 2; st.content_margin_bottom = 1
+	p.add_theme_stylebox_override("panel", st)
 	var l := fit(text, col, max_w)
 	p.add_child(l)
 	p.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN

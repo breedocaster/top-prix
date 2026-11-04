@@ -1,17 +1,19 @@
 class_name RaceView
 extends Control
-## SNES-style race screen. Top: 256x224 Mode 7 view (sky/parallax, perspective floor, scaled sprites).
-## Bottom: minimap, standings, commentary and race calls for the entries this device owns.
+## SNES-style race screen. Top: 256x272 Mode 7 view (sky/parallax, perspective floor, scaled sprites)
+## with an overlay HUD (position + gap, lap/time, minimap, course name, banners).
+## Bottom: standings board, commentary ticker and race-call cards for the entries this device owns.
 ## Runs the sim itself (local / LAN host) or renders host snapshots (LAN client).
 
 signal finished(result: Dictionary)
 
-const VIEW := Vector2(256, 224)
-const HORIZON := 70.0
-const FOCAL := 128.0
-const CAM_H := 40.0
-const CAM_DIST := 66.0
-const FOG_FAR := 1100.0
+const VIEW := Vector2(256, 272)
+const HORIZON := 62.0
+const FOCAL := 136.0
+const CAM_H := 54.0
+const CAM_DIST := 80.0
+const FOG_FAR := 1400.0
+const MAP := Vector2(68, 68)      # overlay minimap box
 const SNAP_HZ := 15.0
 
 var net_mode := "local"      # local | host | client
@@ -45,16 +47,19 @@ var floor_rect: ColorRect
 var floor_mat: ShaderMaterial
 var layer: SpriteLayer
 var painter_vp: SubViewport
-var hud_pos: Label
-var hud_lap: Label
-var hud_time: Label
+var overlay: Control            # HUD drawn over the game screen
 var banner: Label
-var minimap: Control
-var standings: VBoxContainer
-var log_box: VBoxContainer
+var board: Control              # standings chips
+var ticker: Control             # commentary
 var calls: VBoxContainer
 var speed_btn: Button
 var call_widgets := {}
+var _flash := ""                # transient banner text (FINAL LAP, ...)
+var _flash_t := 0.0
+var _last_lap := 0
+var _map_pts := PackedVector2Array()
+var _map_sc := 1.0
+var _map_off := Vector2.ZERO
 # audio
 var _eng: Array = []            # [{node: EngineAudio, rev: RevModel, idx: int}]
 var _eng_t := 0.0
@@ -145,20 +150,19 @@ func _build(rain: bool) -> void:
 		e.rprog = float(e.prog)
 		e.rlane = _lane_off(e)
 	# HUD over the game screen
-	hud_pos = _hud_label(Vector2(4, 4), 16, UIKit.GOLD)
-	hud_lap = _hud_label(Vector2(150, 4), 8, Color.WHITE)
-	hud_time = _hud_label(Vector2(150, 16), 8, Color.WHITE)
-	banner = _hud_label(Vector2(0, 92), 16, UIKit.GOLD)
-	banner.size = Vector2(VIEW.x, 24)
-	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var tl := UIKit.label((title_override if title_override != "" else str(def.n)).to_upper(), Color("#d8e4f0"), true)
-	tl.position = Vector2(4, VIEW.y - 12); tl.autowrap_mode = TextServer.AUTOWRAP_OFF
-	tl.add_theme_color_override("font_outline_color", Color("#140c24")); tl.add_theme_constant_override("outline_size", 3)
-	screen.add_child(tl)
 	if attract:
-		for l in [hud_pos, hud_lap, hud_time, banner]: l.visible = false
 		countdown = 0.0
 	else:
+		_prep_minimap()
+		overlay = Control.new()
+		overlay.size = VIEW
+		overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		overlay.draw.connect(_draw_overlay)
+		screen.add_child(overlay)
+		banner = UIKit.title("")
+		banner.position = Vector2(0, 104); banner.size = Vector2(VIEW.x, 24)
+		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		screen.add_child(banner)
 		_build_panel()
 		_setup_audio()
 	follow = _pick_follow()
@@ -167,50 +171,28 @@ func _build(rain: bool) -> void:
 	cam_ang = s0.ang
 	cam_pos = s0.pos - Vector2.from_angle(cam_ang) * CAM_DIST
 
-func _hud_label(p: Vector2, size: int, c: Color) -> Label:
-	var l := Label.new()
-	l.position = p
-	l.add_theme_font_override("font", UIKit.font8)
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", c)
-	l.add_theme_color_override("font_outline_color", Color("#140c24"))
-	l.add_theme_constant_override("outline_size", 4)
-	screen.add_child(l)
-	return l
-
 func _build_panel() -> void:
+	var bg := ColorRect.new()
+	bg.color = UIKit.BG
+	bg.position = Vector2(0, VIEW.y); bg.size = Vector2(VIEW.x, 512 - VIEW.y)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
 	var root := UIKit.vbox(3)
 	root.position = Vector2(2, VIEW.y + 2)
 	root.size = Vector2(VIEW.x - 4, 0)
 	add_child(root)
-	var top := UIKit.hbox(4)
-	root.add_child(top)
-	minimap = Control.new()
-	minimap.custom_minimum_size = Vector2(92, 92)
-	minimap.draw.connect(_draw_minimap)
-	top.add_child(UIKit.panel(minimap, Color("#0f1736")))
-	standings = UIKit.vbox(0)
-	standings.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(standings)
-	for i in 8:
-		var l := UIKit.label("", Color.WHITE, true)
-		l.autowrap_mode = TextServer.AUTOWRAP_OFF
-		l.clip_text = true
-		l.custom_minimum_size = Vector2(150, 10)
-		standings.add_child(l)
-	log_box = UIKit.vbox(0)
-	log_box.custom_minimum_size = Vector2(0, 52)
-	root.add_child(UIKit.panel(log_box, Color("#0f1736")))
-	for i in 3:
-		var l2 := UIKit.label("", UIKit.DIM)
-		l2.autowrap_mode = TextServer.AUTOWRAP_OFF
-		l2.clip_text = true
-		l2.custom_minimum_size = Vector2(240, 0)
-		log_box.add_child(l2)
+	board = Control.new()
+	board.custom_minimum_size = Vector2(VIEW.x - 12, ROWS * 11 + 1)
+	board.draw.connect(_draw_board)
+	root.add_child(UIKit.window(board, "lcd"))
+	ticker = Control.new()
+	ticker.custom_minimum_size = Vector2(VIEW.x - 12, 21)
+	ticker.draw.connect(_draw_ticker)
+	root.add_child(UIKit.window(ticker, "lcd"))
 	calls = UIKit.vbox(3)
 	root.add_child(calls)
-	for e in ents:
-		if e.human and is_mine(e): _add_call_row(e)
+	var mine := ents.filter(func(e): return is_mine(e))
+	for e in mine: _add_call_row(e, mine.size() > 2)
 	var bar := UIKit.hbox(4)
 	root.add_child(bar)
 	if net_mode != "client":
@@ -219,33 +201,77 @@ func _build_panel() -> void:
 	var skip := UIKit.btn("SKIP" if net_mode == "local" else "LEAVE", _skip, UIKit.BTN_LO)
 	bar.add_child(skip)
 
-func _add_call_row(e: Dictionary) -> void:
+const ROWS := 6                 # standings board rows (two columns)
+const TAC_COL := {"safe": Color("#2f9a52"), "normal": Color("#3f78e0"), "push": Color("#d8402e")}
+const TAC_OFF := Color("#2a3156")
+const SPARK_COL := {"b": Color("#a0603a"), "s": Color("#7a8494"), "g": Color("#b8901e")}
+
+## One card per entry this device commands: name + health, tactic switch, sparks, retire.
+## Compact (one row) when this device runs more than two entries.
+func _add_call_row(e: Dictionary, compact: bool) -> void:
 	var box := UIKit.vbox(2)
-	var r1 := UIKit.hbox(3)
-	var nm := UIKit.label(e.name.split(" ")[0], Color(e.col).lightened(0.3))
-	nm.custom_minimum_size = Vector2(52, 0)
+	var nm := UIKit.label(CareerKit.asc(str(e.name)).split(" ")[0].left(9).to_upper(), Color(e.col).lightened(0.35), true)
 	nm.autowrap_mode = TextServer.AUTOWRAP_OFF
 	nm.clip_text = true
-	r1.add_child(nm)
+	var stat := Control.new()
+	stat.custom_minimum_size = Vector2(60, 9)
+	stat.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stat.draw.connect(_draw_call_stat.bind(stat, int(e.idx)))
 	var tb := {}
-	for tc in ["safe", "normal", "push"]:
-		var b := UIKit.btn({"safe": "SAFE", "normal": "NORM", "push": "PUSH"}[tc], call_cmd.bind(int(e.idx), "tactic", tc))
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		r1.add_child(b)
-		tb[tc] = b
-	box.add_child(r1)
-	var r2 := UIKit.hbox(3)
 	var sp := {}
-	for k in ["b", "s", "g"]:
-		var b2 := UIKit.btn("", call_cmd.bind(int(e.idx), "spark", k), {"b": Color("#a0603a"), "s": Color("#7a8494"), "g": Color("#b8901e")}[k])
-		b2.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		r2.add_child(b2)
-		sp[k] = b2
-	var rt := UIKit.btn("RETIRE", call_cmd.bind(int(e.idx), "retire", ""), UIKit.ACCENT)
-	r2.add_child(rt)
-	box.add_child(r2)
-	calls.add_child(box)
-	call_widgets[int(e.idx)] = {"tac": tb, "spark": sp, "retire": rt}
+	var rt := UIKit.btn("RET", call_cmd.bind(int(e.idx), "retire", ""), UIKit.ACCENT)
+	if compact:
+		var r := UIKit.hbox(2)
+		nm.custom_minimum_size = Vector2(44, 0)
+		r.add_child(nm)
+		for tc in ["safe", "normal", "push"]:
+			var b := UIKit.btn({"safe": "S", "normal": "N", "push": "P"}[tc], call_cmd.bind(int(e.idx), "tactic", tc))
+			b.custom_minimum_size = Vector2(22, 0)
+			r.add_child(b); tb[tc] = b
+		for k in ["b", "s", "g"]:
+			var b2 := UIKit.btn("", call_cmd.bind(int(e.idx), "spark", k), SPARK_COL[k])
+			b2.custom_minimum_size = Vector2(26, 0)
+			r.add_child(b2); sp[k] = b2
+		rt.custom_minimum_size = Vector2(30, 0)
+		r.add_child(rt)
+		box.add_child(r)
+	else:
+		var r0 := UIKit.hbox(4)
+		nm.custom_minimum_size = Vector2(70, 0)
+		r0.add_child(nm)
+		r0.add_child(stat)
+		box.add_child(r0)
+		var r1 := UIKit.hbox(3)
+		for tc in ["safe", "normal", "push"]:
+			var b := UIKit.btn({"safe": "SAFE", "normal": "NORMAL", "push": "PUSH"}[tc], call_cmd.bind(int(e.idx), "tactic", tc))
+			r1.add_child(b); tb[tc] = b
+		box.add_child(r1)
+		var r2 := UIKit.hbox(3)
+		for k in ["b", "s", "g"]:
+			var b2 := UIKit.btn("", call_cmd.bind(int(e.idx), "spark", k), SPARK_COL[k])
+			r2.add_child(b2); sp[k] = b2
+		rt.text = "RETIRE"
+		r2.add_child(rt)
+		box.add_child(r2)
+	calls.add_child(UIKit.window(box, "card"))
+	call_widgets[int(e.idx)] = {"tac": tb, "spark": sp, "retire": rt, "stat": stat, "cur": ""}
+
+func _draw_call_stat(c: Control, idx: int) -> void:
+	var e: Dictionary = ents[idx]
+	var w := c.size.x
+	# car health and engine condition bars
+	var hp := clampf(float(e.get("hp", 1.0)), 0.0, 1.0)
+	var cond := clampf(float(e.get("cond", 1.0)), 0.0, 1.0)
+	_bar(c, Rect2(0, 0, w * 0.5 - 2, 8), hp, "CAR")
+	_bar(c, Rect2(w * 0.5 + 2, 0, w * 0.5 - 2, 8), cond, "ENG")
+
+func _bar(c: Control, r: Rect2, v: float, tag: String) -> void:
+	var f := UIKit.font8
+	c.draw_rect(r, Color("#050a1c"))
+	var col := Color("#3fb34a") if v > 0.6 else (Color("#f2c21e") if v > 0.3 else Color("#e8432f"))
+	c.draw_rect(Rect2(r.position + Vector2(1, 1), Vector2((r.size.x - 2) * v, r.size.y - 2)), col)
+	c.draw_string(f, r.position + Vector2(2, 7), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color(0, 0, 0, 0.7))
+	c.draw_string(f, r.position + Vector2(1, 6), tag, HORIZONTAL_ALIGNMENT_LEFT, -1, 8, Color.WHITE)
 
 # ---------------- commands ----------------
 func is_mine(e: Dictionary) -> bool:
@@ -385,7 +411,6 @@ func _update_render(delta: float) -> void:
 	floor_mat.set_shader_parameter("cam_ang", cam_ang)
 	backdrop.cam_ang = cam_ang
 	layer.queue_redraw()
-	if minimap: minimap.queue_redraw()
 
 ## Cars sit where the sim puts them (lanes are real now); just ease the sprite sideways.
 func _visual_lanes(delta: float) -> void:
@@ -405,17 +430,13 @@ func _pick_follow() -> int:
 func _update_hud() -> void:
 	if attract: return
 	var me: Dictionary = ents[follow] if follow >= 0 else {}
-	var n := ents.size()
-	if not me.is_empty():
-		if tr.drag:
-			hud_pos.text = "LANE %d" % (int(me.lane) % 2 + 1)
-		elif fmt.get("kind", "") == "tt":
-			hud_pos.text = "STAGE" if tr.p2p else "TIME"
-		else:
-			hud_pos.text = "P%d/%d" % [int(me.get("pos", 1)), n]
+	if not me.is_empty() and not tr.drag and int(tr.laps) > 1:
 		var lap: int = clampi(int(floor(max(0.0, me.rprog) / tr.lapLen)) + 1, 1, int(tr.laps))
-		hud_lap.text = ("STAGE %d/%d" if tr.p2p else "LAP %d/%d") % [lap, int(tr.laps)]
-	hud_time.text = "%d:%04.1f" % [int(race_t) / 60, fmod(race_t, 60.0)]
+		if lap != _last_lap and _last_lap > 0 and not me.fin:
+			_flash = "FINAL LAP" if lap == int(tr.laps) else ("STAGE %d" % lap if tr.p2p else "LAP %d" % lap)
+			_flash_t = 1.6
+		_last_lap = lap
+	_flash_t -= get_process_delta_time()
 	if countdown > 0 and not tr.drag:
 		banner.text = str(int(ceil(countdown / 0.55)))
 	elif race_t < 1.0 and not tr.drag:
@@ -424,68 +445,191 @@ func _update_hud() -> void:
 		banner.text = "FINISH!"
 	elif not me.is_empty() and me.dnf:
 		banner.text = "RETIRED" if me.get("retired", false) else "OUT!"
+	elif _flash_t > 0.0:
+		banner.text = _flash if int(_flash_t * 6.0) % 2 == 0 or _flash_t < 1.0 else ""
 	else:
 		banner.text = ""
-	# standings (top 6 + me)
-	var ord := ents.duplicate()
-	ord.sort_custom(func(a, b): return int(a.get("pos", 99)) < int(b.get("pos", 99)))
-	var labels := standings.get_children()
-	var shown := 0
-	for e in ord:
-		if shown >= 8: break
-		if shown >= 6 and not is_mine(e): continue
-		var tag := "%d %s" % [int(e.get("pos", 0)), e.team if not e.human else e.name.split(" ")[0]]
-		if e.dnf: tag += " x"
-		elif e.fin: tag += " F"
-		var l: Label = labels[shown]
-		l.text = tag
-		l.add_theme_color_override("font_color", Color(e.col).lightened(0.35) if e.human else Color("#c8d0e8"))
-		shown += 1
-	for i in range(shown, labels.size()): labels[i].text = ""
-	# race-call buttons
+	banner.add_theme_color_override("font_color", UIKit.ACCENT if banner.text == "FINAL LAP" else UIKit.GOLD)
+	overlay.queue_redraw()
+	board.queue_redraw()
+	# race-call cards
 	for idx in call_widgets:
 		var w: Dictionary = call_widgets[idx]
 		var e2: Dictionary = ents[idx]
 		var live: bool = not e2.fin and not e2.dnf
-		for tc in w.tac:
-			var b: Button = w.tac[tc]
-			b.disabled = not live
-			b.modulate = Color.WHITE if e2.get("tactic", "normal") == tc else Color(0.6, 0.6, 0.7)
+		var cur: String = str(e2.get("tactic", "normal"))
+		if cur != w.cur:
+			w.cur = cur
+			for tc in w.tac:
+				UIKit.style_btn(w.tac[tc], TAC_COL[tc] if tc == cur else TAC_OFF)
+				(w.tac[tc] as Button).add_theme_color_override("font_color", Color.WHITE if tc == cur else UIKit.DIM)
+		for tc in w.tac: (w.tac[tc] as Button).disabled = not live
 		for k in w.spark:
 			var cnt := int(e2.get("sparks", {}).get(k, 0))
 			var b2: Button = w.spark[k]
-			b2.text = "%s%d" % [{"b": "BRZ ", "s": "SLV ", "g": "GLD "}[k], cnt]
+			b2.text = ("%s%d" if w.retire.text == "RET" else "%s x%d") % [{"b": "B", "s": "S", "g": "G"}[k] if w.retire.text == "RET" else {"b": "BRZ", "s": "SLV", "g": "GLD"}[k], cnt]
 			b2.disabled = not live or cnt <= 0 or e2.get("boost", 0.0) > 0
 		w.retire.disabled = not live
+		(w.stat as Control).queue_redraw()
+
+static func ordinal(n: int) -> String:
+	if n % 100 >= 11 and n % 100 <= 13: return "TH"
+	return {1: "ST", 2: "ND", 3: "RD"}.get(n % 10, "TH")
+
+func _txt(c: CanvasItem, p: Vector2, t: String, size: int, col: Color, width := -1.0, align := HORIZONTAL_ALIGNMENT_LEFT) -> void:
+	c.draw_string(UIKit.font8, p + Vector2(1, 1), t, align, width, size, Color(0.03, 0.02, 0.09, 0.9))
+	c.draw_string(UIKit.font8, p, t, align, width, size, col)
+
+func _box(c: CanvasItem, r: Rect2, alpha := 0.78) -> void:
+	c.draw_rect(r, Color(0.02, 0.03, 0.12, alpha))
+	c.draw_rect(Rect2(r.position, Vector2(r.size.x, 1)), Color(0.75, 0.8, 1.0, 0.55))
+	c.draw_rect(Rect2(r.position + Vector2(0, r.size.y - 1), Vector2(r.size.x, 1)), Color(0, 0, 0, 0.5))
+	c.draw_rect(Rect2(r.position, Vector2(1, r.size.y)), Color(0.75, 0.8, 1.0, 0.35))
+	c.draw_rect(Rect2(r.position + Vector2(r.size.x - 1, 0), Vector2(1, r.size.y)), Color(0, 0, 0, 0.5))
+
+## Overlay HUD: position + gap (top left), lap + time (top right), minimap (bottom right), course name.
+func _draw_overlay() -> void:
+	var c := overlay
+	var me: Dictionary = ents[follow] if follow >= 0 else {}
+	var n := ents.size()
+	# position badge
+	_box(c, Rect2(3, 3, 74, 29))
+	if not me.is_empty():
+		if tr.drag:
+			_txt(c, Vector2(8, 22), "LANE", 8, UIKit.DIM)
+			_txt(c, Vector2(44, 25), str(int(me.lane) % 2 + 1), 16, UIKit.GOLD)
+		elif fmt.get("kind", "") == "tt":
+			_txt(c, Vector2(8, 15), "STAGE" if tr.p2p else "TIME TRIAL", 8, UIKit.GOLD)
+			var fr := clampf(float(me.rprog) / maxf(float(tr.total), 0.01), 0.0, 1.0)
+			c.draw_rect(Rect2(8, 20, 64, 6), Color("#050a1c"))
+			c.draw_rect(Rect2(9, 21, 62 * fr, 4), Color("#3fb34a"))
+		else:
+			var pos := int(me.get("pos", 1))
+			var ps := str(pos)
+			_txt(c, Vector2(7, 25), ps, 16, UIKit.GOLD if pos <= 3 else UIKit.INK)
+			_txt(c, Vector2(7 + 16 * ps.length(), 17), ordinal(pos), 8, UIKit.GOLD if pos <= 3 else UIKit.INK)
+			_txt(c, Vector2(7 + 16 * ps.length(), 27), "/%d" % n, 8, UIKit.DIM)
+		var gap := _gap_text(me)
+		if gap != "":
+			_box(c, Rect2(3, 33, 74, 12), 0.5)
+			_txt(c, Vector2(6, 42), gap, 8, Color("#9ff0a8") if gap.begins_with("LEAD") else Color("#ffd0a0"))
+	# lap + time
+	_box(c, Rect2(VIEW.x - 83, 3, 80, 29))
+	if not me.is_empty():
+		var lap: int = clampi(int(floor(max(0.0, me.rprog) / tr.lapLen)) + 1, 1, int(tr.laps))
+		var lt := ("STG %d/%d" if tr.p2p else "LAP %d/%d") % [lap, int(tr.laps)]
+		_txt(c, Vector2(VIEW.x - 79, 14), lt, 8, UIKit.ACCENT.lightened(0.3) if lap == int(tr.laps) and int(tr.laps) > 1 else UIKit.INK)
+	_txt(c, Vector2(VIEW.x - 79, 27), "%d:%04.1f" % [int(race_t) / 60, fmod(race_t, 60.0)], 8, UIKit.GOLD)
+	# course name
+	var nm := CareerKit.asc((title_override if title_override != "" else str(def.n)).to_upper())
+	var room := int((VIEW.x - MAP.x - 14) / 8.0)
+	_txt(c, Vector2(4, VIEW.y - 5), nm.left(room), 8, Color("#d8e4f0"))
+	# minimap
+	var mr := Rect2(VIEW - MAP - Vector2(3, 3), MAP)
+	_box(c, mr, 0.5)
+	if _map_pts.size() > 1:
+		var pts := PackedVector2Array()
+		for q in _map_pts: pts.append(q + mr.position)
+		c.draw_polyline(pts, Color(0.1, 0.1, 0.16, 0.9), 3.0)
+		c.draw_polyline(pts, Color("#b8c0cc"), 1.0)
+		var st: Vector2 = pts[0]
+		c.draw_rect(Rect2(st - Vector2(1, 1), Vector2(3, 3)), Color.WHITE)
+	for e in ents:
+		if e.dnf or is_mine(e): continue
+		var p: Vector2 = geo.sample(e.rprog, 0.0).pos * _map_sc + _map_off + mr.position
+		c.draw_rect(Rect2(p - Vector2(1, 1), Vector2(3, 3)), Color(e.col))
+	for e in ents:
+		if e.dnf or not is_mine(e): continue
+		var p2: Vector2 = geo.sample(e.rprog, 0.0).pos * _map_sc + _map_off + mr.position
+		c.draw_rect(Rect2(p2 - Vector2(2, 2), Vector2(5, 5)), Color.WHITE)
+		c.draw_rect(Rect2(p2 - Vector2(1, 1), Vector2(3, 3)), Color(e.col))
+
+## Gap in seconds to the car ahead (or to second place when leading).
+func _gap_text(me: Dictionary) -> String:
+	if tr.drag or fmt.get("kind", "") == "tt" or me.fin or me.dnf or not started: return ""
+	var pos := int(me.get("pos", 1))
+	var other: Dictionary = {}
+	for e in ents:
+		if int(e.get("pos", 0)) == (pos + 1 if pos == 1 else pos - 1): other = e
+	if other.is_empty() or other.dnf: return ""
+	var v := maxf(float(me.get("v", 0.0)), 0.05)
+	var d := absf(float(other.rprog) - float(me.rprog)) / v
+	if d > 99.0: return ""
+	return ("LEAD +%.1fs" if pos == 1 else "GAP  -%.1fs") % d
+
+func _prep_minimap() -> void:
+	var r := geo.bbox.grow(-(geo.width * 0.5 + 200.0) + geo.width * 0.5)
+	_map_sc = minf((MAP.x - 10) / maxf(r.size.x, 1.0), (MAP.y - 10) / maxf(r.size.y, 1.0))
+	_map_off = (MAP - r.size * _map_sc) * 0.5 - r.position * _map_sc
+	_map_pts = PackedVector2Array()
+	for i in range(0, geo.pts.size(), 6): _map_pts.append(geo.pts[i] * _map_sc + _map_off)
+	if geo.closed and _map_pts.size() > 0: _map_pts.append(_map_pts[0])
+
+## Standings board: two columns of chips (position, team colour, name, status); your entries in gold.
+func _draw_board() -> void:
+	var c := board
+	var ord := ents.duplicate()
+	ord.sort_custom(func(a, b): return int(a.get("pos", 99)) < int(b.get("pos", 99)))
+	var slots := ROWS * 2
+	var show := ord.slice(0, slots)
+	var missing := ord.slice(slots).filter(func(e): return is_mine(e))
+	var k := show.size() - 1
+	for e in missing:
+		while k >= 0 and is_mine(show[k]): k -= 1
+		if k < 0: break
+		show[k] = e; k -= 1
+	var cw := (c.size.x - 4) * 0.5
+	for i in show.size():
+		var e: Dictionary = show[i]
+		var col := i / ROWS
+		var row := i % ROWS
+		var p := Vector2(col * (cw + 4), row * 11)
+		var mine := is_mine(e)
+		if mine: c.draw_rect(Rect2(p, Vector2(cw, 11)), Color(1.0, 0.85, 0.3, 0.18))
+		var dim := bool(e.dnf)
+		_txt(c, p + Vector2(0, 9), "%2d" % int(e.get("pos", 0)), 8, UIKit.GOLD if mine else (UIKit.DIM if dim else UIKit.INK))
+		c.draw_rect(Rect2(p + Vector2(18, 2), Vector2(6, 7)), Color(e.col).darkened(0.5 if dim else 0.0))
+		c.draw_rect(Rect2(p + Vector2(18, 2), Vector2(6, 1)), Color(e.col).lightened(0.4))
+		var nm := CareerKit.asc(str(e.name).split(" ")[0] if e.human else str(e.team)).to_upper()
+		_txt(c, p + Vector2(27, 9), nm.left(int((cw - 38) / 8.0)), 8, (Color(e.col).lightened(0.45) if mine else (UIKit.DIM if dim else Color("#c8d0e8"))))
+		var tag := "X" if e.dnf else ("F" if e.fin else "")
+		if tag != "": _txt(c, p + Vector2(cw - 9, 9), tag, 8, Color("#e8432f") if e.dnf else Color("#3fb34a"))
+		if mine:
+			c.draw_rect(Rect2(p, Vector2(cw, 1)), UIKit.GOLD); c.draw_rect(Rect2(p + Vector2(0, 10), Vector2(cw, 1)), UIKit.GOLD)
 
 func _log(m: Dictionary) -> void:
 	if attract: return
 	var ent := int(m.get("ent", -1))
 	if ent >= 0 and ent < ents.size() and not is_mine(ents[ent]): return
-	log_lines.append(m.text)
-	while log_lines.size() > 3: log_lines.pop_front()
-	var labels := log_box.get_children()
-	for i in labels.size():
-		var l: Label = labels[i]
-		l.text = log_lines[i] if i < log_lines.size() else ""
-		l.add_theme_color_override("font_color", Color.WHITE if i == log_lines.size() - 1 else UIKit.DIM)
+	log_lines.append(CareerKit.asc(str(m.text)))
+	while log_lines.size() > 2: log_lines.pop_front()
+	if ticker: ticker.queue_redraw()
 
-func _draw_minimap() -> void:
-	var box := Vector2(92, 92)
-	var r := geo.bbox.grow(-140)
-	var sc: float = min((box.x - 8) / max(r.size.x, 1.0), (box.y - 8) / max(r.size.y, 1.0))
-	var off := (box - r.size * sc) * 0.5 - r.position * sc
-	var pts := PackedVector2Array()
-	for i in range(0, geo.pts.size(), 6): pts.append(geo.pts[i] * sc + off)
-	if geo.closed and pts.size() > 0: pts.append(pts[0])
-	minimap.draw_polyline(pts, Color("#5d5f68"), 3.0)
-	minimap.draw_polyline(pts, Color("#9aa2ad"), 1.0)
-	for e in ents:
-		if e.dnf: continue
-		var p: Vector2 = geo.sample(e.rprog, 0.0).pos * sc + off
-		var big := is_mine(e)
-		minimap.draw_rect(Rect2(p - Vector2(2, 2) if big else p - Vector2(1, 1), Vector2(4, 4) if big else Vector2(3, 3)), Color(e.col) if not big else Color.WHITE)
-		if big: minimap.draw_rect(Rect2(p - Vector2(1, 1), Vector2(2, 2)), Color(e.col))
+## Commentary: the newest call wrapped over two lines, the one before it dimmed above.
+func _draw_ticker() -> void:
+	var c := ticker
+	var cols := int(c.size.x / 8.0)
+	if log_lines.is_empty(): return
+	var newest: String = log_lines[log_lines.size() - 1]
+	var lines := _wrap(newest, cols)
+	if lines.size() < 2 and log_lines.size() > 1:
+		_txt(c, Vector2(0, 8), str(log_lines[0]).left(cols), 8, UIKit.DIM)
+		_txt(c, Vector2(0, 19), lines[0], 8, Color.WHITE)
+	else:
+		for i in mini(2, lines.size()): _txt(c, Vector2(0, 8 + i * 11), lines[i], 8, Color.WHITE)
+
+static func _wrap(t: String, cols: int) -> Array:
+	var out := []
+	var line := ""
+	for w in t.split(" "):
+		if line == "": line = w
+		elif line.length() + 1 + w.length() <= cols: line += " " + w
+		else: out.append(line.left(cols)); line = w
+	if line != "": out.append(line.left(cols))
+	if out.size() > 2:
+		out = out.slice(0, 2)
+		out[1] = (out[1] as String).left(cols - 2) + ".."
+	return out
 
 # ---------------- audio: engines, race SFX, music ----------------
 func _setup_audio() -> void:
@@ -552,7 +696,7 @@ func _update_audio(delta: float) -> void:
 		node.throttle = rev.throttle
 		if i == 0: node.gain_db = 0.0
 		else:
-			var dw: float = absf(float(e.rprog) - float(me.rprog)) * geo.unit
+			var dw: float = absf(geo.px_of(float(e.rprog)) - geo.px_of(float(me.rprog)))
 			node.gain_db = -5.0 - 18.0 * log(maxf(dw, 30.0) / 30.0) / log(10.0)
 	# race SFX for this device's entries
 	var cd := int(ceil(countdown / 0.55)) if countdown > 0 else 0

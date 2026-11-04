@@ -1,6 +1,6 @@
 extends Node
 ## Music, SFX and engine buses. Music is picked by context and crossfaded; all tracks are original
-## compositions rendered by tools/audio/music.py (no licensing strings attached).
+## compositions rendered by tools/audio/music.py with MIT-licensed soundfont samples (see audio/CREDITS.md).
 ## Volumes (0..1) live in Game.player: music_vol, sfx_vol, engine_vol.
 
 const MUSIC_DIR := "res://audio/music/"

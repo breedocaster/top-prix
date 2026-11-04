@@ -76,11 +76,7 @@ func go(name: String, c: Dictionary = {}) -> bool:
 
 # ---------------- frame ----------------
 func _frame() -> void:
-	var bg := ColorRect.new()
-	bg.color = UIKit.BG
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
+	add_child(CareerKit.bg_rect())
 	var m := MarginContainer.new()
 	m.set_anchors_preset(Control.PRESET_FULL_RECT)
 	for k in ["left", "right"]: m.add_theme_constant_override("margin_" + k, 3)
@@ -89,29 +85,13 @@ func _frame() -> void:
 	add_child(m)
 	frame = UIKit.vbox(3)
 	m.add_child(frame)
-	# header
-	var hp := PanelContainer.new()
-	hp.add_theme_stylebox_override("panel", UIKit.sb(Color("#141a3a"), Color("#4b5ea0"), 2, 2))
-	frame.add_child(hp)
-	var h := UIKit.hbox(4)
-	hp.add_child(h)
-	var bb := SK.act(SK.btn("<", back, UIKit.BTN_LO), "back")
-	bb.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	bb.custom_minimum_size = Vector2(26, 24)
-	h.add_child(bb)
-	head_title = UIKit.title(SK.ascii(_title()).to_upper())
-	head_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	head_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	head_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head_title.clip_text = true
-	h.add_child(head_title)
-	head_info = SK.small("", Color.WHITE, false)
-	head_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	head_info.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	head_info.size_flags_horizontal = Control.SIZE_SHRINK_END
-	head_info.clip_text = false
-	head_info.add_theme_constant_override("line_spacing", 2)
-	h.add_child(head_info)
+	# header: [<] TITLE ...... money / RP
+	var tb := CareerKit.top_bar(back)
+	frame.add_child(tb.panel)
+	head_title = tb.title
+	head_title.text = SK.ascii(_title()).to_upper()
+	head_info = tb.money
+	head_info2 = tb.rp
 	# tabs
 	tab_bar = UIKit.hbox(2)
 	frame.add_child(tab_bar)
@@ -122,12 +102,14 @@ func _frame() -> void:
 	frame.add_child(scroll)
 	# message bar
 	msg_panel = PanelContainer.new()
-	msg_panel.add_theme_stylebox_override("panel", UIKit.sb(Color("#0f1736"), Color("#ffd84a"), 1, 3))
+	msg_panel.add_theme_stylebox_override("panel", UIKit.frame("msg"))
 	msg_lbl = SK.small("", SK.HL)
 	msg_lbl.custom_minimum_size = Vector2(0, 10)
 	msg_panel.add_child(msg_lbl)
 	msg_panel.visible = false
 	frame.add_child(msg_panel)
+
+var head_info2: Label
 
 func set_title(t: String) -> void:
 	if head_title: head_title.text = SK.ascii(t).to_upper()
@@ -138,11 +120,8 @@ func _rebuild_tabs() -> void:
 	var tb := _tabs()
 	tab_bar.visible = tb.size() > 1
 	for t in tb:
-		var b := SK.chip(t[1], t[0] == tab, _set_tab.bind(t[0]))
+		var b := CareerKit.tab_btn(SK.ascii(t[1]), _set_tab.bind(t[0]), t[0] == tab)
 		b.custom_minimum_size = Vector2(0, 22)
-		for k in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
-			var st: StyleBoxFlat = b.get_theme_stylebox(k)
-			st.content_margin_left = 1; st.content_margin_right = 1
 		SK.act(b, "tab:" + str(t[0]))
 		tab_bar.add_child(b)
 
@@ -171,8 +150,15 @@ func _restore_scroll(v: int, gen: int) -> void:
 	await get_tree().process_frame
 	if is_instance_valid(scroll) and gen == _gen: scroll.scroll_vertical = v
 
+## Header info: the first line of _head_info() (money) in green, the rest (RP) in blue.
 func update_head() -> void:
-	if head_info: head_info.text = SK.ascii(_head_info())
+	if head_info == null: return
+	var lines := SK.ascii(_head_info()).split("\n")
+	head_info.text = lines[0] if lines.size() > 0 else ""
+	head_info.add_theme_color_override("font_color", CareerKit.BAD if head_info.text.begins_with("-") else CareerKit.MONEY)
+	if head_info2:
+		head_info2.text = "\n".join(lines.slice(1)) if lines.size() > 1 else ""
+		head_info2.visible = head_info2.text != ""
 
 func _on_refresh() -> void: _dirty = true
 
@@ -201,27 +187,29 @@ func close_modal() -> void:
 	if modal != null:
 		remove_child(modal); modal.queue_free(); modal = null
 
-## Dim overlay + centred panel; returns the panel's VBox.
+## Dim overlay + centred SNES window; returns the window's VBox.
 func open_modal(title: String) -> VBoxContainer:
 	close_modal()
 	var ov := Control.new()
 	ov.set_anchors_preset(Control.PRESET_FULL_RECT)
 	ov.mouse_filter = Control.MOUSE_FILTER_STOP
 	var dim := ColorRect.new()
-	dim.color = Color(0.02, 0.02, 0.08, 0.72)
+	dim.color = Color(0.02, 0.01, 0.08, 0.66)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	ov.add_child(dim)
 	var c := CenterContainer.new()
 	c.set_anchors_preset(Control.PRESET_FULL_RECT)
 	ov.add_child(c)
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", UIKit.sb(UIKit.PANEL, UIKit.EDGE, 2, 6))
-	p.custom_minimum_size = Vector2(236, 0)
+	p.add_theme_stylebox_override("panel", CareerKit.sb("win"))
+	p.custom_minimum_size = Vector2(240, 0)
 	c.add_child(p)
 	var v := UIKit.vbox(6)
 	p.add_child(v)
 	var t := SK.big(title, SK.HL, true)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
+	v.add_child(UIKit.rule())
 	add_child(ov)
 	modal = ov
 	return v

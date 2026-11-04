@@ -45,10 +45,7 @@ func build(t: String, body, buttons: Array, title_col: Color = UIKit.GOLD) -> Sn
 		tl.add_theme_constant_override("shadow_offset_x", 1)
 		tl.add_theme_constant_override("shadow_offset_y", 1)
 		root.add_child(tl)
-		var r := CareerKit.Rule.new()
-		r.col = Color("#8a96b8")
-		r.custom_minimum_size = Vector2(0, 3)
-		root.add_child(r)
+		root.add_child(UIKit.rule())
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.mouse_filter = Control.MOUSE_FILTER_PASS

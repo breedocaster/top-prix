@@ -30,8 +30,11 @@ func _draw() -> void:
 		var tz := "low" if z == "trans" else z
 		var x := k * cw
 		var mid := x + floorf((cw - 2) / 2)
-		draw_rect(Rect2(x, 0, cw - 2, 32), BG.C("#1c2754"))
-		BG.MiniFont.draw(self, "SNAP" if z == "trans" else KIT.ascii(Data.D.ZONE_N[z]).to_upper(), Vector2(mid, 2), BG.C("#9fb0d8"), 1)
+		draw_rect(Rect2(x, 0, cw - 2, 32), BG.C("#0a0f2a"))
+		draw_rect(Rect2(x + 1, 1, cw - 4, 30), BG.C("#18224e"))
+		draw_rect(Rect2(x + 1, 1, cw - 4, 8), BG.C("#2a3a80"))
+		draw_rect(Rect2(x + 1, 1, cw - 4, 1), BG.C("#4a5ca8"))
+		BG.MiniFont.draw(self, "SNAP" if z == "trans" else KIT.ascii(Data.D.ZONE_N[z]).to_upper(), Vector2(mid, 3), BG.C("#c8d4f0"), 1)
 		var l: float = float(lam.get(z, 0.9))
 		var zl := Tune.zoneLabel(l, tz)
 		if num:

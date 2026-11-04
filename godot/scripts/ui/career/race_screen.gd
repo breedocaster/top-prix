@@ -142,7 +142,7 @@ func _show_panel(p: Dictionary) -> void:
 			var ord: Array = p.order
 			for i in ord.size():
 				var me: bool = str(ord[i]) == str(Career.G.team.name)
-				body.append(CareerKit.line("%d. %s" % [i + 1, ord[i]], UIKit.GOLD if me else CareerKit.TXT))
+				body.append(_row(i + 1, str(ord[i]), "", me))
 			if p.dead: body.append(CareerKit.small("Your machine can't make the main.", CareerKit.BAD))
 			else: body.append(CareerKit.small("Main event grid: you start P%d of %d." % [int(p.slot) + 1, int(p.grid_size)], UIKit.GOLD))
 			if p.dead: btns.append({"t": "SEE RESULTS", "cb": _finish, "col": UIKit.OK, "wide": true, "tid": "results"})
@@ -166,7 +166,7 @@ func _show_panel(p: Dictionary) -> void:
 			for i in tab.size():
 				var row: Array = tab[i]
 				var me := row.size() > 2
-				body.append(CareerKit.pair("%d. %s" % [i + 1, row[0]], ("%.2fs" % float(row[1])) if is_finite(float(row[1])) else "DNF", UIKit.GOLD if me else CareerKit.TXT, UIKit.GOLD if me else CareerKit.SUB))
+				body.append(_row(i + 1, str(row[0]), ("%.2fs" % float(row[1])) if is_finite(float(row[1])) else "DNF", me))
 			if p.can_next:
 				body.append(CareerKit.small("Best of two runs counts. The air gets thin up there: retune for the summit?", CareerKit.SUB))
 				btns.append({"t": "RUN 2", "cb": _next, "col": UIKit.OK, "tid": "next"})
@@ -248,7 +248,7 @@ func _show_results() -> void:
 		h.add_child(b)
 		h.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		g.add_child(h)
-	body.append(CareerKit.panel(g, "card"))
+	body.append(CareerKit.panel(g, "inset"))
 	if out.get("rep", false): body.append(CareerKit.small("Repeat win this year: reduced rewards.", CareerKit.WARN))
 	if out.get("spark") != null: body.append(CareerKit.small("Earned a %s Spark!" % CareerKit.SPARK_N.get(str(out.spark), ""), CareerKit.SPARK_COL.get(str(out.spark), UIKit.GOLD)))
 	if out.get("destroyed", false): body.append(CareerKit.small("The machine was destroyed.", CareerKit.BAD))
@@ -273,20 +273,44 @@ func _show_results() -> void:
 		var e2: Dictionary = ord[i]
 		var me := Career.isPlayerEnt(e2)
 		var nm: String = str(G.team.name) if me else str(e2.get("team", "?"))
-		var tail := " (DNF)" if bool(e2.get("dnf", false)) and not bool(e2.get("fin", false)) else ""
-		body.append(CareerKit.line("%d. %s%s" % [i + 1, nm, tail], UIKit.GOLD if me else (Color("#d8b0ff") if _is_dyn(e2) else CareerKit.TXT)))
+		var tail := "DNF" if bool(e2.get("dnf", false)) and not bool(e2.get("fin", false)) else ""
+		body.append(_row(i + 1, nm, tail, me, Color("#d8b0ff") if _is_dyn(e2) else CareerKit.TXT))
 	if flow.series_id != null and G.series.get(flow.series_id, {}).get("act") != null:
 		body.append(CareerKit.sec("CHAMPIONSHIP"))
 		var tb := Career.standings(flow.series_id)
 		for i in mini(5, tb.size()):
 			var me2: bool = tb[i][0] == "you"
-			body.append(CareerKit.pair("%d. %s" % [i + 1, G.team.name if me2 else str(tb[i][0])], "%d" % int(tb[i][1]), UIKit.GOLD if me2 else CareerKit.TXT, UIKit.GOLD if me2 else CareerKit.SUB))
+			body.append(_row(i + 1, str(G.team.name) if me2 else str(tb[i][0]), "%d PTS" % int(tb[i][1]), me2))
 	var unl: Array = out.get("unl", [])
 	if not unl.is_empty():
 		body.append(CareerKit.sec("UNLOCKED!"))
 		for id in unl:
 			body.append(CareerKit.small(str(Data.D.RACE[id].n) if Data.D.RACE.has(id) else str(Data.D.SER[id].n) + " (Series)", UIKit.GOLD))
 	_win("", body, [{"t": "CONTINUE", "cb": _done, "col": UIKit.OK, "wide": true, "tid": "continue"}])
+
+const MEDAL := [Color("#ffd84a"), Color("#d8dce8"), Color("#e0975a")]
+
+## Standings row: medal-coloured position, name, optional right column; your row sits in a gold card.
+func _row(pos: int, name: String, right: String, me: bool, col: Color = CareerKit.TXT) -> Control:
+	var h := CareerKit.hbox(4)
+	var pl := CareerKit.lbl("%d" % pos, MEDAL[pos - 1] if pos >= 1 and pos <= 3 else CareerKit.SUB, false, false)
+	pl.custom_minimum_size = Vector2(16, 0)
+	pl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	CareerKit.shrink(pl)
+	h.add_child(pl)
+	h.add_child(CareerKit.lbl(name, UIKit.GOLD if me else col, false, false))
+	if right != "":
+		var rl := CareerKit.lbl(right, CareerKit.BAD if right == "DNF" else (UIKit.GOLD if me else CareerKit.SUB), false, false)
+		CareerKit.shrink(rl, true)
+		h.add_child(rl)
+	var p := PanelContainer.new()
+	p.add_theme_stylebox_override("panel", UIKit.frame_new("card_gold", 3, 2, 4, 2) if me else StyleBoxEmpty.new())
+	if not me:
+		var e := StyleBoxEmpty.new()
+		e.content_margin_left = 3; e.content_margin_right = 4; e.content_margin_top = 1; e.content_margin_bottom = 1
+		p.add_theme_stylebox_override("panel", e)
+	p.add_child(h)
+	return p
 
 static func _is_dyn(e: Dictionary) -> bool:
 	var ref = e.get("ref")

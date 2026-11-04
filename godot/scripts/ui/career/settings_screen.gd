@@ -23,6 +23,12 @@ const HELP := [
 	"SPARKS (first podiums and titles) boost a race, build, upgrade or training session.",
 ]
 
+const CREDITS := [
+	"Music: original compositions for Top Prix.",
+	"Instrument samples: MuseScore_General by S. Christian Collins and Fluid (R3) GM by Frank Wen, both MIT license (parts public domain / CC0). Full notices: audio/CREDITS.md in the game files.",
+	"Engine sounds and effects synthesized for the game.",
+]
+
 func _title() -> String: return "Settings"
 
 func _sig() -> String: return str(Career.G.settings)
@@ -80,6 +86,10 @@ func _fill(b: VBoxContainer) -> void:
 	var hv := SK.card(b)
 	hv.add_child(SK.big("How to play", SK.HL))
 	for l in HELP: hv.add_child(SK.small("- " + l, SK.SUB))
+	# credits (the soundfonts' MIT notice ships in the build as audio/CREDITS.md)
+	var cv := SK.card(b)
+	cv.add_child(SK.big("Credits", SK.HL))
+	for l in CREDITS: cv.add_child(SK.small(l, SK.SUB))
 	# quit
 	b.add_child(SK.act(SK.btn("QUIT TO TITLE", _ask_quit, SK.RED), "quit"))
 
@@ -103,9 +113,9 @@ func _text_box(text: String, editable: bool) -> TextEdit:
 	t.custom_minimum_size = Vector2(0, 72)
 	t.add_theme_font_override("font", UIKit.font8)
 	t.add_theme_font_size_override("font_size", 8)
-	t.add_theme_stylebox_override("normal", UIKit.sb(Color("#0f1736"), Color("#4b5ea0"), 1, 3))
-	t.add_theme_stylebox_override("focus", UIKit.sb(Color("#0f1736"), SK.HL, 1, 3))
-	t.add_theme_stylebox_override("read_only", UIKit.sb(Color("#0d1330"), Color("#2c3b70"), 1, 3))
+	t.add_theme_stylebox_override("normal", UIKit.frame_new("inset", 4, 3, 4, 3))
+	t.add_theme_stylebox_override("focus", UIKit.frame_new("msg", 4, 3, 4, 3))
+	t.add_theme_stylebox_override("read_only", UIKit.frame_new("lcd", 4, 3, 4, 3))
 	t.add_theme_color_override("font_color", Color.WHITE)
 	t.add_theme_color_override("font_readonly_color", SK.BL)
 	return t
