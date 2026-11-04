@@ -123,7 +123,8 @@ func _g() -> Dictionary:
 func st() -> Dictionary:
 	var g := _g()
 	if g.is_empty(): return _local
-	if typeof(g.get("story")) != TYPE_DICTIONARY: g["story"] = {}
+	# no campaign: read-only defaults, so plain careers keep the exact web save shape
+	if typeof(g.get("story")) != TYPE_DICTIONARY: return {}
 	return g["story"]
 
 func _day() -> int:

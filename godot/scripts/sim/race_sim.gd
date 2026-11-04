@@ -31,8 +31,22 @@ var final_lap := false
 var lap_factor := 1.0
 var last_leader := -1
 var mode := "standard"
-var auto_retire := true
+var auto_retire := true        # crew retires a machine at 8% durability
+var auto_retire_eng := true    # ... and an engine at 10% condition
 var rng := RandomNumberGenerator.new()
+
+# ---- career metadata (set by Career.makeRace; unused by quick/LAN races) ----
+var career := false
+var series = null              # series id when this is a championship round
+var series_round := -1
+var cond: Dictionary = {}      # race-day conditions (Tune.forecast)
+var fuelCost := 0.0
+var telem := false             # Live Telemetry tech: show AFR/knock in the HUD
+var gridSlot := -1             # player's grid index (Comeback Kid)
+var heatWin := false           # player won the heat before this main
+var heat = null
+var forcePos := 0              # drag/hill flows: final position decided outside the sim
+var order_override: Array = [] # drag/hill flows: pseudo classification for scoring
 
 # ---------------- track ----------------
 static func build_track(d: Dictionary, wet: bool, laps_override = null) -> Dictionary:
@@ -175,7 +189,7 @@ static func create(d: Dictionary, humans: Array, opts: Dictionary = {}) -> RaceS
 		ai.append({"human": false, "owner": 0, "name": r.drv, "team": r.team, "team_key": "ai:" + r.team, "col": r.col, "kind": kind,
 			"S": str_ * rs.rng.randf_range(0.93, 1.07), "A": str_ * rs.rng.randf_range(0.93, 1.07), "H": str_ * rs.rng.randf_range(0.93, 1.07),
 			"t": tt_, "pm": 1.0, "mis": 1.0, "dnfAt": (rs.rng.randf_range(0.2, 0.9) if (not rs.test and rs.rng.randf() < 0.03) else -1.0),
-			"rt": rs.rng.randf_range(0.04, 0.2)})
+			"rt": rs.rng.randf_range(0.04, 0.2), "ref": r})
 	var hs := []
 	for h in humans:
 		var e := {"human": true, "owner": int(h.get("owner", 1)), "name": h.name, "team": h.team, "team_key": h.get("team_key", h.team),
@@ -185,12 +199,20 @@ static func create(d: Dictionary, humans: Array, opts: Dictionary = {}) -> RaceS
 			"dnfAt": -1.0, "warn": {}, "critWarned": false, "lapT": [], "lapN": 0, "lastLapAt": 0.0, "lastPos": 0,
 			"redlight": false}
 		e.merge(h.prof, true)
+		if h.has("extra"): e.merge(h.extra, true)
 		hs.append(e)
 	rs.tt = fm.kind == "tt" or rs.test
 	rs.drag = rs.tr.drag
 	var grid := []
 	if rs.drag:
 		grid = hs + ai
+	elif opts.has("grid_rivals"):
+		# heats main: rivals line up in heat order, the player at player_slot (web opts.gridRivals/playerSlot)
+		for r in opts.grid_rivals:
+			for e in ai:
+				if e.team == r.team: grid.append(e); break
+		var slot: int = mini(grid.size(), int(opts.get("player_slot", 0)))
+		for i in hs.size(): grid.insert(mini(slot + i, grid.size()), hs[i])
 	else:
 		grid = ai.duplicate()
 		grid.shuffle()
@@ -211,6 +233,7 @@ static func create(d: Dictionary, humans: Array, opts: Dictionary = {}) -> RaceS
 	rs.K = rs.tr.total / rs.T0
 	rs.lap_factor = pow(rs.tr.laps, -0.35)
 	rs.tree = 1.8 if rs.drag else 0.0
+	rs.auto_retire_eng = rs.auto_retire
 	rs.order = grid.duplicate()
 	for i in grid.size():
 		grid[i].pos = i + 1
@@ -223,6 +246,8 @@ static func create(d: Dictionary, humans: Array, opts: Dictionary = {}) -> RaceS
 		rs.msg("Test session - out you go!" if rs.test else "Green light - on the clock!")
 	else:
 		rs.msg(["Lights out - and they're away!", "The flag drops! Here we go!", "And they're off!"][rs.rng.randi() % 3])
+	for e in hs:
+		if e.get("fouled", false): rs.msg("Fouled a plug on the grid - misfiring!", "", 0, e.idx)
 	return rs
 
 # ---------------- helpers ----------------
@@ -259,6 +284,12 @@ func label(e: Dictionary, viewer: Dictionary = {}) -> String:
 
 func humans() -> Array:
 	return ents.filter(func(e): return e.human)
+
+## Career races have one human entry: the web build's rs.player.
+func player() -> Dictionary:
+	for e in ents:
+		if e.human: return e
+	return {}
 
 func tac(e: Dictionary) -> Dictionary:
 	return Data.D.TAC[e.get("tactic", "normal")] if e.human else Data.D.TAC.normal
@@ -356,6 +387,7 @@ func step(dt: float) -> void:
 			var tk: String = Data.D.SURF[sec.surf].k
 			var hr: float = e.H * (clampf(e.t[tk], 5, 220) / 100.0) / R
 			var pm: float = Data.D.SEC[sec.type].risk * Data.D.SURF[sec.surf].risk * clampf(1.7 - hr * 0.7, 0.35, 1.8) * e.mis * (tc.mis if e.human else 1.0)
+			if e.human and e.get("tcmap", false) and tk != "on": pm *= 0.75
 			if rng.randf() < pm * dt: mistake(e, sec)
 		# damage & engine (humans)
 		if e.human:
@@ -370,13 +402,18 @@ func step(dt: float) -> void:
 				var lh: float = k2.lh
 				if e.tactic == "safe": kd = max(0.0, kd - 1.5)
 				if kd > 0 or lh > 0:
-					var rate := (0.004 * pow(kd, 1.4) + 0.006 * pow(lh, 1.2)) * (1.3 if e.tactic == "push" else 0.6 if e.tactic == "safe" else 1.0)
+					var rate := (0.004 * pow(kd, 1.4) + 0.006 * pow(lh, 1.2)) * (0.5 if e.get("forged", false) else 1.0) * (1.3 if e.tactic == "push" else 0.6 if e.tactic == "safe" else 1.0)
 					e.cond -= rate * dt
 					if kd > 0.3 and not e.warn.has("knock"):
 						e.warn.knock = 1; msg("Ping... ping..." if mode == "sim" else "Pinging under load! (try Safe)", "", 0, e.idx)
 					if lh > 0.5 and not e.warn.has("lean"):
 						e.warn.lean = 1; msg("Something smells hot..." if mode == "sim" else "Running lean and hot!", "", 0, e.idx)
-				if not e.dnf and e.cond <= 0.1 and auto_retire:
+					if e.cond < 0.35 and not e.warn.has("hot"):
+						e.warn.hot = 1; msg("Engine temps critical!", "", 0, e.idx)
+				if e.get("seizeRisk", false) and sec.type == "str" and rng.randf() < 0.25 * dt:
+					e.dnf = true; e.seized = true; e.cond = 0.0
+					msg("SEIZED! Lean two-stroke locks up!", "", 0, e.idx)
+				if not e.dnf and e.cond <= 0.1 and auto_retire_eng:
 					e.dnf = true; e.retired = true; msg("Crew calls it in - saving the engine.", "", 0, e.idx)
 				elif not e.dnf and e.cond <= 0:
 					e.cond = 0.0; e.dnf = true; e.holed = true; msg("BANG! Holed a piston!", "", 0, e.idx)

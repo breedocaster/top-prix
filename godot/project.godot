@@ -14,6 +14,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 Data="*res://scripts/autoload/data.gd"
+Career="*res://scripts/career/career.gd"
 Story="*res://scripts/story/story.gd"
 Game="*res://scripts/autoload/game.gd"
 Net="*res://scripts/autoload/net.gd"
