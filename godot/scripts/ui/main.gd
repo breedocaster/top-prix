@@ -209,7 +209,9 @@ func results_screen(res: Dictionary) -> void:
 				best = r; break
 		if best.is_empty(): v.add_child(UIKit.label("No one finished!", UIKit.ACCENT))
 		else: v.add_child(UIKit.label("%s WINS THE DUEL!" % best.name.split(" ")[0].to_upper(), UIKit.GOLD if int(best.owner) == me else UIKit.ACCENT))
-	if was_net == "host": v.add_child(UIKit.btn("BACK TO LOBBY", func(): Net.set_lobby("race_id", Net.lobby.race_id); lobby_screen()))
+	if was_net == "host":
+		v.add_child(UIKit.btn("REMATCH", _host_start, UIKit.ACCENT))
+		v.add_child(UIKit.btn("BACK TO LOBBY", func(): Net.set_lobby("race_id", Net.lobby.race_id); lobby_screen()))
 	elif was_net == "client": v.add_child(UIKit.label("Waiting for host...", UIKit.DIM))
 	else:
 		v.add_child(UIKit.btn("RACE AGAIN", func(): _quick_go(last_quick.race, last_quick.fmt)))
@@ -226,6 +228,7 @@ func _fmt_t(t: float) -> String:
 
 # ---------------- garage ----------------
 func garage_screen() -> void:
+	Game.refresh_story_slots()
 	var v := _clear()
 	v.add_child(UIKit.title("GARAGE"))
 	var list := UIKit.vbox(2)
@@ -329,6 +332,7 @@ func _join(ip: String) -> void:
 	elif status_lbl: status_lbl.text = "Connecting to %s..." % ip
 
 func lobby_screen() -> void:
+	Game.refresh_story_slots()
 	var v := _clear()
 	var mode: String = Net.lobby.get("mode", "coop")
 	v.add_child(UIKit.title(("CO-OP" if mode == "coop" else "VERSUS") + " LOBBY"))
@@ -364,7 +368,13 @@ func _fill_lobby() -> void:
 		lobby_box.add_child(dh)
 		if L.duel == "circuit":
 			lobby_box.add_child(UIKit.btn("AI FIELD: " + ("ON" if L.field else "OFF"), func(): Net.set_lobby("field", not L.field)))
+	var ch := UIKit.hbox(2)
+	for c in ["open", "T1", "T2", "T3", "T4"]:
+		ch.add_child(UIKit.btn(("*" if L.get("cls", "open") == c else "") + c.to_upper(), _set_class.bind(c), UIKit.OK if L.get("cls", "open") == c else UIKit.BTN_LO))
+	lobby_box.add_child(UIKit.label("Class: tier classes cap faster machines; OPEN = best build wins.", UIKit.DIM, true))
+	lobby_box.add_child(ch)
 	var races := Net.eligible_races()
+	if L.race_id != "" and not races.any(func(x): return x.id == L.race_id): Net.lobby.race_id = ""
 	if L.race_id == "" and races.size() > 0:
 		Net.lobby.race_id = races[0].id
 		Net.lobby.fmt_id = Data.formats_m1(races[0].id)[0].id
@@ -378,6 +388,10 @@ func _fill_lobby() -> void:
 	var go := UIKit.btn("START RACE (%d players)" % L.players.size(), _host_start, UIKit.ACCENT)
 	go.disabled = L.race_id == ""
 	lobby_box.add_child(go)
+
+func _set_class(c: String) -> void:
+	Net.lobby.race_id = ""
+	Net.set_lobby("cls", c)
 
 func _race_picker() -> void:
 	var v := _clear()

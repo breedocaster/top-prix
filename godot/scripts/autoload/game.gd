@@ -63,6 +63,43 @@ func _calibrate(v: Dictionary, d: Dictionary, ctx: Dictionary, ref: Dictionary) 
 	var want := top * 1.0
 	if st2.dur < want: v.upAdd.dur = int(v.upAdd.dur) + int(round((want - st2.dur) / lvm))
 
+## Story/career machines join the garage (first), so cars you build in story mode race in multiplayer.
+func refresh_story_slots() -> void:
+	var career := get_node_or_null("/root/Career")
+	var keep := garage.filter(func(s): return s.get("src", "") != "story")
+	var story := []
+	if career and typeof(career.get("G")) == TYPE_DICTIONARY and career.G.has("vehicles"):
+		var G: Dictionary = career.G
+		var drivers: Array = G.get("staff", []).filter(func(s): return s.get("role", "") == "drv")
+		for v in G.vehicles:
+			if v.get("status", "") != "ready" or drivers.is_empty(): continue
+			var cls: String = Data.body(v.body).cls
+			var best = drivers[0]
+			var bs := -1.0
+			for d in drivers:
+				var sc := (float(d.pedal) + float(d.shift) + float(d.steer)) * float(d.get("aff", {}).get(cls, 1.0))
+				if sc > bs: bs = sc; best = d
+			story.append({"label": v.name, "tier": 0, "veh": v, "drv": best, "ctx": {"tech": G.get("tech", {}), "partLv": G.get("partLv", {})}, "src": "story"})
+	var cur: Dictionary = slot() if not garage.is_empty() else {}
+	garage = story + keep
+	sel = maxi(0, garage.find(cur)) if not cur.is_empty() else 0
+
+## Multiplayer classes: in a tier class, machines above the tier's top rating are pegged down to it.
+static func class_cap(tier: int) -> float:
+	var top := 0.0
+	for r in Data.D.RACES:
+		if int(r.tier) == tier: top = max(top, float(r.R))
+	return top * 1.05
+
+static func cap_entry(e: Dictionary, tier: int) -> void:
+	var p: Dictionary = e.prof
+	var avg: float = (float(p.S) + float(p.A) + float(p.H)) / 3.0
+	var cap := class_cap(tier)
+	if avg > cap:
+		var k := cap / avg
+		p.S = p.S * k; p.A = p.A * k; p.H = p.H * k
+		e.capped = true
+
 func slot(i: int = -1) -> Dictionary:
 	if garage.is_empty(): return {}
 	return garage[clampi(sel if i < 0 else i, 0, garage.size() - 1)]

@@ -48,7 +48,7 @@ func host(mode: String) -> int:
 	if err != OK: return err
 	multiplayer.multiplayer_peer = peer
 	role = "host"
-	lobby = {"mode": mode, "race_id": "", "fmt_id": "", "duel": "circuit", "field": true,
+	lobby = {"mode": mode, "race_id": "", "fmt_id": "", "duel": "circuit", "field": true, "cls": "open",
 		"host": Game.player.name, "team": Game.player.team, "col": Game.player.col, "players": {}}
 	slots.clear()
 	_register(1, _my_info(), Game.race_slot())
@@ -190,6 +190,8 @@ func eligible_races() -> Array:
 		var ok := true
 		for c in classes:
 			if not Data.race_cls_ok(r, c): ok = false
+		var lc: String = lobby.get("cls", "open")
+		if lc != "open" and int(r.tier) != int(lc.substr(1)): ok = false
 		if lobby.mode == "versus":
 			match lobby.duel:
 				"drag": ok = ok and r.style == "drag"
@@ -215,7 +217,10 @@ func host_start() -> Dictionary:
 		var info: Dictionary = lobby.players[id]
 		var team: String = lobby.team if coop else info.team
 		var key: String = "coop" if coop else "p%d" % id
-		humans.append(Game.make_entry(slots[id], track, int(id), team, key, info.col))
+		var he := Game.make_entry(slots[id], track, int(id), team, key, info.col)
+		var lc: String = lobby.get("cls", "open")
+		if lc != "open": Game.cap_entry(he, int(lc.substr(1)))
+		humans.append(he)
 	var opts := {"fmt": fm, "mode": Game.player.mode}
 	if def.style == "drag":
 		opts.n_rivals = 0 if humans.size() > 1 else 1

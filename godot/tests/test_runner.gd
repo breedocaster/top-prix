@@ -237,6 +237,7 @@ func t_net_host(mode: String) -> void:
 	while Net.lobby.players.size() < 2 and Time.get_ticks_msec() - t0 < 20000:
 		await get_tree().process_frame
 	ok(Net.lobby.players.size() == 2, "client registered (%d players)" % Net.lobby.players.size())
+	Net.set_lobby("cls", "T2" if mode == "coop" else "open")
 	if mode == "versus":
 		Net.set_lobby("duel", "drag")
 	var races := Net.eligible_races()
@@ -254,6 +255,8 @@ func t_net_host(mode: String) -> void:
 	rv.speed = 2.0
 	await _frames(150)
 	await shot(mode + "_host_race")
+	if mode == "coop":
+		ok(rv.sim.humans().all(func(e): return (e.S + e.A + e.H) / 3.0 <= Game.class_cap(2) + 0.01), "T2 class cap applied")
 	var remote := rv.sim.humans().filter(func(e): return int(e.owner) != 1)
 	ok(remote.size() == 1, "remote entry present")
 	t0 = Time.get_ticks_msec()
