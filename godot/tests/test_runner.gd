@@ -35,7 +35,14 @@ func run(m, name: String) -> void:
 		"vs_host": await t_net_host("versus")
 		"vs_client": await t_net_client("versus")
 		"bake": t_bake()
-		_: print("unknown test ", name); fails = 1
+		_:
+			# drop-in suites: tests/<name>.gd with `func run(r) -> void` (r = this runner: r.ok(), r.shot(), r.main)
+			var path := "res://tests/%s.gd" % name
+			if ResourceLoader.exists(path):
+				var suite = load(path).new()
+				await suite.run(self)
+			else:
+				print("unknown test ", name); fails = 1
 	done()
 
 func shot(file: String) -> void:
