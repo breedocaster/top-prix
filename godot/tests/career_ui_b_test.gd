@@ -431,6 +431,10 @@ func t_bench_efi() -> void:
 	_press("sel:all")
 	_press("smooth")
 	ok(v.eng.efi.ve[4] != sm0 or true, "smooth runs")
+	# Standard hides the spark map and settings (crew-set); Sim has the full laptop
+	ok(SK.find_act(cur, "etab:ign") == null and SK.find_act(cur, "etab:set") == null, "standard: SPARK/SET are crew-set")
+	G.settings.mode = "sim"
+	s = await _open("bench_screen", {"vid": v.id, "tab": "efi"})
 	await _press("etab:ign")
 	await _frames(2)
 	await _shot("bench_efi_spark")

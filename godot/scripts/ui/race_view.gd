@@ -289,7 +289,7 @@ static func snap_of(rs: RaceSim) -> Dictionary:
 	var order := PackedByteArray()
 	for e in rs.ents:
 		var fl := (1 if e.fin else 0) | (2 if e.dnf else 0) | (4 if e.get("retired", false) else 0)
-		pf.append_array(PackedFloat32Array([e.prog, e.v, e.lane, fl, e.get("hp", 1.0), e.boost, e.air, e.crash]))
+		pf.append_array(PackedFloat32Array([e.prog, e.v, e.get("lat", e.lane), fl, e.get("hp", 1.0), e.boost, e.air, e.crash]))
 		if e.human: hum[e.idx] = [e.tactic, e.sparks.b, e.sparks.s, e.sparks.g, e.get("cond", 1.0)]
 	for e in rs.order: order.append(e.idx)
 	return {"t": rs.t, "e": pf, "h": hum, "o": order, "fl": int(rs.final_lap)}
@@ -304,7 +304,7 @@ func apply_snapshot(s: Dictionary) -> void:
 		var e: Dictionary = ents[i]
 		var b := i * 8
 		if b + 7 >= pf.size(): break
-		e.prog = pf[b]; e.v = pf[b + 1]; e.lane = pf[b + 2]
+		e.prog = pf[b]; e.v = pf[b + 1]; e.lat = pf[b + 2]
 		var fl := int(pf[b + 3])
 		e.fin = fl & 1 != 0; e.dnf = fl & 2 != 0; e.retired = fl & 4 != 0
 		e.hp = pf[b + 4]; e.boost = pf[b + 5]; e.air = pf[b + 6]; e.crash = pf[b + 7]
@@ -363,9 +363,9 @@ func _process(delta: float) -> void:
 func sim_tree() -> float:
 	return sim.tree if sim else (1.8 if tr.drag else 0.0)
 
+## Lateral offset in lanes from the track centre (sim lanes, so cars keep their own space).
 func _lane_off(e: Dictionary) -> float:
-	if tr.drag: return -0.9 if int(e.lane) % 2 == 0 else 0.9
-	return float(e.lane) - 1.0
+	return float(e.get("lat", e.lane)) - (float(tr.get("lanes", 3)) - 1.0) * 0.5
 
 func _update_render(delta: float) -> void:
 	var k := 1.0 - exp(-delta * 12.0)
@@ -387,31 +387,10 @@ func _update_render(delta: float) -> void:
 	layer.queue_redraw()
 	if minimap: minimap.queue_redraw()
 
-## Purely visual overtaking: drift into a free lane when closing on a car ahead.
+## Cars sit where the sim puts them (lanes are real now); just ease the sprite sideways.
 func _visual_lanes(delta: float) -> void:
-	if tr.drag:
-		for e in ents: e.rlane = _lane_off(e)
-		return
 	for e in ents:
-		var cur := int(round(e.get("vlane", e.lane)))
-		var blocked := false
-		for o in ents:
-			if o.idx == e.idx or o.dnf: continue
-			var gap: float = o.rprog - e.rprog
-			if gap > 0 and gap < 0.14 and int(round(o.get("vlane", o.lane))) == cur and e.v >= o.v * 0.98:
-				blocked = true; break
-		if blocked:
-			var best := cur
-			for cand in [cur - 1, cur + 1, cur - 2, cur + 2]:
-				if cand < 0 or cand > 2: continue
-				var free := true
-				for o in ents:
-					if o.idx == e.idx or o.dnf: continue
-					if absf(o.rprog - e.rprog) < 0.12 and int(round(o.get("vlane", o.lane))) == cand: free = false; break
-				if free: best = cand; break
-			e.vlane = best
-		var target := float(e.get("vlane", e.lane)) - 1.0
-		e.rlane = move_toward(e.rlane, target, delta * 2.5)
+		e.rlane = move_toward(float(e.get("rlane", _lane_off(e))), _lane_off(e), delta * 3.0)
 		e.wob = sin(race_t * 9.0 + e.idx) * 0.25 if e.get("crash", 0.0) > 0 else 0.0
 
 func _pick_follow() -> int:

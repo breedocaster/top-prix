@@ -354,10 +354,17 @@ func _fill_carb(b: VBoxContainer) -> void:
 	_zone_card(b, wb)
 	_fuel_chips(b)
 	b.add_child(SK.section("%s%s" % [str(C_.n).split(" (")[0], (" x%d" % n) if n > 1 else ""]))
+	var std := Tune.mode() == "standard"
 	for p in C_.p:
+		if std and not Tune.STD_KEYS.has(str(p.k)): continue
 		_step(b, "jet:" + p.k, p.n, _jet_val(p), str(p.get("d", "")), _jet.bind(p.k), not _ready_ok())
 	var tdesc := "Base timing vs. stock" if Tune.mode() == "sim" else "More advance = more power until it knocks. Hot days and pump gas knock sooner."
-	_step(b, "timing", "Ignition advance", "%s%d" % ["+" if int(e.timing) > 0 else "", int(e.timing)], tdesc, _timing, not _ready_ok())
+	if not std:
+		_step(b, "timing", "Ignition advance", "%s%d" % ["+" if int(e.timing) > 0 else "", int(e.timing)], tdesc, _timing, not _ready_ok())
+	else:
+		b.add_child(SK.small("Standard: float, pump, power valve and timing are crew-set. Go too far and the crew resets it to a safe tune before the race.", SK.DIM))
+		var why := Tune.danger(v, cond)
+		if why != "": b.add_child(SK.small("CREW LIMIT: %s - they'll reset this before racing." % why, SK.RED))
 	_crew_row(b, "RESET TO STOCK", _stock_jets, "stock")
 	if n > 1:
 		var sh := SK.small("%d carbs to balance - see the SYNC tab." % n, SK.HL)
@@ -554,6 +561,7 @@ func _fill_efi(b: VBoxContainer) -> void:
 	sv.add_child(top)
 	var tabs := UIKit.hbox(1)
 	for t in [["ve", "VE"], ["ign", "SPARK"], ["afr", "AFR"], ["log", "LOG"], ["set", "SET"]]:
+		if Tune.mode() == "standard" and t[0] in ["ign", "set"]: continue
 		tabs.add_child(_lbtn(t[1], _etab.bind(t[0]), "etab:" + t[0], etab == t[0]))
 	sv.add_child(tabs)
 	if etab == "ve" or etab == "ign" or etab == "afr":

@@ -98,7 +98,8 @@ static func build_track(d: Dictionary, wet: bool, laps_override = null) -> Dicti
 		s.surf = "wet" if (wet and k == "tar") else k
 	var laps := int(laps_override) if laps_override != null else int(d.laps)
 	var out := {"secs": secs, "lapLen": lap_len, "laps": laps, "total": lap_len * laps, "p2p": bool(st.get("p2p", false)),
-		"oval": d.style == "oval", "drag": d.style == "drag", "hill": d.style == "hill", "style": d.style}
+		"oval": d.style == "oval", "drag": d.style == "drag", "hill": d.style == "hill", "style": d.style,
+		"lanes": 2 if d.style == "drag" else (3 if d.style in ["street", "tech", "hill", "enduro"] else 4)}
 	track_cache[key] = out
 	return out
 
@@ -227,7 +228,10 @@ static func create(d: Dictionary, humans: Array, opts: Dictionary = {}) -> RaceS
 		e.prog = 0.0 if (rs.tt or rs.drag) else -i * 0.18
 		e.fin = false; e.dnf = false; e.finT = 0.0; e.slow = 0.0; e.boost = 0.0; e.secIdx = -1; e.noise = 1.0
 		e.v = 0.0; e.air = 0.0; e.crash = 0.0; e.splits = [0.0, 0.0]; e.retired = false; e.destroyed = false
-		e.lane = (i % 2) if rs.drag else (i % 3)
+		var nl := int(rs.tr.get("lanes", 3))
+		e.lane = (i % 2) if rs.drag else (i % nl)
+		e.lat = float(e.lane); e.stuck = 0.0
+		if not e.human: e.agg = rs.rng.randf_range(0.3, 0.9)   # some rivals lean on you more than others
 		if e.dnfAt > 0: e.dnfAt *= rs.tr.total
 	rs.ents = grid
 	rs.T0 = 9.0 if rs.drag else clampf(rs.tr.total * 0.8, 24, 90)
@@ -444,6 +448,7 @@ func step(dt: float) -> void:
 				var nf := 0
 				for x in ents: if x.fin: nf += 1
 				if nf == 1 and not tt: msg("%s takes the checkered flag!" % e.team)
+	_traffic(dt)
 	order = ents.duplicate()
 	order.sort_custom(_cmp_order)
 	for i in order.size(): order[i].pos = i + 1
@@ -469,6 +474,79 @@ func step(dt: float) -> void:
 	if hs.is_empty() and not ents.any(func(e): return not e.fin and not e.dnf): done = true
 	if all_done and end_t < 0: end_t = t
 	if not finishing and end_t >= 0 and t - end_t > 1.6: finish_all()
+
+# ---------------- traffic: cars take up space ----------------
+## Each car occupies a lane slot about CAR_LEN long. Closing on a car in your lane you need a gap
+## in an adjacent lane (easy on straights, hard in hairpins/chicanes) or you're held up behind it.
+## Held up long enough, aggressive drivers (Push, some rivals) start bumping. Time trials and drag
+## runs stay solo (separate runs / own lanes).
+const CAR_LEN := 0.17
+const LANE_RATE := {"str": 3.0, "lau": 2.0, "jmp": 1.5, "rgh": 1.2, "crv": 1.2, "hill": 1.5, "hp": 0.35, "chi": 0.3}
+
+func aggression(e: Dictionary) -> float:
+	if e.human: return float({"safe": 0.2, "normal": 0.55, "push": 1.0}.get(str(e.get("tactic", "normal")), 0.55))
+	return float(e.get("agg", 0.55))
+
+func _gap(a: float, b: float) -> float:
+	var g := a - b
+	if not tr.p2p and not tr.drag:
+		var L: float = tr.lapLen
+		g = fposmod(g + L * 0.5, L) - L * 0.5
+	return g
+
+func _lane_free(live: Array, e: Dictionary, lane: int) -> bool:
+	for o in live:
+		if o.idx == e.idx: continue
+		if absf(float(o.lat) - lane) < 0.9 and absf(_gap(o.prog, e.prog)) < CAR_LEN * 1.3: return false
+	return true
+
+func _traffic(dt: float) -> void:
+	var lanes := int(tr.get("lanes", 3))
+	for e in ents: e.lat = move_toward(float(e.get("lat", e.lane)), float(e.lane), dt * 2.4)
+	if tt or drag: return
+	var live := ents.filter(func(x): return not x.fin and not x.dnf)
+	live.sort_custom(func(a, b): return a.prog > b.prog)
+	for e in live:
+		var ahead: Dictionary = {}
+		var best := INF
+		for o in live:
+			if o.idx == e.idx or absf(float(o.lat) - float(e.lat)) > 0.8: continue
+			var g := _gap(o.prog, e.prog)
+			if g > 0.0 and g < best: best = g; ahead = o
+		if ahead.is_empty() or best > CAR_LEN * 1.6:
+			e.stuck = maxf(0.0, float(e.stuck) - dt)
+			continue
+		var closing: bool = float(e.v) > float(ahead.v) * 0.995
+		if closing and int(e.lane) == int(round(float(e.lat))):
+			var st: String = tr.secs[sec_at(max(0.0, e.prog))].type
+			if rng.randf() < float(LANE_RATE.get(st, 1.0)) * (0.4 + 0.8 * aggression(e)) * dt:
+				var cands := [int(e.lane) - 1, int(e.lane) + 1]
+				if rng.randf() < 0.5: cands.reverse()
+				for c in cands:
+					if c >= 0 and c < lanes and _lane_free(live, e, c):
+						e.lane = c
+						break
+		if best < CAR_LEN:
+			e.prog -= CAR_LEN - best          # no room: tucked in behind
+			e.v = minf(float(e.v), float(ahead.v))
+			e.stuck = float(e.stuck) + dt
+			if float(e.stuck) > 0.5 and rng.randf() < aggression(e) * 1.4 * dt:
+				_bump(e, ahead, live, lanes)
+
+func _bump(e: Dictionary, o: Dictionary, live: Array, lanes: int) -> void:
+	e.stuck = 0.0
+	o.slow = maxf(float(o.slow), rng.randf_range(0.25, 0.6)); e.slow = maxf(float(e.slow), 0.12)
+	o.crash = maxf(float(o.crash), 0.5); e.crash = maxf(float(e.crash), 0.3)
+	if o.human: o.hp -= 0.02
+	if e.human: e.hp -= 0.012
+	if rng.randf() < 0.55:                 # pushed wide: maybe opens the door
+		var c := int(o.lane) + (1 if int(o.lane) < lanes - 1 else -1)
+		if _lane_free(live, o, c): o.lane = c
+	var sec: Dictionary = tr.secs[sec_at(max(0.0, o.prog))]
+	if not o.human and rng.randf() < 0.12 * float(Data.D.SURF[sec.surf].risk): mistake(o, sec)
+	if e.human: msg("You bump %s!" % label(o, e), "bump", 2.0, e.idx)
+	if o.human: msg("%s bumps you!" % label(e, o), "bumped", 2.0, o.idx)
+	if not e.human and not o.human and int(o.get("pos", 99)) <= 4: msg("%s and %s bang doors!" % [e.team, o.team], "bang", 4.0)
 
 func _cmp_order(a: Dictionary, b: Dictionary) -> bool:
 	if a.dnf != b.dnf: return not a.dnf

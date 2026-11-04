@@ -894,6 +894,13 @@ func makeRace(def: Dictionary, vid, sid, opts: Dictionary = {}) -> RaceSim:
 		if not r.has("kind"): r.kind = U.pick(tk)
 	var cond: Dictionary = opts.cond if opts.get("cond") != null else Tune.forecast(def)
 	if Tune.mode() == "easy" and v.eng.fuel != "none": Tune.crewTune(v, cond, 0.99)
+	elif Tune.mode() == "standard" and v.eng.fuel != "none" and not bool(opts.get("test", false)):
+		# middle ground: tune what you like, but the crew won't race an engine-killer
+		var why := Tune.danger(v, cond)
+		if why != "":
+			Tune.crewTune(v, cond, 0.97)
+			say("Crew reset %s's tune to a safe baseline (it was %s)." % [v.name, why])
+			toast.emit("Crew reset the tune: it was %s" % why)
 	var p := profile(v, s)
 	var rsx := Tune.raceSecs(v, def, tr, cond)
 	var extra := {"isPlayer": true, "vid": v.id, "sid": s.id, "hair": s.get("hair", "#222"),

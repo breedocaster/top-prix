@@ -7,6 +7,8 @@ extends RefCounted
 const STEP := 4.0
 const MAX_TEX := 2048.0
 
+const LANE_PX := 22.0      # one car's width of tarmac
+var lanes := 3
 var unit := 120.0          # world px per section unit
 var width := 54.0          # track width
 var pts := PackedVector2Array()
@@ -21,7 +23,8 @@ static func build(track: Dictionary, seed_id: String) -> TrackGeo:
 	var g := TrackGeo.new()
 	g.tr = track
 	g.closed = not (track.p2p or track.drag)
-	if track.drag: g.width = 40.0
+	g.lanes = int(track.get("lanes", 3))
+	g.width = g.lanes * LANE_PX + 14.0
 	g._layout(seed_id)
 	var big: float = max(g.bbox.size.x, g.bbox.size.y)
 	if big > MAX_TEX - 320.0:
@@ -134,7 +137,7 @@ func sample(prog: float, lane: float = 0.0) -> Dictionary:
 	var pos := a.lerp(b, t)
 	var hd := lerp_angle(ha, hb, t)
 	var nrm := Vector2.from_angle(hd + PI / 2.0)
-	return {"pos": pos + nrm * lane * width * 0.27, "ang": hd}
+	return {"pos": pos + nrm * lane * LANE_PX, "ang": hd}
 
 func sec_index_at_px(s: float) -> int:
 	for i in range(sec_px.size() - 1, -1, -1):

@@ -405,6 +405,25 @@ static func _ev_at(v: Dictionary, cond: Dictionary, hill: bool, ideal: bool, cac
 	return cache[key]
 
 # ---------------- crew tune (optimizer) ----------------
+## Standard mode's crew limits: "" when the tune is safe to race, else why the crew would step in.
+## (Lean heat or knock that would hurt the engine, a tune rich enough to bog/foul, or float problems.)
+const STD_KEYS := ["main", "pilot", "clip", "screw", "sec"]
+static func danger(v: Dictionary, cond: Dictionary) -> String:
+	var e = v.get("eng")
+	if e == null or e.fuel == "none": return ""
+	var a0: float = cond.alt; var a2: float = cond.alt2
+	for f in ([0.0, 1.0] if a2 != a0 else [0.0]):
+		var alt: float = a0 + (a2 - a0) * f
+		var c2 := cond.duplicate(); c2.alt = alt; c2.temp = float(cond.temp) - (alt - a0) * 0.0065
+		var ev := eval(v, c2, dens(alt, float(c2.temp)))
+		for z in ZONES:
+			if float(ev.lh.get(z, 0.0)) > 0.5: return "running lean and hot at %s" % str(D().ZONE_N.get(z, z)).to_lower()
+			if float(ev.kd.get(z, 0.0)) > 0.5: return "knocking at %s" % str(D().ZONE_N.get(z, z)).to_lower()
+			if float(ev.lam.get(z, 1.0)) < 0.76: return "so rich it bogs at %s" % str(D().ZONE_N.get(z, z)).to_lower()
+		if bool(ev.get("seize", false)): return "lean enough to seize"
+		if bool(ev.get("starve", false)) or bool(ev.get("flood", false)): return "fuel level starving or flooding"
+	return ""
+
 static func err(v: Dictionary, cond: Dictionary) -> float:
 	var s := 0.0
 	var a0: float = cond.alt; var a2: float = cond.alt2

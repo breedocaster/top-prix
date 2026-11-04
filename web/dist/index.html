@@ -438,17 +438,17 @@ D.TIER_N = ['','Rookie','National','Continental','World','Legend'];
 // [id,name,tier,disc,surf,style,laps,R,prizeK,rp]
 D.RACES = [
  // ---- Tier 1 ----
- ['c1a','Parking Lot Sprint',1,'CR','tar','street',2,28,30,10],
- ['c1b','Main Street Classic',1,'CR','tar','street',2,38,45,13],
+ ['c1a','Parking Lot Sprint',1,'CR','tar','street',2,34,30,10],
+ ['c1b','Main Street Classic',1,'CR','tar','street',2,41,45,13],
  ['c1c','Fairgrounds Road Course',1,'CR','tar','circuit',2,50,60,16],
- ['o1a','County Fair Dirt Dash',1,'CO','dirt','oval',3,28,30,10],
- ['o1b','Gravel Pit Rally',1,'CO','dirt70 mud30','rally',1,38,45,13],
+ ['o1a','County Fair Dirt Dash',1,'CO','dirt','oval',3,33,30,10],
+ ['o1b','Gravel Pit Rally',1,'CO','dirt70 mud30','rally',1,42,45,13],
  ['o1c','Frostbite Hillclimb',1,'CO','snow','hill',1,50,60,16],
- ['b1a','Moped Madness',1,'BR','tar','street',2,26,30,10],
- ['b1b','River Road Rumble',1,'BR','tar60 wet40','circuit',2,36,45,13],
+ ['b1a','Moped Madness',1,'BR','tar','street',2,35,30,10],
+ ['b1b','River Road Rumble',1,'BR','tar60 wet40','circuit',2,41,45,13],
  ['b1c','Old Airfield Sprint',1,'BR','tar','speed',2,48,60,16],
- ['d1a','Cornfield Scramble',1,'BO','dirt60 mud40','mx',2,26,30,10],
- ['d1b','Creekbed Hare Scramble',1,'BO','mud50 dirt50','enduro',1,36,45,13],
+ ['d1a','Cornfield Scramble',1,'BO','dirt60 mud40','mx',2,30,30,10],
+ ['d1b','Creekbed Hare Scramble',1,'BO','mud50 dirt50','enduro',1,40,45,13],
  ['d1c','Sandpit Showdown',1,'BO','sand','mx',2,48,60,16],
  ['p1a','Barnyard Free-for-All',1,'OP','dirt50 tar50','mixed',2,44,55,15],
  ['p1b','Rainy Day Derby',1,'OP','wet60 mud40','mixed',2,56,70,18],
@@ -638,9 +638,9 @@ D.FAC = Object.fromEntries(D.FACILITIES.map(f=>[f.id,f]));
 // ---------- SPONSORS ----------
 // goal types: enter(n) win(n,disc?,tier?,surf?) podium(n) series(n,tier?,disc?) fans(n) money(n) races(n)
 D.SPONSORS = [
- {id:'cornoil',n:'Corn Belt Oil',fans:0,sign:30,mo:8,goal:{t:'enter',n:3},rw:{train:['drag']},bl:'Keeping engines slick since forever.'},
- {id:'momtires',n:'Mom & Pop Tires',fans:0,sign:20,mo:6,goal:{t:'win',n:1},rw:{train:['skid'],fac:['stress']},bl:'Family owned, mostly round.'},
- {id:'hotdog',n:'Hot Dog Hut',fans:150,sign:40,mo:10,goal:{t:'podium',n:3},rw:{train:['geardrill'],layout:['stroke2']},bl:'Snappy dogs, snappy laps.'},
+ {id:'cornoil',n:'Corn Belt Oil',fans:60,sign:30,mo:8,goal:{t:'enter',n:3},rw:{train:['drag']},bl:'Keeping engines slick since forever.'},
+ {id:'momtires',n:'Mom & Pop Tires',fans:100,sign:20,mo:6,goal:{t:'win',n:1},rw:{train:['skid'],fac:['stress']},bl:'Family owned, mostly round.'},
+ {id:'hotdog',n:'Hot Dog Hut',fans:180,sign:40,mo:10,goal:{t:'podium',n:3},rw:{train:['geardrill'],layout:['stroke2']},bl:'Snappy dogs, snappy laps.'},
  {id:'gearhead',n:'Gearhead Monthly',fans:300,sign:50,mo:12,goal:{t:'win',n:1,cls:'bike'},rw:{train:['mxcamp'],fac:['dirtyard']},bl:'The magazine your mechanic hides.'},
  {id:'rallytea',n:'Rally Tea',fans:300,sign:50,mo:12,goal:{t:'win',n:1,disc:'CO'},rw:{train:['rallyschool'],layout:['awd']},bl:'Steeped in gravel.'},
  {id:'bolt',n:'Bolt Hardware',fans:600,sign:70,mo:15,goal:{t:'series',n:1},rw:{layout:['rr'],fac:['fab']},bl:'Nuts about racing.'},

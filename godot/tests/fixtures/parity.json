@@ -690,30 +690,30 @@
    "staff": {
     "id": 1,
     "role": "drv",
-    "name": "Bo Rossi-ish",
-    "hair": "#ddd",
-    "skin": "#f5d0a9",
+    "name": "Ozzie Gravelle",
+    "hair": "#222",
+    "skin": "#e0ac69",
     "appeal": 14,
-    "tech": 16,
-    "analysis": 18,
+    "tech": 22,
+    "analysis": 22,
     "lv": 1,
     "joined": 0,
-    "pedal": 29,
-    "shift": 28,
-    "steer": 36,
+    "pedal": 20,
+    "shift": 21,
+    "steer": 29,
     "energy": 100,
     "maxE": 100,
     "aff": {
-     "car": 0.96,
-     "bike": 1.05
+     "car": 1.07,
+     "bike": 1.02
     },
     "trait": null,
-    "salary": 9000
+    "salary": 8000
    },
    "profile": {
-    "S": 38.152258064516126,
-    "A": 40.154244604316546,
-    "H": 37.82937062937063,
+    "S": 41.373333333333335,
+    "A": 43.81077490774908,
+    "H": 41.34265232974911,
     "t": {
      "on": 100,
      "off": 45,
@@ -842,30 +842,30 @@
    "staff": {
     "id": 1,
     "role": "drv",
-    "name": "Bo Rossi-ish",
-    "hair": "#ddd",
-    "skin": "#f5d0a9",
+    "name": "Ozzie Gravelle",
+    "hair": "#222",
+    "skin": "#e0ac69",
     "appeal": 14,
-    "tech": 16,
-    "analysis": 18,
+    "tech": 22,
+    "analysis": 22,
     "lv": 1,
     "joined": 0,
-    "pedal": 29,
-    "shift": 28,
-    "steer": 36,
+    "pedal": 20,
+    "shift": 21,
+    "steer": 29,
     "energy": 100,
     "maxE": 100,
     "aff": {
-     "car": 0.96,
-     "bike": 1.05
+     "car": 1.07,
+     "bike": 1.02
     },
     "trait": null,
-    "salary": 9000
+    "salary": 8000
    },
    "profile": {
-    "S": 27.819354838709675,
-    "A": 45.07446043165468,
-    "H": 52.01538461538461,
+    "S": 26.29333333333333,
+    "A": 42.86258302583026,
+    "H": 49.54494623655914,
     "t": {
      "on": 96,
      "off": 65,
