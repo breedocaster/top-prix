@@ -1,0 +1,42 @@
+; Engine configuration file.
+; Top Prix — Godot 4.7 port. Content comes from ../web via web/tools/export_godot.js.
+
+config_version=5
+
+[application]
+
+config/name="Top Prix"
+config/description="Kairosoft-style motorsport team manager — cars & bikes, on & off road."
+run/main_scene="res://scenes/main.tscn"
+config/features=PackedStringArray("4.7", "GL Compatibility")
+config/icon="res://icon.svg"
+
+[autoload]
+
+Data="*res://scripts/autoload/data.gd"
+Game="*res://scripts/autoload/game.gd"
+Net="*res://scripts/autoload/net.gd"
+
+[display]
+
+window/size/viewport_width=256
+window/size/viewport_height=512
+window/size/window_width_override=512
+window/size/window_height_override=1024
+window/stretch/mode="viewport"
+window/stretch/aspect="expand"
+window/stretch/scale_mode="integer"
+window/handheld/orientation=1
+
+[input_devices]
+
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+
+renderer/rendering_method="gl_compatibility"
+renderer/rendering_method.mobile="gl_compatibility"
+textures/canvas_textures/default_texture_filter=0
+2d/snap/snap_2d_transforms_to_pixel=true
+2d/snap/snap_2d_vertices_to_pixel=true
+environment/defaults/default_clear_color=Color(0.05, 0.05, 0.1, 1)

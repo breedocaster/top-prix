@@ -1,0 +1,915 @@
+{
+ "rngSeq": [
+  300625576,
+  934632787,
+  0.4855157646816224,
+  0.1500252007972449,
+  0.9919258321169764
+ ],
+ "tracks": {
+  "c1a": {
+   "lapLen": 24,
+   "laps": 2,
+   "secs": [
+    [
+     "str",
+     2,
+     0,
+     "tar"
+    ],
+    [
+     "chi",
+     1,
+     2,
+     "tar"
+    ],
+    [
+     "crv",
+     3,
+     3,
+     "tar"
+    ],
+    [
+     "str",
+     3,
+     6,
+     "tar"
+    ],
+    [
+     "chi",
+     1,
+     9,
+     "tar"
+    ],
+    [
+     "crv",
+     2,
+     10,
+     "tar"
+    ],
+    [
+     "hp",
+     1,
+     12,
+     "tar"
+    ],
+    [
+     "crv",
+     2,
+     13,
+     "tar"
+    ],
+    [
+     "chi",
+     2,
+     15,
+     "tar"
+    ],
+    [
+     "hp",
+     1,
+     17,
+     "tar"
+    ],
+    [
+     "str",
+     4,
+     18,
+     "tar"
+    ],
+    [
+     "chi",
+     2,
+     22,
+     "tar"
+    ]
+   ]
+  },
+  "c2c": {
+   "lapLen": 23,
+   "laps": 4,
+   "secs": [
+    [
+     "str",
+     4,
+     0,
+     "tar"
+    ],
+    [
+     "crv",
+     3,
+     4,
+     "tar"
+    ],
+    [
+     "str",
+     2,
+     7,
+     "tar"
+    ],
+    [
+     "crv",
+     3,
+     9,
+     "tar"
+    ],
+    [
+     "str",
+     3,
+     12,
+     "tar"
+    ],
+    [
+     "crv",
+     2,
+     15,
+     "tar"
+    ],
+    [
+     "str",
+     3,
+     17,
+     "tar"
+    ],
+    [
+     "crv",
+     3,
+     20,
+     "tar"
+    ]
+   ]
+  },
+  "o1b": {
+   "lapLen": 35,
+   "laps": 1,
+   "secs": [
+    [
+     "str",
+     4,
+     0,
+     "mud"
+    ],
+    [
+     "hp",
+     1,
+     4,
+     "mud"
+    ],
+    [
+     "crv",
+     2,
+     5,
+     "mud"
+    ],
+    [
+     "str",
+     2,
+     7,
+     "mud"
+    ],
+    [
+     "str",
+     2,
+     9,
+     "mud"
+    ],
+    [
+     "jmp",
+     1,
+     11,
+     "dirt"
+    ],
+    [
+     "str",
+     3,
+     12,
+     "dirt"
+    ],
+    [
+     "hp",
+     1,
+     15,
+     "dirt"
+    ],
+    [
+     "str",
+     4,
+     16,
+     "dirt"
+    ],
+    [
+     "str",
+     3,
+     20,
+     "dirt"
+    ],
+    [
+     "rgh",
+     2,
+     23,
+     "dirt"
+    ],
+    [
+     "str",
+     2,
+     25,
+     "dirt"
+    ],
+    [
+     "hp",
+     1,
+     27,
+     "dirt"
+    ],
+    [
+     "rgh",
+     2,
+     28,
+     "dirt"
+    ],
+    [
+     "str",
+     2,
+     30,
+     "dirt"
+    ],
+    [
+     "rgh",
+     3,
+     32,
+     "dirt"
+    ]
+   ]
+  },
+  "o1c": {
+   "lapLen": 28,
+   "laps": 1,
+   "secs": [
+    [
+     "hp",
+     1,
+     0,
+     "snow"
+    ],
+    [
+     "hill",
+     3,
+     1,
+     "snow"
+    ],
+    [
+     "hill",
+     2,
+     4,
+     "snow"
+    ],
+    [
+     "hill",
+     3,
+     6,
+     "snow"
+    ],
+    [
+     "hp",
+     1,
+     9,
+     "snow"
+    ],
+    [
+     "hill",
+     3,
+     10,
+     "snow"
+    ],
+    [
+     "hp",
+     1,
+     13,
+     "snow"
+    ],
+    [
+     "crv",
+     3,
+     14,
+     "snow"
+    ],
+    [
+     "crv",
+     2,
+     17,
+     "snow"
+    ],
+    [
+     "hill",
+     3,
+     19,
+     "snow"
+    ],
+    [
+     "hill",
+     3,
+     22,
+     "snow"
+    ],
+    [
+     "hill",
+     3,
+     25,
+     "snow"
+    ]
+   ]
+  },
+  "d1b": {
+   "lapLen": 29,
+   "laps": 1,
+   "secs": [
+    [
+     "hill",
+     2,
+     0,
+     "dirt"
+    ],
+    [
+     "jmp",
+     1,
+     2,
+     "dirt"
+    ],
+    [
+     "rgh",
+     3,
+     3,
+     "dirt"
+    ],
+    [
+     "rgh",
+     2,
+     6,
+     "dirt"
+    ],
+    [
+     "crv",
+     3,
+     8,
+     "dirt"
+    ],
+    [
+     "crv",
+     2,
+     11,
+     "dirt"
+    ],
+    [
+     "hill",
+     2,
+     13,
+     "dirt"
+    ],
+    [
+     "hp",
+     1,
+     15,
+     "mud"
+    ],
+    [
+     "crv",
+     3,
+     16,
+     "mud"
+    ],
+    [
+     "rgh",
+     2,
+     19,
+     "mud"
+    ],
+    [
+     "rgh",
+     2,
+     21,
+     "mud"
+    ],
+    [
+     "jmp",
+     1,
+     23,
+     "mud"
+    ],
+    [
+     "crv",
+     3,
+     24,
+     "mud"
+    ],
+    [
+     "hill",
+     2,
+     27,
+     "mud"
+    ]
+   ]
+  },
+  "h1a": {
+   "lapLen": 27,
+   "laps": 1,
+   "secs": [
+    [
+     "hill",
+     3,
+     0,
+     "tar"
+    ],
+    [
+     "hp",
+     1,
+     3,
+     "tar"
+    ],
+    [
+     "crv",
+     2,
+     4,
+     "tar"
+    ],
+    [
+     "hill",
+     3,
+     6,
+     "tar"
+    ],
+    [
+     "hill",
+     3,
+     9,
+     "tar"
+    ],
+    [
+     "hp",
+     1,
+     12,
+     "tar"
+    ],
+    [
+     "crv",
+     3,
+     13,
+     "tar"
+    ],
+    [
+     "hill",
+     3,
+     16,
+     "tar"
+    ],
+    [
+     "crv",
+     3,
+     19,
+     "tar"
+    ],
+    [
+     "crv",
+     2,
+     22,
+     "tar"
+    ],
+    [
+     "hill",
+     2,
+     24,
+     "tar"
+    ],
+    [
+     "hp",
+     1,
+     26,
+     "tar"
+    ]
+   ]
+  },
+  "r1a": {
+   "lapLen": 7,
+   "laps": 1,
+   "secs": [
+    [
+     "lau",
+     1,
+     0,
+     "tar"
+    ],
+    [
+     "str",
+     2,
+     1,
+     "tar"
+    ],
+    [
+     "str",
+     2,
+     3,
+     "tar"
+    ],
+    [
+     "str",
+     2,
+     5,
+     "tar"
+    ]
+   ]
+  },
+  "l5c": {
+   "lapLen": 29,
+   "laps": 2,
+   "secs": [
+    [
+     "str",
+     4,
+     0,
+     "ice"
+    ],
+    [
+     "crv",
+     3,
+     4,
+     "ice"
+    ],
+    [
+     "crv",
+     3,
+     7,
+     "ice"
+    ],
+    [
+     "crv",
+     3,
+     10,
+     "ice"
+    ],
+    [
+     "crv",
+     2,
+     13,
+     "ice"
+    ],
+    [
+     "hp",
+     1,
+     15,
+     "snow"
+    ],
+    [
+     "chi",
+     1,
+     16,
+     "snow"
+    ],
+    [
+     "rgh",
+     2,
+     17,
+     "snow"
+    ],
+    [
+     "jmp",
+     1,
+     19,
+     "snow"
+    ],
+    [
+     "rgh",
+     2,
+     20,
+     "snow"
+    ],
+    [
+     "str",
+     2,
+     22,
+     "snow"
+    ],
+    [
+     "str",
+     3,
+     24,
+     "snow"
+    ],
+    [
+     "crv",
+     2,
+     27,
+     "snow"
+    ]
+   ]
+  }
+ },
+ "prof": {
+  "9": {
+   "veh": {
+    "id": 9,
+    "body": "kei",
+    "layout": "fr",
+    "name": "Kei Hatch #1",
+    "q": 1.6,
+    "phase": {
+     "spd": 0,
+     "acc": 0,
+     "hnd": 0,
+     "dur": 0
+    },
+    "base": {
+     "spd": 36,
+     "acc": 38,
+     "hnd": 35,
+     "dur": 54
+    },
+    "terr": {
+     "on": 100,
+     "off": 45,
+     "wet": 85,
+     "ice": 40
+    },
+    "upAdd": {
+     "spd": 0,
+     "acc": 0,
+     "hnd": 0,
+     "dur": 0
+    },
+    "up": {
+     "spd": 0,
+     "acc": 0,
+     "hnd": 0,
+     "dur": 0
+    },
+    "parts": [],
+    "lv": 1,
+    "xp": 0,
+    "hp": 1,
+    "status": "ready",
+    "races": 0,
+    "wins": 0,
+    "cost": 84000,
+    "eng": {
+     "fuel": "carb",
+     "carb": "d2",
+     "jets": {
+      "main": 66,
+      "pv": 6.5,
+      "screw": 1.5,
+      "float": 0,
+      "pump": 31
+     },
+     "timing": 0,
+     "fuelT": "pump",
+     "cond": 1,
+     "log": null,
+     "sync": [
+      0
+     ]
+    },
+    "setup": {
+     "fd": 3.7,
+     "susp": 5,
+     "psi": 32,
+     "wing": 5
+    },
+    "bm": {
+     "spd": 0,
+     "acc": 0,
+     "hnd": 0,
+     "dur": 0,
+     "on": 0,
+     "off": 0,
+     "wet": 0,
+     "ice": 0,
+     "adv": 0
+    },
+    "blog": [],
+    "bflags": [],
+    "advB": 0
+   },
+   "staff": {
+    "id": 1,
+    "role": "drv",
+    "name": "Bo Rossi-ish",
+    "hair": "#ddd",
+    "skin": "#f5d0a9",
+    "appeal": 14,
+    "tech": 16,
+    "analysis": 18,
+    "lv": 1,
+    "joined": 0,
+    "pedal": 29,
+    "shift": 28,
+    "steer": 36,
+    "energy": 100,
+    "maxE": 100,
+    "aff": {
+     "car": 0.96,
+     "bike": 1.05
+    },
+    "trait": null,
+    "salary": 9000
+   },
+   "profile": {
+    "S": 38.152258064516126,
+    "A": 40.154244604316546,
+    "H": 37.82937062937063,
+    "t": {
+     "on": 100,
+     "off": 45,
+     "wet": 85,
+     "ice": 40
+    },
+    "pm": 1,
+    "mis": 1,
+    "wear": 1,
+    "dur": 54,
+    "cls": "car"
+   },
+   "secs0": {
+    "ef": 0.995,
+    "s": 1,
+    "a": 1,
+    "h": 1,
+    "t": 1,
+    "kd": 0,
+    "lh": 0,
+    "lam": 0.87,
+    "smoke": null
+   },
+   "vs": {
+    "spd": 36,
+    "acc": 38,
+    "hnd": 35,
+    "dur": 54,
+    "on": 100,
+    "off": 45,
+    "wet": 85,
+    "ice": 40,
+    "adv": 10,
+    "fx": {
+     "rp": 0,
+     "mis": 1,
+     "wear": 1,
+     "fan": 0
+    }
+   }
+  },
+  "11": {
+   "veh": {
+    "id": 11,
+    "body": "scooter",
+    "layout": "single",
+    "name": "Scooter 50 #1",
+    "q": 1.6,
+    "phase": {
+     "spd": 0,
+     "acc": 0,
+     "hnd": 0,
+     "dur": 0
+    },
+    "base": {
+     "spd": 24,
+     "acc": 39,
+     "hnd": 44,
+     "dur": 33
+    },
+    "terr": {
+     "on": 96,
+     "off": 65,
+     "wet": 76,
+     "ice": 40
+    },
+    "upAdd": {
+     "spd": 0,
+     "acc": 0,
+     "hnd": 0,
+     "dur": 0
+    },
+    "up": {
+     "spd": 0,
+     "acc": 0,
+     "hnd": 0,
+     "dur": 0
+    },
+    "parts": [],
+    "lv": 1,
+    "xp": 0,
+    "hp": 1,
+    "status": "ready",
+    "races": 0,
+    "wins": 0,
+    "cost": 40000,
+    "eng": {
+     "fuel": "carb",
+     "carb": "pe",
+     "jets": {
+      "main": 130,
+      "pilot": 40,
+      "clip": 3,
+      "screw": 1.5,
+      "float": 0
+     },
+     "timing": 0,
+     "fuelT": "pump",
+     "cond": 1,
+     "log": null,
+     "sync": [
+      0
+     ]
+    },
+    "setup": {
+     "f": 16,
+     "r": 45,
+     "susp": 5,
+     "psi": 34
+    },
+    "bm": {
+     "spd": 0,
+     "acc": 0,
+     "hnd": 0,
+     "dur": 0,
+     "on": 0,
+     "off": 0,
+     "wet": 0,
+     "ice": 0,
+     "adv": 0
+    },
+    "blog": [],
+    "bflags": [],
+    "advB": 0
+   },
+   "staff": {
+    "id": 1,
+    "role": "drv",
+    "name": "Bo Rossi-ish",
+    "hair": "#ddd",
+    "skin": "#f5d0a9",
+    "appeal": 14,
+    "tech": 16,
+    "analysis": 18,
+    "lv": 1,
+    "joined": 0,
+    "pedal": 29,
+    "shift": 28,
+    "steer": 36,
+    "energy": 100,
+    "maxE": 100,
+    "aff": {
+     "car": 0.96,
+     "bike": 1.05
+    },
+    "trait": null,
+    "salary": 9000
+   },
+   "profile": {
+    "S": 27.819354838709675,
+    "A": 45.07446043165468,
+    "H": 52.01538461538461,
+    "t": {
+     "on": 96,
+     "off": 65,
+     "wet": 76,
+     "ice": 40
+    },
+    "pm": 1,
+    "mis": 1,
+    "wear": 0.85,
+    "dur": 33,
+    "cls": "bike"
+   },
+   "secs0": {
+    "ef": 0.995,
+    "s": 1,
+    "a": 1,
+    "h": 1,
+    "t": 1,
+    "kd": 0,
+    "lh": 0,
+    "lam": 0.87,
+    "smoke": null
+   },
+   "vs": {
+    "spd": 24,
+    "acc": 39,
+    "hnd": 44,
+    "dur": 33,
+    "on": 96,
+    "off": 65,
+    "wet": 76,
+    "ice": 40,
+    "adv": 16,
+    "fx": {
+     "rp": 0,
+     "mis": 1,
+     "wear": 1,
+     "fan": 0
+    }
+   }
+  }
+ },
+ "partLv": {},
+ "tech": {
+  "carbbasic": 1
+ }
+}
