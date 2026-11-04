@@ -27,9 +27,12 @@ func _ready() -> void:
 		_players.append(p)
 
 func play(name: String) -> void:
-	if not SOUNDS.has(name): return
 	var st = Career.G.get("settings", {})
 	if st is Dictionary and not bool(st.get("sound", true)): return
+	# rendered effects (tools/audio/sfx.py) and jingles take over when present
+	if name == "fanfare": Audio.jingle("win"); return
+	if ResourceLoader.exists(Audio.SFX_DIR + name + ".wav"): Audio.sfx(name); return
+	if not SOUNDS.has(name): return
 	var p: AudioStreamPlayer = _players[_next]
 	_next = (_next + 1) % _players.size()
 	p.stream = stream(name)

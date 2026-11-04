@@ -196,6 +196,7 @@ static func create(d: Dictionary, humans: Array, opts: Dictionary = {}) -> RaceS
 			"col": h.col, "kind": h.kind, "cls": h.get("cls", "car"), "tactic": h.get("tactic", "normal"),
 			"sparks": h.get("sparks", {"b": 2, "s": 1, "g": 0}).duplicate(), "hp": float(h.get("hp", 1.0)),
 			"cond": float(h.get("cond", 1.0)), "cyl": int(h.get("cyl", 4)), "sk": h.get("sk", []), "rt": float(h.get("rt", 0.12)),
+			"voice": str(h.get("voice", "")), "exh": str(h.get("exh", "")),
 			"dnfAt": -1.0, "warn": {}, "critWarned": false, "lapT": [], "lapN": 0, "lastLapAt": 0.0, "lastPos": 0,
 			"redlight": false}
 		e.merge(h.prof, true)

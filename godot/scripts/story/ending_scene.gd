@@ -87,6 +87,7 @@ class Stage extends Control:
 			draw_rect(Rect2(b.p.round(), Vector2(2, 2)), b.c)
 
 func _init() -> void:
+	Audio.music("credits")
 	set_anchors_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	theme = UIKit.theme()

@@ -125,7 +125,8 @@ static func make_entry(s: Dictionary, track: Dictionary, owner: int, team: Strin
 		"prof": Prof.profile(v, d, ctx), "sk": Prof.race_secs(v, track, ctx), "hp": float(v.get("hp", 1.0)),
 		"cond": float(v.get("eng", {}).get("cond", 1.0)), "cyl": int(cyl), "owner": owner, "tactic": tactic,
 		"rt": clampf(0.2 - (float(d.get("shift", 0)) + float(d.get("analysis", 0))) / 1200.0, 0.02, 0.2),
-		"sparks": {"b": 2, "s": 1, "g": 0}, "machine": s.get("label", b.n)}
+		"sparks": {"b": 2, "s": 1, "g": 0}, "machine": s.get("label", b.n),
+		"voice": EngineAudio.voice_for_vehicle(v), "exh": EngineAudio.exhaust_for_vehicle(v)}
 
 ## Expected pace vs the rival field (1.0 = mid-pack), like the web build's odds meter.
 static func odds(s: Dictionary, race: Dictionary, mode := "standard") -> float:

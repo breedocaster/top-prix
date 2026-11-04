@@ -18,6 +18,7 @@ Career="*res://scripts/career/career.gd"
 Story="*res://scripts/story/story.gd"
 Game="*res://scripts/autoload/game.gd"
 Net="*res://scripts/autoload/net.gd"
+Audio="*res://scripts/audio/audio.gd"
 
 [display]
 

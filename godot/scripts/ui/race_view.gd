@@ -55,6 +55,13 @@ var log_box: VBoxContainer
 var calls: VBoxContainer
 var speed_btn: Button
 var call_widgets := {}
+# audio
+var _eng: Array = []            # [{node: EngineAudio, rev: RevModel, idx: int}]
+var _eng_t := 0.0
+var _kref := 1.0
+var _cd_last := -1
+var _went := false
+var _seen := {}                 # idx -> {crash, boost, fin}
 
 # ---------------- setup ----------------
 ## Local or LAN-host race. `owner` is this device's peer id (1 for local/host).
@@ -153,6 +160,7 @@ func _build(rain: bool) -> void:
 		countdown = 0.0
 	else:
 		_build_panel()
+		_setup_audio()
 	follow = _pick_follow()
 	var e0: Dictionary = ents[max(0, follow)]
 	var s0 := geo.sample(e0.rprog, e0.rlane)
@@ -350,6 +358,7 @@ func _process(delta: float) -> void:
 				e.prog_x = e.prog + e.v * min(e.snap_age, 0.25)
 	_update_render(delta)
 	_update_hud()
+	if not attract: _update_audio(delta)
 
 func sim_tree() -> float:
 	return sim.tree if sim else (1.8 if tr.drag else 0.0)
@@ -498,3 +507,85 @@ func _draw_minimap() -> void:
 		var big := is_mine(e)
 		minimap.draw_rect(Rect2(p - Vector2(2, 2) if big else p - Vector2(1, 1), Vector2(4, 4) if big else Vector2(3, 3)), Color(e.col) if not big else Color.WHITE)
 		if big: minimap.draw_rect(Rect2(p - Vector2(1, 1), Vector2(2, 2)), Color(e.col))
+
+# ---------------- audio: engines, race SFX, music ----------------
+func _setup_audio() -> void:
+	var T0 := 9.0 if tr.drag else clampf(float(tr.total) * 0.8, 24.0, 90.0)
+	_kref = float(tr.total) / T0
+	for i in 3:
+		var n := EngineAudio.new()
+		add_child(n)
+		_eng.append({"node": n, "rev": RevModel.new(), "idx": -1})
+	var dirt := not (RaceSim.main_surf(tr) in ["tar", "wet"])
+	var rival := false
+	for e in ents:
+		var ref = e.get("ref")
+		if bool(e.get("dynasty", false)) or (ref is Dictionary and bool(ref.get("dynasty", false))): rival = true
+	Audio.music("rival" if rival else ("race_dirt" if dirt else "race"))
+
+const BIKE_KINDS := ["commuter", "scooter", "naked", "sport", "cafe", "super", "gp", "sidecar", "trail", "mx", "enduro", "flat", "smoto", "raid"]
+
+func _voice_of(e: Dictionary) -> Array:
+	var v := str(e.get("voice", ""))
+	var ex := str(e.get("exh", ""))
+	if v == "":
+		var bike: bool = e.get("cls", "") == "bike" or BIKE_KINDS.has(str(e.kind))
+		v = EngineAudio.voice_for_kind(str(e.kind), "bike" if bike else "car")
+	if ex == "":
+		var tier := int(def.get("tier", 1))
+		ex = "race" if tier >= 3 else ("sport" if tier == 2 else "stock")
+	return [v, ex]
+
+func _update_audio(delta: float) -> void:
+	if _eng.is_empty() or follow < 0: return
+	_eng_t -= delta
+	if _eng_t <= 0.0:
+		_eng_t = 0.4
+		var f: Dictionary = ents[follow]
+		var near := []
+		for e in ents:
+			if int(e.idx) == follow or e.dnf: continue
+			var d := absf(float(e.rprog) - float(f.rprog))
+			if not tr.p2p and not tr.drag: d = minf(d, float(tr.lapLen) - fposmod(d, float(tr.lapLen)))
+			near.append([d, int(e.idx)])
+		near.sort_custom(func(a, b): return a[0] < b[0])
+		var want := [follow] + near.slice(0, 2).map(func(x): return x[1])
+		for i in _eng.size():
+			var slot: Dictionary = _eng[i]
+			var idx: int = want[i] if i < want.size() else -1
+			if idx != slot.idx:
+				slot.idx = idx
+				if idx < 0: (slot.node as EngineAudio).silence(); continue
+				var vx := _voice_of(ents[idx])
+				var node: EngineAudio = slot.node
+				node.setup(vx[0], vx[1])
+				(slot.rev as RevModel).setup(node.idle_rpm(), node.red_rpm(), ents[idx].get("cls", "") == "bike" or BIKE_KINDS.has(str(ents[idx].kind)))
+	var me: Dictionary = ents[follow]
+	for i in _eng.size():
+		var slot: Dictionary = _eng[i]
+		if slot.idx < 0: continue
+		var e: Dictionary = ents[slot.idx]
+		var rev: RevModel = slot.rev
+		var go_on: bool = started and countdown <= 0.0 and not (tr.drag and race_t < sim_tree())
+		rev.step(delta, clampf(float(e.get("v", 0.0)) / (_kref * 1.35), 0.0, 1.0), go_on, bool(e.fin) or bool(e.dnf), float(e.get("boost", 0.0)) > 0.0)
+		var node: EngineAudio = slot.node
+		node.rpm = rev.rpm
+		node.throttle = rev.throttle
+		if i == 0: node.gain_db = 0.0
+		else:
+			var dw: float = absf(float(e.rprog) - float(me.rprog)) * geo.unit
+			node.gain_db = -5.0 - 18.0 * log(maxf(dw, 30.0) / 30.0) / log(10.0)
+	# race SFX for this device's entries
+	var cd := int(ceil(countdown / 0.55)) if countdown > 0 else 0
+	if cd != _cd_last and cd > 0: Audio.sfx("beep")
+	_cd_last = cd
+	if started and not _went and countdown <= 0.0:
+		_went = true; Audio.sfx("go")
+	for e in ents:
+		if not is_mine(e): continue
+		var k := int(e.idx)
+		var sn: Dictionary = _seen.get(k, {"crash": 0.0, "boost": 0.0, "fin": false})
+		if float(e.get("crash", 0.0)) > sn.crash + 0.05: Audio.sfx("crash" if float(e.crash) >= 1.0 else "bump")
+		if float(e.get("boost", 0.0)) > 0.0 and sn.boost <= 0.0: Audio.sfx("spark")
+		if bool(e.fin) and not sn.fin: Audio.sfx("crowd", -4.0)
+		_seen[k] = {"crash": float(e.get("crash", 0.0)), "boost": float(e.get("boost", 0.0)), "fin": bool(e.fin)}

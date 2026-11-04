@@ -902,7 +902,7 @@ func makeRace(def: Dictionary, vid, sid, opts: Dictionary = {}) -> RaceSim:
 	var h := {"name": s.name, "team": G.team.name, "team_key": "you", "col": G.team.color, "kind": b.kind, "cls": b.cls,
 		"prof": p, "sk": rsx.secs, "hp": float(v.hp), "cond": float(v.eng.get("cond", 1)), "cyl": Tune.cyl(v), "owner": 1,
 		"tactic": opts.get("tactic", "normal"), "rt": U.clamp(0.2 - (float(s.shift) + float(s.analysis)) / 1200, 0.02, 0.2),
-		"sparks": G.sparks, "extra": extra}
+		"sparks": G.sparks, "extra": extra, "voice": EngineAudio.voice_for_vehicle(v), "exh": EngineAudio.exhaust_for_vehicle(v)}
 	var ro := {"fmt": fmt, "rivals": rivals, "rain": rain, "test": test, "mode": Tune.mode(), "seed": opts.get("seed", U.rng.randi())}
 	if opts.get("gridRivals") != null:
 		ro.grid_rivals = opts.gridRivals

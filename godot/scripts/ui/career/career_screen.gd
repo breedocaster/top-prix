@@ -100,6 +100,7 @@ func _init() -> void:
 	theme = UIKit.theme()
 
 func _ready() -> void:
+	Audio.music("garage")
 	_build_home()
 	win_layer = Control.new()
 	win_layer.set_anchors_preset(Control.PRESET_FULL_RECT)

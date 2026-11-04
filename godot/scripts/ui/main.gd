@@ -84,6 +84,7 @@ func _slot_line(s: Dictionary) -> String:
 # ---------------- title ----------------
 func title_screen(note: String = "") -> void:
 	Net.leave()
+	Audio.music("title")
 	var v := _clear()
 	var demo := _attract()
 	if demo: v.add_child(demo)
@@ -269,6 +270,7 @@ func results_screen(res: Dictionary) -> void:
 		title_screen("You left the session.")
 		return
 	var was_net := Net.role
+	_results_jingle(res)
 	var v := _clear()
 	var def := Data.race(res.race_id)
 	v.add_child(UIKit.title("RESULTS"))
@@ -312,6 +314,14 @@ func results_screen(res: Dictionary) -> void:
 	if was_net == "client": v.add_child(UIKit.btn("LEAVE", title_screen, UIKit.BTN_LO))
 	if was_net == "client":
 		Net.lobby_changed.connect(_back_to_lobby_once, CONNECT_ONE_SHOT)
+
+func _results_jingle(res: Dictionary) -> void:
+	var me := Net.my_id() if Net.role != "off" else 1
+	var best := 99
+	for r in res.get("res", []):
+		if r.human and int(r.owner) == me and not r.dnf: best = mini(best, int(r.pos))
+	Audio.jingle("win" if best == 1 else ("podium" if best <= 3 else "lose"))
+	Audio.music("title")
 
 func _back_to_lobby_once(_s) -> void:
 	if not race_view and Net.role == "client": lobby_screen()
@@ -372,7 +382,20 @@ func profile_screen() -> void:
 		mh.add_child(UIKit.btn(("*" if Game.player.mode == m else "") + Data.D.MODES[m].n, func(): Game.player.mode = m; Game.save_profile(); profile_screen(), UIKit.OK if Game.player.mode == m else UIKit.BTN))
 	v.add_child(mh)
 	v.add_child(UIKit.label(Data.D.MODES[Game.player.mode].d, UIKit.DIM, true))
+	for pair in [["Music", "music_vol", 0.6], ["Sound effects", "sfx_vol", 0.8], ["Engines", "engine_vol", 0.8]]:
+		v.add_child(UIKit.label(pair[0]))
+		var sl := HSlider.new()
+		sl.min_value = 0.0; sl.max_value = 1.0; sl.step = 0.05
+		sl.value = float(Game.player.get(pair[1], pair[2]))
+		sl.custom_minimum_size = Vector2(0, 18)
+		sl.value_changed.connect(_set_vol.bind(pair[1]))
+		v.add_child(sl)
 	v.add_child(UIKit.btn("SAVE", _save_profile.bind(nm, tm), UIKit.OK))
+
+func _set_vol(val: float, key: String) -> void:
+	Game.player[key] = val
+	Audio.apply_volumes()
+	Game.save_profile()
 
 func _save_profile(nm: LineEdit, tm: LineEdit) -> void:
 	if nm.text.strip_edges() != "": Game.player.name = nm.text.strip_edges()

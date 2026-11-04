@@ -230,7 +230,7 @@ func host_start() -> Dictionary:
 	var stat := []
 	for e in rs.ents:
 		stat.append({"idx": e.idx, "name": e.name, "team": e.team, "team_key": e.team_key, "col": e.col, "kind": e.kind,
-			"human": e.human, "owner": e.get("owner", 0), "lane": e.lane, "prog": e.prog})
+			"human": e.human, "owner": e.get("owner", 0), "lane": e.lane, "prog": e.prog, "voice": e.get("voice", ""), "exh": e.get("exh", "")})
 	var setup := {"race_id": def.id, "fmt": fm, "rain": rs.rain, "ents": stat, "mode": lobby.mode, "countdown": 1.6}
 	in_race = true
 	rpc("rpc_race_start", setup)
