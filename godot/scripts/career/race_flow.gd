@@ -49,7 +49,9 @@ var run := 1
 var _best := {}
 var p_best := INF
 
-func _init(d: Dictionary, v_id, s_id, tac := "normal", ser = null, fmt_id := "") -> void:
+## opts.dyn: an extra rival (the story dynasty, Story.rival_for) swapped into the field in place of
+## the weakest rival (same field size; series rival lists are copied, never edited).
+func _init(d: Dictionary, v_id, s_id, tac := "normal", ser = null, fmt_id := "", opts: Dictionary = {}) -> void:
 	def = d; vid = v_id; sid = s_id; tactic = tac; series_id = ser
 	var fs: Array = Data.formats(def.id)
 	if ser != null: fmt = Career.seriesFormat(def)
@@ -58,12 +60,24 @@ func _init(d: Dictionary, v_id, s_id, tac := "normal", ser = null, fmt_id := "")
 		for f in fs:
 			if f.id == fmt_id: fmt = f
 	if ser != null: rivals = Career.G.series[ser].act.rivals
+	var dyn: Dictionary = opts.get("dyn", {}) if opts.get("dyn") is Dictionary else {}
+	if not dyn.is_empty():
+		if rivals.is_empty():
+			rivals = Career.mkRivals(def, 7 if fmt.kind == "drag" else (Career.RIVAL_N[int(def.tier)] if int(def.tier) < Career.RIVAL_N.size() else 11))
+		rivals = with_rival(rivals, dyn)
 	if fmt.kind == "drag": kind = "drag"; _drag_start()
 	elif fmt.kind == "heats": kind = "heats"; _heats_start()
 	elif fmt.kind == "tt" and int(fmt.get("runs", 1)) == 2: kind = "hill"; _hill_start()
 	else:
 		kind = "race"; stage = "race"
-		rs = _make(fmt, rivals if ser != null else null)
+		rs = _make(fmt, rivals if not rivals.is_empty() else null)
+
+## A copy of `list` with `r` in it: replaces a rival of the same team, else the weakest (last) one.
+static func with_rival(list: Array, r: Dictionary) -> Array:
+	var out := list.filter(func(x): return str(x.get("team", "")) != str(r.get("team", "")))
+	if out.size() >= list.size() and not out.is_empty(): out.pop_back()
+	out.push_front(r.duplicate())
+	return out
 
 func _make(f: Dictionary, rv, extra := {}) -> RaceSim:
 	var o := {"fmt": f, "series": series_id, "tactic": tactic}
@@ -230,7 +244,7 @@ func _drag_finish() -> Dictionary:
 	var ents := []
 	for x in order:
 		if x is String: ents.append(P)
-		else: ents.append({"team": x.team, "col": x.col, "isPlayer": false, "human": false, "dnf": false, "fin": true})
+		else: ents.append({"team": x.team, "col": x.col, "isPlayer": false, "human": false, "dnf": false, "fin": true, "dynasty": bool(x.get("dynasty", false))})
 	var pos := order.find("P") + 1
 	if not P.get("holed", false) and not P.get("destroyed", false) and not P.get("seized", false): P.dnf = false
 	rs.order_override = ents
@@ -285,7 +299,7 @@ func _hill_finish() -> Dictionary:
 			ents.append(P); pos = i + 1
 		else:
 			var fin := is_finite(x[1])
-			ents.append({"team": x[0].team, "col": x[0].col, "isPlayer": false, "human": false, "dnf": not fin, "fin": fin})
+			ents.append({"team": x[0].team, "col": x[0].col, "isPlayer": false, "human": false, "dnf": not fin, "fin": fin, "dynasty": bool(x[0].get("dynasty", false))})
 	if is_finite(p_best): P.dnf = false
 	rs.order_override = ents
 	rs.forcePos = pos

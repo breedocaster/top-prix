@@ -1,8 +1,8 @@
 {
   "lengths": {
-    "short": {"n": "Short", "time": "about 2 h", "d": "The main story: county fair to the Crownwell Cup. One chapter per tier, then the finale.",
+    "short": {"n": "Short", "time": "about 1 h", "d": "The main story: county fair to the Crownwell Cup. One chapter per tier, then the finale.",
       "chapters": ["ch1", "ch2", "ch3", "ch4", "fin"]},
-    "medium": {"n": "Medium", "time": "4 to 6 h", "d": "Adds a mud-season dirt-bike detour, drag-strip night with sponsor drama, and a hillclimb with a defector.",
+    "medium": {"n": "Medium", "time": "3 to 5 h", "d": "Adds a mud-season dirt-bike detour, drag-strip night with sponsor drama, and a hillclimb with a defector.",
       "chapters": ["ch1", "mud", "ch2", "drag", "ch3", "hill", "ch4", "fin"]},
     "long": {"n": "Long", "time": "10+ h", "d": "The full Grand Prix run: rain racing, titles on two wheels and four, a world tour and the Legend tier.",
       "chapters": ["ch1", "mud", "ch2", "drag", "rain", "ch3", "hill", "titles", "ch4", "world", "legend", "fin"]}

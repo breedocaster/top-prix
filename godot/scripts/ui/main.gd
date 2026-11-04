@@ -1,7 +1,10 @@
 extends Control
-## Screen router: title (with attract-mode race), quick race, garage/import, profile, LAN lobby, race, results.
+## Screen router: title (with attract-mode race), story / free career (CareerScreen), quick race,
+## garage/import, profile, LAN lobby, race, results.
 
 var body: Control
+var career: CareerScreen
+var _nt := {}               # new-team form: {kind, len, name, col, mode}
 var race_view: RaceView
 var last_quick := {}
 var lobby_box: VBoxContainer
@@ -50,6 +53,7 @@ func _clear() -> VBoxContainer:
 	if race_view:
 		race_view.queue_free(); race_view = null
 		Net.race_view = null
+	career = null
 	for c in get_children(): c.queue_free()
 	lobby_box = null; hosts_box = null; status_lbl = null
 	var bg := ColorRect.new()
@@ -86,6 +90,17 @@ func title_screen(note: String = "") -> void:
 	v.add_child(UIKit.title("TOP PRIX"))
 	v.add_child(UIKit.label("Motorsport team manager", UIKit.DIM))
 	if note != "": v.add_child(UIKit.label(note, UIKit.ACCENT))
+	var info := CareerScreen.save_info()
+	if not info.is_empty():
+		var cb := UIKit.btn("CONTINUE: " + CareerKit.asc(info.team), _continue, UIKit.OK)
+		cb.set_meta("tid", "continue")
+		v.add_child(cb)
+		v.add_child(UIKit.label("%s | %s fans%s" % [info.date, U.num(info.fans), " | story mode" if info.story else ""], UIKit.DIM, true))
+	var sb := UIKit.btn("STORY MODE", _story_pick, UIKit.ACCENT)
+	sb.set_meta("tid", "story")
+	var fb := UIKit.btn("FREE CAREER", new_team_screen.bind("free", ""))
+	fb.set_meta("tid", "free")
+	v.add_child(_row([sb, fb]))
 	v.add_child(UIKit.btn("QUICK RACE", quick_screen))
 	v.add_child(_row([UIKit.btn("CO-OP LAN", lan_screen.bind("coop"), UIKit.OK), UIKit.btn("VERSUS LAN", lan_screen.bind("versus"), UIKit.ACCENT)]))
 	v.add_child(_row([UIKit.btn("GARAGE", garage_screen), UIKit.btn("PROFILE", profile_screen)]))
@@ -105,6 +120,84 @@ func _attract() -> Control:
 	holder.add_child(rv)
 	rv.start_sim(rs, "local", -1)
 	return holder
+
+# ---------------- career ----------------
+func _story_pick() -> void:
+	_clear()
+	var p := CampaignPicker.new()
+	add_child(p)
+	p.picked.connect(func(len_id: String): new_team_screen("story", len_id))
+	p.cancelled.connect(title_screen.bind(""))
+
+## New team: name, colour and difficulty (defaults from the profile), then START.
+func new_team_screen(kind: String, len_id: String) -> void:
+	if _nt.get("kind") != kind or _nt.get("len") != len_id:
+		_nt = {"kind": kind, "len": len_id, "name": Game.player.team, "col": Game.player.col, "mode": Game.player.mode}
+	var v := _clear()
+	var story := kind == "story"
+	v.add_child(UIKit.title("STORY MODE" if story else "FREE CAREER"))
+	if story:
+		var L: Dictionary = Story.lengths.get(len_id, {})
+		v.add_child(UIKit.label("%s campaign: %d chapters, %s" % [str(L.get("n", len_id)), (L.get("chapters", []) as Array).size(), str(L.get("time", ""))], UIKit.GOLD, true))
+	else:
+		v.add_child(UIKit.label("Open-ended career: 15 seasons from a backyard shed to world titles. No story, all racing.", UIKit.DIM, true))
+	v.add_child(UIKit.label("Team name"))
+	var nm := LineEdit.new()
+	nm.text = str(_nt.name)
+	nm.max_length = 22
+	nm.text_changed.connect(func(t: String): _nt.name = t)
+	v.add_child(nm)
+	v.add_child(UIKit.label("Team colour"))
+	var sw := UIKit.hbox(2)
+	for hex in Data.D.TEAM_COLORS:
+		var b := UIKit.btn("*" if hex == _nt.col else " ", _nt_set.bind("col", hex), Color(hex))
+		b.custom_minimum_size = Vector2(26, 24)
+		sw.add_child(b)
+	v.add_child(sw)
+	v.add_child(UIKit.label("Difficulty"))
+	var mh := UIKit.hbox(2)
+	for m in ["easy", "standard", "sim"]:
+		var mb := UIKit.btn(("*" if _nt.mode == m else "") + Data.D.MODES[m].n, _nt_set.bind("mode", m), UIKit.OK if _nt.mode == m else UIKit.BTN)
+		mb.set_meta("tid", "mode_" + m)
+		mh.add_child(mb)
+	v.add_child(mh)
+	v.add_child(UIKit.label(Data.D.MODES[_nt.mode].d, UIKit.DIM, true))
+	var info := CareerScreen.save_info()
+	if not info.is_empty():
+		v.add_child(UIKit.label("Starting replaces your saved career (%s, %s)." % [CareerKit.asc(info.team), info.date], UIKit.ACCENT, true))
+	var go := UIKit.btn("START YOUR TEAM!", _start_career, UIKit.OK)
+	go.set_meta("tid", "start")
+	v.add_child(go)
+	v.add_child(UIKit.btn("BACK", _story_pick if story else title_screen.bind(""), UIKit.BTN_LO))
+
+func _nt_set(k: String, val: String) -> void:
+	_nt[k] = val
+	new_team_screen(str(_nt.kind), str(_nt.len))
+
+func _start_career() -> void:
+	var name := str(_nt.get("name", "")).strip_edges()
+	if name == "": name = "Top Prix Racing"
+	Game.player.team = name
+	Game.player.col = str(_nt.col)
+	Game.player.mode = str(_nt.mode)
+	Game.save_profile()
+	Career.newGame(name, str(_nt.col), str(_nt.mode))
+	if _nt.kind == "story": Story.start_campaign(str(_nt.len))
+	_nt = {}
+	CareerScreen.save_game()
+	career_screen()
+
+func _continue() -> void:
+	if CareerScreen.load_game(): career_screen()
+	else: title_screen("Couldn't read the saved career.")
+
+func career_screen() -> void:
+	Net.leave()
+	_clear()
+	career = CareerScreen.new()
+	career.main = self
+	career.quit_requested.connect(title_screen.bind(""))
+	add_child(career)
 
 # ---------------- quick race ----------------
 func quick_screen() -> void:

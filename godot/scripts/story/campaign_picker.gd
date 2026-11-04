@@ -21,7 +21,7 @@ func _ready() -> void:
 	m.set_anchors_preset(Control.PRESET_FULL_RECT)
 	for k in ["left", "right", "top", "bottom"]: m.add_theme_constant_override("margin_" + k, 6)
 	add_child(m)
-	var v := UIKit.vbox(6)
+	var v := UIKit.vbox(4)
 	m.add_child(v)
 	v.add_child(UIKit.title("STORY MODE"))
 	var faces := UIKit.hbox(4)

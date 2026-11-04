@@ -16,6 +16,8 @@ const SNAP_HZ := 15.0
 
 var net_mode := "local"      # local | host | client
 var attract := false
+## Label for the course strip under the game screen (career: series / round / stage); "" = race name.
+var title_override := ""
 var sim: RaceSim
 var def: Dictionary
 var tr: Dictionary
@@ -142,7 +144,7 @@ func _build(rain: bool) -> void:
 	banner = _hud_label(Vector2(0, 92), 16, UIKit.GOLD)
 	banner.size = Vector2(VIEW.x, 24)
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var tl := UIKit.label(def.n.to_upper(), Color("#d8e4f0"), true)
+	var tl := UIKit.label((title_override if title_override != "" else str(def.n)).to_upper(), Color("#d8e4f0"), true)
 	tl.position = Vector2(4, VIEW.y - 12); tl.autowrap_mode = TextServer.AUTOWRAP_OFF
 	tl.add_theme_color_override("font_outline_color", Color("#140c24")); tl.add_theme_constant_override("outline_size", 3)
 	screen.add_child(tl)
@@ -257,8 +259,12 @@ func apply_cmd(idx: int, kind: String, arg: String, from_peer: int) -> void:
 		"retire": sim.retire(idx)
 
 func _toggle_speed() -> void:
-	speed = {1.0: 2.0, 2.0: 4.0, 4.0: 1.0}[speed]
-	speed_btn.text = "SPEED x%d" % int(speed)
+	set_speed({1.0: 2.0, 2.0: 4.0, 4.0: 1.0}.get(speed, 1.0))
+
+## Set the sim speed (1, 2 or 4) and its button label (career keeps it across stages).
+func set_speed(s: float) -> void:
+	speed = s
+	if speed_btn: speed_btn.text = "SPEED x%d" % int(speed)
 
 func _skip() -> void:
 	if net_mode == "client" or net_mode == "host":

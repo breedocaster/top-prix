@@ -837,7 +837,7 @@ func endSeries(id: String) -> void:
 		G.st.titles.append(id)
 		st.titles = int(st.titles) + 1
 		G.year.titles += 1
-		prize = float(S.prize) if first else U.round(float(S.prize) * 0.5)
+		prize = U.round(float(S.prize) * paceMul()) if first else U.round(float(S.prize) * 0.5 * paceMul())
 		G.money += prize; G.st.earn += prize; G.year.earn += prize
 		fans = U.round(float(S.prize) / 1500 * (1 + facV("fans") / 100))
 		G.fans += fans
@@ -965,8 +965,9 @@ func raceOrder(rs: RaceSim) -> Array: return rs.order_override if not rs.order_o
 func isPlayerEnt(e: Dictionary) -> bool: return bool(e.get("isPlayer", false))
 
 ## Race flow for one career race (all formats). See RaceFlow.
-func startRace(race_id: String, vid, sid, tactic := "normal", series_id = null, fmt_id := "") -> RaceFlow:
-	return RaceFlow.new(D.RACE[race_id], vid, sid, tactic, series_id, fmt_id)
+## opts.dyn: the story dynasty rival (Story.rival_for) to enter into the field.
+func startRace(race_id: String, vid, sid, tactic := "normal", series_id = null, fmt_id := "", opts: Dictionary = {}) -> RaceFlow:
+	return RaceFlow.new(D.RACE[race_id], vid, sid, tactic, series_id, fmt_id, opts)
 
 ## UI.raceResult engine part: finishRace + series round scoring.
 func raceResult(rs: RaceSim) -> Dictionary:
@@ -997,17 +998,17 @@ func finishRace(rs: RaceSim) -> Dictionary:
 	var rk0 := fanRank()
 	# money
 	var rep: float = 0.4 if (rs.series == null and G.yearWins.get(def.id)) else 1.0
-	if not dnf and pos <= 12: out.prize = U.round(float(def.prize) * float(D.PRIZE_SPLIT[pos - 1]) * rep * float(mul.prize) / 100) * 100
+	if not dnf and pos <= 12: out.prize = U.round(float(def.prize) * float(D.PRIZE_SPLIT[pos - 1]) * rep * float(mul.prize) * paceMul() / 100) * 100
 	out.rep = rep < 1
 	G.money += out.prize; G.st.earn += out.prize; G.year.earn += out.prize
 	# RP
 	var ms := mechs()
 	var mAn: float = U.sum(ms, func(m): return m.analysis) / ms.size() if ms.size() else 0.0
 	var vst: Dictionary = vs(v) if not v.is_empty() else {"fx": {"rp": 0, "fan": 0}, "adv": 0}
-	out.rp = U.round(float(def.rp) * ff * (1 + (float(s.analysis) + mAn) / 250) * (1 + facV("rp") / 100) * (1 + float(vst.fx.rp)) * (1.3 if rs.series != null else 1.0) * (0.6 if rep < 1 else 1.0) * float(mul.rp) * (1.1 if Tune.has("telem") else 1.0) * (1.1 if (not v.is_empty() and v.get("bflags", []).has("data")) else 1.0))
+	out.rp = U.round(float(def.rp) * ff * (1 + (float(s.analysis) + mAn) / 250) * (1 + facV("rp") / 100) * (1 + float(vst.fx.rp)) * (1.3 if rs.series != null else 1.0) * (0.6 if rep < 1 else 1.0) * float(mul.rp) * paceMul() * (1.1 if Tune.has("telem") else 1.0) * (1.1 if (not v.is_empty() and v.get("bflags", []).has("data")) else 1.0))
 	G.rp += out.rp
 	# fans
-	out.fans = U.round(float(def.R) * 0.6 * ff * (0.5 if rep < 1 else 1.0) * float(mul.fans) * (1 + float(s.appeal) / 250) * (1 + facV("fans") / 100) * (1.3 if s.get("trait") == "show" else 1.0) * (1 + float(vst.fx.fan)) * (1.4 if rs.series != null else 1.0))
+	out.fans = U.round(float(def.R) * 0.6 * ff * (0.5 if rep < 1 else 1.0) * float(mul.fans) * paceMul() * (1 + float(s.appeal) / 250) * (1 + facV("fans") / 100) * (1.3 if s.get("trait") == "show" else 1.0) * (1 + float(vst.fx.fan)) * (1.4 if rs.series != null else 1.0))
 	G.fans += out.fans
 	# stats
 	G.st.races += 1
@@ -1104,8 +1105,18 @@ func finishRace(rs: RaceSim) -> Dictionary:
 	if rk1 > rk0:
 		_popup("Team Rank Up!", "Your team is now %s!\n\nBigger sponsors are calling, and better staff want to join." % D.FAN_RANKS[rk1][1], "rank_up", {"rank": rk1})
 		refreshCandidates()
-	race_finished.emit({"race_id": def.id, "fmt_id": rs.fmt.get("id", "sprint"), "pos": pos, "field": raceOrder(rs).size(), "dnf": dnf,
-		"prize": out.prize, "series_id": rs.series})
+	var info := {"race_id": def.id, "fmt_id": rs.fmt.get("id", "sprint"), "pos": pos, "field": raceOrder(rs).size(), "dnf": dnf,
+		"prize": out.prize, "series_id": rs.series}
+	# story dynasty rival (Story.rival_for): where they finished, 0 = DNF
+	var ord := raceOrder(rs)
+	for i in ord.size():
+		var e: Dictionary = ord[i]
+		var ref = e.get("ref")
+		if bool(e.get("dynasty", false)) or (ref is Dictionary and bool(ref.get("dynasty", false))):
+			out.dyn_pos = 0 if bool(e.get("dnf", false)) else i + 1
+			info.dyn_pos = out.dyn_pos
+			break
+	race_finished.emit(info)
 	return out
 
 func engAfter(v: Dictionary, rs: RaceSim, P: Dictionary, mul: Dictionary) -> void:
@@ -1286,13 +1297,20 @@ func finishTest(rs: RaceSim) -> Dictionary:
 # ======================================================================
 # time
 # ======================================================================
+## Story pacing: the Short campaign runs hotter (race rewards and shop speed) so it lands near an hour;
+## Medium a little. Free careers and free play after the ending run at the web build's rates.
+func paceMul() -> float:
+	var st = G.get("story")
+	if typeof(st) != TYPE_DICTIONARY or not st.get("on", false) or st.get("done", false) or st.get("free", false): return 1.0
+	return float({"short": 1.6, "medium": 1.2}.get(str(st.get("len", "")), 1.0))
+
 func jobRate(job: Dictionary) -> float:
 	var n := 0
 	for j in G.jobs:
 		if not j.get("nob", false): n += 1
 	var share: float = 1.0 if job.get("nob", false) else 1 + 0.35 * maxi(0, n - 1)
 	var lazy: float = 0.6 if (G.get("lazyUntil") and float(G.lazyUntil) > float(G.day)) else 1.0
-	return U.clamp(0.5 + 0.7 * teamTech() / float(job.req), 0.5, 1.8 if job.type == "build" else 2.6) * (1 + facV("speed") / 100) / share * lazy
+	return U.clamp(0.5 + 0.7 * teamTech() / float(job.req), 0.5, 1.8 if job.type == "build" else 2.6) * (1 + facV("speed") / 100) / share * lazy * (1.0 + (paceMul() - 1.0) * 0.6)
 
 func _drop_job(j: Dictionary) -> void:
 	for i in G.jobs.size():
