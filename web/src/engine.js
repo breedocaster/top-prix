@@ -83,7 +83,7 @@ E.partClsOk = (p,cls)=>p.cls==='A'||(p.cls==='C'&&cls==='car')||(p.cls==='B'&&cl
 E.partLv = pid=>(G.partLv[pid]||{lv:1}).lv;
 E.vs = v=>{
   const b=D.BODY[v.body]; const s={spd:v.base.spd+v.upAdd.spd,acc:v.base.acc+v.upAdd.acc,hnd:v.base.hnd+v.upAdd.hnd,dur:v.base.dur+v.upAdd.dur};
-  const t={...v.terr}; let adv=b.adv; const fx={rp:0,mis:1,wear:1,fan:0};
+  const t={...v.terr}; let adv=b.adv+(v.advB||0); const fx={rp:0,mis:1,wear:1,fan:0};
   for(const pid of v.parts){const P=D.PART[pid];const lm=1+0.1*(E.partLv(pid)-1);
     for(const k in P.st){if(k in s)s[k]+=P.st[k]*lm;else if(k in t)t[k]+=P.st[k];else if(k==='adv')adv+=P.st[k];}
     if(P.fx.rp)fx.rp+=P.fx.rp;if(P.fx.mis)fx.mis*=P.fx.mis;if(P.fx.wear)fx.wear*=P.fx.wear;if(P.fx.fan)fx.fan+=P.fx.fan;}
@@ -157,7 +157,7 @@ E.installPart = (vid,pid)=>{
   if(v.status==='build'){E.H.toast('Still being built');return false;}
   if(v.parts.includes(pid))return false;
   const same=v.parts.find(x=>D.PART[x].cat===P.cat);
-  if(!same&&v.parts.length>=b.slots){E.H.toast('No free part slots');return false;}
+  if(!same&&v.parts.length>=E.slots(v)){E.H.toast('No free part slots');return false;}
   const c=E.partCost(pid);if(G.money<c){E.H.toast('Not enough money');return false;}
   G.money-=c;if(same)v.parts=v.parts.filter(x=>x!==same);v.parts.push(pid);
   E.say(`Installed ${P.n} on ${v.name}`);E.H.float(P.n,v.id,'#9cf');E.H.sfx('good');return true;
@@ -375,7 +375,7 @@ E.finishRace = (rs)=>{
   // RP
   const mAn=E.mechs().length?U.sum(E.mechs(),m=>m.analysis)/E.mechs().length:0;
   const vst=v?E.vs(v):{fx:{rp:0,fan:0},adv:0};
-  out.rp=Math.round(def.rp*ff*(1+(s.analysis+mAn)/250)*(1+E.facV('rp')/100)*(1+vst.fx.rp)*(rs.series?1.3:1)*(rep<1?0.6:1)*mul.rp*(T.has('telem')?1.1:1));G.rp+=out.rp;
+  out.rp=Math.round(def.rp*ff*(1+(s.analysis+mAn)/250)*(1+E.facV('rp')/100)*(1+vst.fx.rp)*(rs.series?1.3:1)*(rep<1?0.6:1)*mul.rp*(T.has('telem')?1.1:1)*(v&&(v.bflags||[]).includes('data')?1.1:1));G.rp+=out.rp;
   // fans
   out.fans=Math.round(def.R*0.6*ff*(rep<1?0.5:1)*mul.fans*(1+s.appeal/250)*(1+E.facV('fans')/100)*(s.trait==='show'?1.3:1)*(1+vst.fx.fan)*(rs.series?1.4:1));G.fans+=out.fans;
   // stats
@@ -422,10 +422,10 @@ E.finishRace = (rs)=>{
 E.engAfter = (v,rs,P,mul)=>{
   const e=v.eng;if(!e)return;
   if(e.fuel!=='none'){
-    const wear=0.014*mul.wear*(T.has('oilcool')?0.7:1)*(rs.tactic==='push'?1.3:rs.tactic==='safe'?0.8:1);
+    const fl=v.bflags||[];const wear=0.014*mul.wear*(T.has('oilcool')?0.7:1)*(fl.includes('endur')?0.7:1)*(fl.includes('loom')?0.85:1)*(rs.tactic==='push'?1.3:rs.tactic==='safe'?0.8:1);
     e.cond=U.clamp((P.cond!=null?P.cond:e.cond)-wear,0,1);
     const n=e.sync.length,bi=T.syncBase(n);e.sync=e.sync.map((x,i)=>i===bi?0:+U.clamp(x+U.rand(-0.45,0.45)*(1+def_t(rs)*0.1),-6,6).toFixed(1));
-    if(T.has('datalog')&&rs.cond)e.log=T.makeLog(v,rs.cond,'Race: '+rs.def.n);
+    if((T.has('datalog')||(v.bflags||[]).includes('data'))&&rs.cond)e.log=T.makeLog(v,rs.cond,'Race: '+rs.def.n);
     if(e.cond<=0)E.H.popup({title:'💥 Engine Failure',html:`${U.esc(v.name)}'s engine is finished. Open <b>Garage → Engine</b> to rebuild it before racing again.`});
   }
 };
@@ -464,15 +464,15 @@ E.finishTest = rs=>{
 E.jobRate = job=>{
   const n=G.jobs.filter(j=>!j.nob).length;const share=job.nob?1:1+0.35*Math.max(0,n-1);
   const lazy=G.lazyUntil&&G.lazyUntil>G.day?0.6:1;
-  return U.clamp(0.5+0.7*E.teamTech()/job.req,0.5,2.6)*(1+E.facV('speed')/100)/share*lazy;
+  return U.clamp(0.5+0.7*E.teamTech()/job.req,0.5,job.type==='build'?1.8:2.6)*(1+E.facV('speed')/100)/share*lazy;
 };
 E.tick = ()=>{
   G.day++;
   // jobs
   for(const j of G.jobs.slice()){
     const v=E.veh(j.vid);if(!v){G.jobs=G.jobs.filter(x=>x!==j);continue;}
+    if(j.type==='build'){if(E.tickBuild(j,v)){G.jobs=G.jobs.filter(x=>x!==j);E.finishBuild(v);}continue;}
     j.left-=E.jobRate(j);
-    if(j.type==='build'){const prog=1-j.left/j.total;const ph=[0.3,0.6,0.9];while(j.ph<3&&prog>=ph[j.ph]){E.buildPhase(v,j);j.ph++;}}
     if(j.type==='rep')v.hp=Math.min(1,v.hp+(1/14)*E.jobRate(j));
     if(j.left<=0){G.jobs=G.jobs.filter(x=>x!==j);
       if(j.type==='build')E.finishBuild(v);else if(j.type==='up')E.finishUpgrade(v,j);else if(j.type==='rep'){v.hp=1;v.status='ready';E.log(`${v.name} repaired`);}
@@ -527,4 +527,4 @@ E.serialize = ()=>JSON.stringify(G);
 E.load = (str)=>{const o=typeof str==='string'?JSON.parse(str):str;if(!o||o.v!==1||!o.team)throw new Error('bad save');G=o;
   G.settings=Object.assign({speed:1,autoRetire:true,sound:true,mode:'standard'},G.settings||{});G.st.wc=G.st.wc||{};G.year=G.year||{wins:0,podiums:0,earn:0,titles:0};
   G.tech=G.tech||{carbbasic:1};G.ach=G.ach||{};G.st.tests=G.st.tests||0;G.st.streak=G.st.streak||0;G.st.cells=G.st.cells||0;
-  for(const v of G.vehicles){if(!v.eng)T.initEng(v,null);if(!v.setup)v.setup=T.defaultSetup(v);}return G;};
+  for(const v of G.vehicles){if(!v.eng)T.initEng(v,null);if(!v.setup)v.setup=T.defaultSetup(v);}for(const j of G.jobs)j.asked=false;return G;};

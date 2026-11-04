@@ -170,6 +170,16 @@ input[type=range]{accent-color:#ffd84a;height:28px}
 #title .modes button{background:#1a2550;color:#cfe0ff;border:2px solid #4a5d9e;border-radius:7px;padding:6px 12px;font-family:inherit}
 #title .modes button.on{background:#ffd84a;color:#2a1a00;border-color:#fff}
 .wtabs button{font-size:12px;padding:6px 3px}
+
+#pop .pf .btn.opt{width:100%;text-align:left;white-space:normal;display:flex;flex-direction:column;gap:1px;padding:7px 10px;background:linear-gradient(#3f58ad,#2d4185);color:#fff;border-color:#9fb3ff;box-shadow:0 2px 0 #0b0f1c}
+#pop .pf .btn.opt:disabled{opacity:.5;background:#2a3358}
+#pop .pf .btn.opt .od{font-size:12px;color:#cfe0ff}
+#pop .pf .btn.opt .ofx{font-size:12px;color:#ffd84a}
+#pop .pf .btn.opt .rec{font-size:10px;background:#8ef58e;color:#0b2d06;border-radius:4px;padding:0 4px;margin-left:4px}
+#pop .pf .btn.gray{width:100%}
+.bsofar{margin-top:6px;font-size:11px;color:#8ef58e;background:#1a2550;border-radius:6px;padding:4px 6px}
+.bph{display:flex;justify-content:space-between;gap:6px;padding:3px 0;border-bottom:1px dashed #3b4b7a;font-size:12px;color:#8fa3d8}
+.bph.done{color:#cfe0ff}.bph.cur{color:#ffd84a}
 </style>
 </head>
 <body>
@@ -1041,6 +1051,7 @@ T.need = v=>{
   for(const pid of v.parts){const P=D.PART[pid];if(!['exh','ful','eng'].includes(P.cat))continue;const t=P.tier+1;
     n.wot+=0.014*t;n.mid+=0.008*t;n.low+=0.003*t;n.trans+=0.006*t;if(pid==='nitrous')n.wot+=0.05;if(pid.includes('turbo'))n.wot+=0.03,n.mid+=0.02;}
   if(T.has('porting')){n.wot+=0.03;n.mid+=0.02;}
+  const fl=v.bflags||[];if(fl.includes('rev'))n.wot+=0.04;if(fl.includes('torque'))n.mid+=0.03,n.low+=0.01;
   if(T.has('bigvalve')){n.wot+=0.06;n.mid+=0.02;}
   return n;
 };
@@ -1271,7 +1282,7 @@ E.partClsOk = (p,cls)=>p.cls==='A'||(p.cls==='C'&&cls==='car')||(p.cls==='B'&&cl
 E.partLv = pid=>(G.partLv[pid]||{lv:1}).lv;
 E.vs = v=>{
   const b=D.BODY[v.body]; const s={spd:v.base.spd+v.upAdd.spd,acc:v.base.acc+v.upAdd.acc,hnd:v.base.hnd+v.upAdd.hnd,dur:v.base.dur+v.upAdd.dur};
-  const t={...v.terr}; let adv=b.adv; const fx={rp:0,mis:1,wear:1,fan:0};
+  const t={...v.terr}; let adv=b.adv+(v.advB||0); const fx={rp:0,mis:1,wear:1,fan:0};
   for(const pid of v.parts){const P=D.PART[pid];const lm=1+0.1*(E.partLv(pid)-1);
     for(const k in P.st){if(k in s)s[k]+=P.st[k]*lm;else if(k in t)t[k]+=P.st[k];else if(k==='adv')adv+=P.st[k];}
     if(P.fx.rp)fx.rp+=P.fx.rp;if(P.fx.mis)fx.mis*=P.fx.mis;if(P.fx.wear)fx.wear*=P.fx.wear;if(P.fx.fan)fx.fan+=P.fx.fan;}
@@ -1345,7 +1356,7 @@ E.installPart = (vid,pid)=>{
   if(v.status==='build'){E.H.toast('Still being built');return false;}
   if(v.parts.includes(pid))return false;
   const same=v.parts.find(x=>D.PART[x].cat===P.cat);
-  if(!same&&v.parts.length>=b.slots){E.H.toast('No free part slots');return false;}
+  if(!same&&v.parts.length>=E.slots(v)){E.H.toast('No free part slots');return false;}
   const c=E.partCost(pid);if(G.money<c){E.H.toast('Not enough money');return false;}
   G.money-=c;if(same)v.parts=v.parts.filter(x=>x!==same);v.parts.push(pid);
   E.say(`Installed ${P.n} on ${v.name}`);E.H.float(P.n,v.id,'#9cf');E.H.sfx('good');return true;
@@ -1563,7 +1574,7 @@ E.finishRace = (rs)=>{
   // RP
   const mAn=E.mechs().length?U.sum(E.mechs(),m=>m.analysis)/E.mechs().length:0;
   const vst=v?E.vs(v):{fx:{rp:0,fan:0},adv:0};
-  out.rp=Math.round(def.rp*ff*(1+(s.analysis+mAn)/250)*(1+E.facV('rp')/100)*(1+vst.fx.rp)*(rs.series?1.3:1)*(rep<1?0.6:1)*mul.rp*(T.has('telem')?1.1:1));G.rp+=out.rp;
+  out.rp=Math.round(def.rp*ff*(1+(s.analysis+mAn)/250)*(1+E.facV('rp')/100)*(1+vst.fx.rp)*(rs.series?1.3:1)*(rep<1?0.6:1)*mul.rp*(T.has('telem')?1.1:1)*(v&&(v.bflags||[]).includes('data')?1.1:1));G.rp+=out.rp;
   // fans
   out.fans=Math.round(def.R*0.6*ff*(rep<1?0.5:1)*mul.fans*(1+s.appeal/250)*(1+E.facV('fans')/100)*(s.trait==='show'?1.3:1)*(1+vst.fx.fan)*(rs.series?1.4:1));G.fans+=out.fans;
   // stats
@@ -1610,10 +1621,10 @@ E.finishRace = (rs)=>{
 E.engAfter = (v,rs,P,mul)=>{
   const e=v.eng;if(!e)return;
   if(e.fuel!=='none'){
-    const wear=0.014*mul.wear*(T.has('oilcool')?0.7:1)*(rs.tactic==='push'?1.3:rs.tactic==='safe'?0.8:1);
+    const fl=v.bflags||[];const wear=0.014*mul.wear*(T.has('oilcool')?0.7:1)*(fl.includes('endur')?0.7:1)*(fl.includes('loom')?0.85:1)*(rs.tactic==='push'?1.3:rs.tactic==='safe'?0.8:1);
     e.cond=U.clamp((P.cond!=null?P.cond:e.cond)-wear,0,1);
     const n=e.sync.length,bi=T.syncBase(n);e.sync=e.sync.map((x,i)=>i===bi?0:+U.clamp(x+U.rand(-0.45,0.45)*(1+def_t(rs)*0.1),-6,6).toFixed(1));
-    if(T.has('datalog')&&rs.cond)e.log=T.makeLog(v,rs.cond,'Race: '+rs.def.n);
+    if((T.has('datalog')||(v.bflags||[]).includes('data'))&&rs.cond)e.log=T.makeLog(v,rs.cond,'Race: '+rs.def.n);
     if(e.cond<=0)E.H.popup({title:'💥 Engine Failure',html:`${U.esc(v.name)}'s engine is finished. Open <b>Garage → Engine</b> to rebuild it before racing again.`});
   }
 };
@@ -1652,15 +1663,15 @@ E.finishTest = rs=>{
 E.jobRate = job=>{
   const n=G.jobs.filter(j=>!j.nob).length;const share=job.nob?1:1+0.35*Math.max(0,n-1);
   const lazy=G.lazyUntil&&G.lazyUntil>G.day?0.6:1;
-  return U.clamp(0.5+0.7*E.teamTech()/job.req,0.5,2.6)*(1+E.facV('speed')/100)/share*lazy;
+  return U.clamp(0.5+0.7*E.teamTech()/job.req,0.5,job.type==='build'?1.8:2.6)*(1+E.facV('speed')/100)/share*lazy;
 };
 E.tick = ()=>{
   G.day++;
   // jobs
   for(const j of G.jobs.slice()){
     const v=E.veh(j.vid);if(!v){G.jobs=G.jobs.filter(x=>x!==j);continue;}
+    if(j.type==='build'){if(E.tickBuild(j,v)){G.jobs=G.jobs.filter(x=>x!==j);E.finishBuild(v);}continue;}
     j.left-=E.jobRate(j);
-    if(j.type==='build'){const prog=1-j.left/j.total;const ph=[0.3,0.6,0.9];while(j.ph<3&&prog>=ph[j.ph]){E.buildPhase(v,j);j.ph++;}}
     if(j.type==='rep')v.hp=Math.min(1,v.hp+(1/14)*E.jobRate(j));
     if(j.left<=0){G.jobs=G.jobs.filter(x=>x!==j);
       if(j.type==='build')E.finishBuild(v);else if(j.type==='up')E.finishUpgrade(v,j);else if(j.type==='rep'){v.hp=1;v.status='ready';E.log(`${v.name} repaired`);}
@@ -1715,7 +1726,164 @@ E.serialize = ()=>JSON.stringify(G);
 E.load = (str)=>{const o=typeof str==='string'?JSON.parse(str):str;if(!o||o.v!==1||!o.team)throw new Error('bad save');G=o;
   G.settings=Object.assign({speed:1,autoRetire:true,sound:true,mode:'standard'},G.settings||{});G.st.wc=G.st.wc||{};G.year=G.year||{wins:0,podiums:0,earn:0,titles:0};
   G.tech=G.tech||{carbbasic:1};G.ach=G.ach||{};G.st.tests=G.st.tests||0;G.st.streak=G.st.streak||0;G.st.cells=G.st.cells||0;
-  for(const v of G.vehicles){if(!v.eng)T.initEng(v,null);if(!v.setup)v.setup=T.defaultSetup(v);}return G;};
+  for(const v of G.vehicles){if(!v.eng)T.initEng(v,null);if(!v.setup)v.setup=T.defaultSetup(v);}for(const j of G.jobs)j.asked=false;return G;};
+
+// ===================== STAGED BUILD PROCESS =====================
+D.BPH = ['design','frame','engine','drive','susp','body','elec','shake'];
+D.BPHN = {design:'Design & concept',frame:'Frame / chassis',engine:'Engine assembly',drive:'Drivetrain',susp:'Suspension & brakes',body:'Bodywork & aero',elec:'Electrics & fuel',shake:'Shakedown'};
+D.BPHS = {design:'DESIGN',frame:'FRAME',engine:'ENGINE',drive:'DRIVE',susp:'SUSP',body:'BODY',elec:'WIRING',shake:'SHAKEDOWN'};
+D.BUILD_MULT = 3.5;
+// option: {id,n,d,cost(frac of body cost),days,m:{%},t:{terr},adv,slot,flag,req:{ws,tech,fac,q},crew}
+D.BOPT = {
+ design:[
+  {id:'bal',n:'Balanced concept',d:'A little of everything.',m:{spd:2,acc:2,hnd:2},crew:1},
+  {id:'speed',n:'Top-speed concept',d:'Slippery and long-legged.',m:{spd:6,hnd:-2}},
+  {id:'accel',n:'Punchy concept',d:'Light and eager off the line.',m:{acc:6,spd:-2}},
+  {id:'handle',n:'Corner-carver concept',d:'Tight wheelbase, quick steering.',m:{hnd:6,spd:-2}},
+  {id:'tough',n:'Built-to-last concept',d:'Overbuilt everywhere.',m:{dur:10,acc:-2}},
+ ],
+ frame:{
+  car:[{id:'mild',n:'Mild-steel tube frame',d:'Cheap and tough, a bit heavy.',cost:-0.04,m:{dur:8,acc:-3}},
+       {id:'cromo',n:'Chromoly cage frame',d:'Stiff, strong, fair weight.',cost:0.08,m:{dur:4,hnd:3},crew:1},
+       {id:'alu',n:'Aluminum chassis',d:'Light and nimble, less forgiving.',cost:0.15,days:1,m:{acc:5,hnd:4,dur:-5}},
+       {id:'carbon',n:'Carbon tub',d:'Race-car stiffness and weight.',cost:0.35,days:3,m:{acc:8,hnd:6,dur:2},req:{ws:3}}],
+  bike:[{id:'cradle',n:'Steel double cradle',d:'Old-school and bulletproof.',cost:-0.04,m:{dur:8,hnd:-2}},
+       {id:'trellis',n:'Steel trellis',d:'Flexes just right. Great feel.',cost:0.06,m:{hnd:4,dur:3},crew:1},
+       {id:'perim',n:'Aluminum perimeter',d:'Stiff and light, harsh on rough ground.',cost:0.15,days:1,m:{hnd:6,acc:3,dur:-4},t:{off:-4}},
+       {id:'carbon',n:'Carbon monocoque',d:'Factory-team exotic.',cost:0.35,days:3,m:{hnd:8,acc:6},req:{ws:3}}],
+ },
+ engine:{
+  ice:[{id:'stock',n:'Factory tolerances',d:'Bolt it together and move on.',days:-2,m:{}},
+       {id:'blue',n:'Blueprinted & balanced',d:'Every clearance measured. Needs a skilled crew.',cost:0.06,days:3,m:{spd:3,acc:3,dur:3},req:{q:0.9},crew:1},
+       {id:'rev',n:'High-rev build',d:'Lighter internals, screams up top. Wants a bigger main jet.',cost:0.08,days:1,m:{spd:6,acc:-1,dur:-6},flag:'rev'},
+       {id:'torque',n:'Torque build',d:'Fat midrange for exits and hills.',cost:0.05,m:{acc:6,spd:-2},flag:'torque'},
+       {id:'endur',n:'Endurance build',d:'Conservative and long-lived. Engine wears 30% slower.',cost:0.04,m:{dur:8,spd:-2},flag:'endur'}],
+  elec:[{id:'std',n:'Standard battery pack',d:'Proven cells.',m:{},crew:1},
+       {id:'hd',n:'High-discharge pack',d:'Brutal launches, runs hot.',cost:0.08,m:{acc:7,dur:-5}},
+       {id:'lr',n:'Long-life cells',d:'Cool and steady.',cost:0.04,m:{dur:8,acc:-2}}],
+ },
+ drive:{
+  car:[{id:'close',n:'Close-ratio gearbox',d:'Stays on the boil.',m:{acc:5,spd:-2},crew:1},
+       {id:'wide',n:'Tall overdrive box',d:'For long straights.',m:{spd:5,acc:-2}},
+       {id:'hd',n:'Heavy-duty diff & axles',d:'Shrugs off abuse.',cost:0.04,m:{dur:8}},
+       {id:'lsd',n:'Limited-slip diff',d:'Puts power down on loose and wet surfaces.',cost:0.07,days:1,m:{hnd:3},t:{off:6,wet:6}}],
+  bike:[{id:'o520',n:'520 O-ring chain',d:'Strong and sealed.',m:{dur:6},crew:1},
+       {id:'l428',n:'Lightweight 428 chain & sprockets',d:'Less rotating mass, wears faster.',m:{acc:4,dur:-4}},
+       {id:'shaft',n:'Shaft drive',d:'Zero maintenance, heavy.',cost:0.08,days:1,m:{dur:12,acc:-3}},
+       {id:'close',n:'Close-ratio gearbox',d:'Tight gear spacing.',cost:0.04,m:{acc:5,spd:-2}}],
+ },
+ susp:[
+  {id:'all',n:'All-rounder setup',d:'Works everywhere, excels nowhere.',t:{on:3,off:3,wet:3},crew:1},
+  {id:'tar',n:'Tarmac spec',d:'Stiff springs, big brakes.',m:{hnd:5},t:{on:8,off:-8}},
+  {id:'dirt',n:'Long-travel dirt spec',d:'Soaks up whoops and landings.',m:{hnd:2,dur:4},t:{off:10,on:-6}},
+  {id:'rain',n:'Rain & ice package',d:'Soft compliance, ABS-style brakes.',m:{hnd:1},t:{wet:8,ice:8}},
+  {id:'race',n:'Fully adjustable race kit',d:'Pro-level dampers.',cost:0.1,days:2,m:{hnd:7},req:{tech:'adjsus'}},
+ ],
+ body:{
+  car:[{id:'kit',n:'Aero body kit',d:'Splitter, skirts, wing mounts.',cost:0.07,days:1,m:{spd:4,hnd:3},t:{off:-4},crew:1},
+       {id:'bare',n:'Stripped & light',d:'Gutted interior, thin panels.',m:{acc:4,dur:-4},adv:-5},
+       {id:'armor',n:'Rally armor & skid plates',d:'Built for rocks.',cost:0.05,m:{dur:10},t:{off:5}},
+       {id:'show',n:'Show-quality paint',d:'Sponsors love it.',cost:0.05,days:2,adv:15}],
+  bike:[{id:'fairing',n:'Full race fairing',d:'Tuck in and fly.',cost:0.07,days:1,m:{spd:5},crew:1},
+       {id:'naked',n:'Naked & stripped',d:'Nothing extra.',m:{acc:4}},
+       {id:'plastics',n:'MX plastics & guards',d:'Crash-friendly.',cost:0.03,m:{dur:6},t:{off:5}},
+       {id:'show',n:'Show-quality paint',d:'Chrome and candy paint.',cost:0.05,days:2,adv:15}],
+ },
+ elec:[
+  {id:'basic',n:'Simple harness',d:'Fewer things to break... in theory.',days:-1,crew:1},
+  {id:'race',n:'Race loom, sealed connectors',d:'Engine wear -15%.',cost:0.04,m:{dur:4},flag:'loom'},
+  {id:'data',n:'Data-logging loom',d:'Logs a datalog every race. +10% research data.',cost:0.06,days:1,flag:'data'},
+  {id:'slot',n:'Expandable harness',d:'+1 part slot.',cost:0.05,days:1,slot:1},
+ ],
+ shake:[
+  {id:'quick',n:'Quick shakedown',d:'Roll it out and call it done.',days:-2},
+  {id:'full',n:'Full test day',d:'Finds and fixes the worst flaw.',cost:0.02,days:3,flag:'full',crew:1},
+  {id:'dyno',n:'Dyno-tune before delivery',d:'Crew jets/maps the engine on the shop dyno.',cost:0.03,days:2,flag:'dyno',req:{fac:'dyno'}},
+ ],
+};
+// random shop events
+D.BEV = [
+ {id:'crack',n:'Cracked weld!',d:'{m} spots a hairline crack in a frame weld.',o:[{n:'Re-weld it properly',days:3},{n:'Gusset it and move on',m:{dur:-4}}]},
+ {id:'bolts',n:'Lightweight hardware',d:'A supplier offers titanium bolts at a discount.',o:[{n:'Buy them',cost:0.03,m:{acc:2,hnd:1}},{n:'No thanks'}]},
+ {id:'idea',n:'Bright idea',d:'{m} wants to try a trick port shape on the intake.',o:[{n:'Try it (gamble)',gamble:{p:0.6,win:{spd:4,acc:2},lose:{spd:-2}}},{n:'Stick to the plan'}],ice:1},
+ {id:'backorder',n:'Parts on backorder',d:'The next batch of parts is stuck at the warehouse.',o:[{n:'Wait it out',days:4},{n:'Pay to expedite',cost:0.04,min:5000}]},
+ {id:'fitting',n:'Seat fitting',d:'{d} asks to sit in for a custom fitting.',o:[{n:'Sure, come in',m:{hnd:3},drv:1},{n:'Not right now'}]},
+ {id:'wrong',n:'Wrong part delivered',d:'The box has the wrong part number on it.',o:[{n:'Send it back',days:2},{n:'Make it fit',gamble:{p:0.35,win:{hnd:3},lose:{dur:-3}}}]},
+ {id:'press',n:'Press visit',d:'A racing magazine wants to photograph the build.',o:[{n:'Smile for the camera',days:1,fans:1},{n:'Not now'}]},
+ {id:'bin',n:'Treasure in the parts bin',d:'{m} finds a race-spec bit in the parts bin.',o:[{n:'Fit it',m:{rand:3}},{n:'Sell it',money:0.03}]},
+ {id:'weekend',n:'Weekend overtime',d:'The crew offers to work through the weekend.',o:[{n:'Pay overtime',cost:0.03,min:3000,days:-3},{n:'Let them rest'}]},
+ {id:'logo',n:'Sponsor request',d:'{s} wants their logo bigger on this one.',o:[{n:'Make it huge',adv:8,money:0.02},{n:'Keep it classy'}],spon:1},
+ {id:'leak',n:'Weeping gasket',d:'{m} finds a weeping gasket on the test fire.',o:[{n:'Pull it apart and replace it',days:2},{n:'Sealant and pray',gamble:{p:0.5,win:{},lose:{dur:-5}}}],ice:1},
+];
+D.BEVM = Object.fromEntries(D.BEV.map(e=>[e.id,e]));
+
+// ---------- logic ----------
+E.bOpts = (v,ph)=>{const b=D.BODY[v.body];const o=D.BOPT[ph];if(Array.isArray(o))return o;if(ph==='engine')return D.LAYOUT_CYL[v.layout]===0?o.elec:o.ice;return o[b.cls];};
+E.bCost = (o,v)=>{if(!o.cost)return 0;const c=Math.round(o.cost*D.BODY[v.body].cost/1000)*1000;return o.min?Math.sign(c)*Math.max(Math.abs(c),o.min):c;};
+E.bReq = (o,v)=>{const r=o.req||{};if(r.ws&&G.ws<r.ws)return{ok:false,why:`Needs ${D.WORKSHOPS[r.ws].n}`};if(r.tech&&!T.has(r.tech))return{ok:false,why:`Tech: ${D.TECHM[r.tech].n}`};
+  if(r.fac&&!E.facLv(r.fac))return{ok:false,why:`Needs ${D.FAC[r.fac].n}`};if(r.q&&E.buildQ(v.body)<r.q)return{ok:false,why:`Team skill ${Math.round(E.buildQ(v.body)*100)}% (need ${Math.round(r.q*100)}%)`};
+  const c=E.bCost(o,v);if(c>0&&G.money<c)return{ok:false,why:'Not enough money'};return{ok:true};};
+E.bFx = (o,v)=>{const a=[];const m=o.m||{};for(const k in m){if(k==='rand'){a.push(`random stat +${m[k]}%`);continue;}a.push(`${k.toUpperCase()} ${m[k]>0?'+':''}${m[k]}%`);}
+  for(const k in(o.t||{}))a.push(`${D.TERR_N[k]} ${o.t[k]>0?'+':''}${o.t[k]}`);if(o.adv)a.push(`Ad appeal ${o.adv>0?'+':''}${o.adv}`);if(o.slot)a.push('+1 part slot');
+  if(o.gamble){const w=Object.entries(o.gamble.win).map(([k,x])=>`${k.toUpperCase()} +${x}%`).join(' ');a.push(`${Math.round(o.gamble.p*100)}%: ${w||'fine'}`);}
+  const c=E.bCost(o,v);if(c)a.push(c>0?U.money(c):`saves ${U.money(-c)}`);if(o.money)a.push('+'+U.money(Math.round(o.money*D.BODY[v.body].cost/1000)*1000));
+  if(o.days)a.push(`${o.days>0?'+':''}${o.days} days`);if(o.fans)a.push('+fans');return a.join(' · ');};
+E.bJob = vid=>G.jobs.find(j=>j.vid===vid&&j.type==='build');
+E.bMerge = (v,o,scale=1)=>{const bm=v.bm=v.bm||{spd:0,acc:0,hnd:0,dur:0,on:0,off:0,wet:0,ice:0,adv:0};
+  for(const k in(o.m||{})){if(k==='rand'){const kk=U.pick(['spd','acc','hnd','dur']);bm[kk]+=o.m.rand;continue;}bm[k]+=o.m[k]*scale;}
+  for(const k in(o.t||{}))bm[k]+=o.t[k];if(o.adv)bm.adv+=o.adv;if(o.slot)v.slotB=(v.slotB||0)+o.slot;if(o.flag){v.bflags=v.bflags||[];v.bflags.push(o.flag);}};
+E.bWaitNext = (j,v)=>{
+  const ph=D.BPH[j.pi];
+  if(j.pi>=1&&(j.evN||0)<3&&U.chance(0.3)){let pool=D.BEV.filter(e=>!(j.evs||[]).includes(e.id)&&(!e.ice||D.LAYOUT_CYL[v.layout]!==0)&&(!e.spon||G.spons.length));
+    if(pool.length){const e=U.pick(pool);j.evs=(j.evs||[]).concat(e.id);j.evN=(j.evN||0)+1;
+      const mech=U.pick(E.mechs())||{name:'The crew'},drv=U.pick(E.drivers())||{name:'Your driver'},sp=G.spons.length?D.SPON[U.pick(G.spons).id].n:'';
+      j.wait={k:'ev',ev:e.id,txt:e.d.replace('{m}',mech.name).replace('{d}',drv.name).replace('{s}',sp),drv:drv.id,next:ph};j.asked=false;return;}}
+  j.wait={k:'ph',ph};j.asked=false;};
+E.bChoose = (vid,idx)=>{
+  const j=E.bJob(vid),v=E.veh(vid);if(!j||!j.wait)return false;const w=j.wait;let o;
+  if(w.k==='ph'){const opts=E.bOpts(v,w.ph);if(idx==='crew'){o=opts.find(x=>x.crew&&E.bReq(x,v).ok)||opts.find(x=>E.bReq(x,v).ok&&!E.bCost(x,v))||opts.find(x=>E.bReq(x,v).ok);}else o=opts[idx];
+    if(!o||!E.bReq(o,v).ok)return false;}
+  else{const e=D.BEVM[w.ev];o=idx==='crew'?e.o[e.o.length-1]:e.o[idx];if(!o)return false;const c=E.bCost(o,v);if(c>0&&G.money<c)return false;}
+  const c=E.bCost(o,v);G.money-=c;if(o.money)G.money+=Math.round(o.money*D.BODY[v.body].cost/1000)*1000;
+  if(o.days){j.pd[j.pi]=Math.max(0.2,j.pd[j.pi]+o.days);j.total=Math.max(1,j.total+o.days);}
+  let note='';
+  if(o.gamble){if(U.chance(o.gamble.p)){E.bMerge(v,{m:o.gamble.win});note=' — it worked!';E.H.float('Nice!',v.id,'#8ef58e');}else{E.bMerge(v,{m:o.gamble.lose});note=' — no luck.';E.H.float('Oops',v.id,'#ff9a9a');}}
+  else E.bMerge(v,o);
+  if(o.fans)G.fans+=Math.round(40+G.fans*0.02);
+  if(o.drv){const s=E.staff(w.drv);if(s){s.energy=Math.max(0,s.energy-10);const cls=D.BODY[v.body].cls;s.aff[cls]=+Math.min(1.45,s.aff[cls]+0.02).toFixed(2);}}
+  v.blog=(v.blog||[]).concat(w.k==='ph'?`${D.BPHN[w.ph]}: ${o.n}`:`${D.BEVM[w.ev].n}: ${o.n}${note}`);
+  if(w.k==='ph'){j.ch=j.ch||{};j.ch[w.ph]=o.id;j.wait=null;}else{j.wait={k:'ph',ph:w.next};j.asked=false;}
+  j.left=U.sum(j.pd.slice(j.pi));
+  if(w.k==='ph')E.say(`${v.name}: ${o.n}`);
+  return true;
+};
+// override start/finish/tick for staged builds
+const _startBuild=E.startBuild;
+E.startBuild = (bid,lid,spark,sys)=>{const v=_startBuild(bid,lid,spark,sys);if(!v)return v;
+  const j=E.bJob(v.id);const days=Math.round(D.BODY[bid].days*D.BUILD_MULT);const per=days/8;
+  Object.assign(j,{pd:Array(8).fill(per),pi:0,total:days,left:days,evN:0,evs:[],plen:per});v.bm={spd:0,acc:0,hnd:0,dur:0,on:0,off:0,wet:0,ice:0,adv:0};v.blog=[];v.bflags=[];
+  E.bWaitNext(j,v);return v;};
+const _finishBuild=E.finishBuild;
+E.finishBuild = v=>{
+  const fl=v.bflags||[];
+  if(fl.includes('full')){const ks=['spd','acc','hnd','dur'];const worst=ks.slice().sort((a,b)=>(v.phase[a]+(v.bm?v.bm[a]:0)/100)-(v.phase[b]+(v.bm?v.bm[b]:0)/100))[0];
+    if(v.phase[worst]<0)v.phase[worst]=0;else if(v.bm)v.bm[worst]+=3;}
+  _finishBuild(v);
+  const bm=v.bm;if(bm){for(const k of['spd','acc','hnd','dur'])v.base[k]=Math.round(v.base[k]*(1+bm[k]/100));for(const k of['on','off','wet','ice'])v.terr[k]+=bm[k];v.advB=bm.adv;}
+  if(fl.includes('dyno')&&v.eng&&v.eng.fuel!=='none'){if(v.eng.fuel==='efi')T.initEFI(v);T.crewTune(v,T.SHOP(),0.98);}
+};
+E.slots = v=>D.BODY[v.body].slots+(v.slotB||0);
+E.tickBuild = (j,v)=>{
+  if(!j.pd){j.left-=E.jobRate(j);const prog=1-j.left/j.total;const ph=[0.3,0.6,0.9];while(j.ph<3&&prog>=ph[j.ph]){E.buildPhase(v,j);j.ph++;}return j.left<=0;}
+  if(j.wait){if(!j.asked){j.asked=true;E.H.buildAsk(j);}return false;}
+  j.pd[j.pi]-=E.jobRate(j);
+  while(j.pd[j.pi]<=0&&j.pi<7){const carry=j.pd[j.pi];j.pi++;j.pd[j.pi]+=carry;E.bWaitNext(j,v);break;}
+  j.left=Math.max(0,U.sum(j.pd.slice(j.pi)));
+  const prog=1-j.left/j.total;const ph=[0.3,0.6,0.9];while(j.ph<3&&prog>=ph[j.ph]){E.buildPhase(v,j);j.ph++;}
+  if(j.wait&&!j.asked){j.asked=true;E.H.buildAsk(j);}
+  return j.pi===7&&j.pd[7]<=0&&!j.wait;
+};
+E.H.buildAsk = j=>{const v=E.veh(j.vid);if(v)E.bChoose(v.id,'crew');};
 
 // ===================== RACE SIM =====================
 const Race = {cache:{}};
@@ -2083,17 +2251,25 @@ GX.drawScene = (c,dt)=>{
 GX.drawBayVeh = (c,v,b,job)=>{
   const P=GX.P;const B=D.BODY[v.body];const w=GX.vehW(B.kind);const x=Math.round(b.x+(b.w-w)/2);let gy=b.gy;
   const f=Math.floor(GX.S.t*4)%2;
-  if(v.status==='build'&&job){const prog=U.clamp(1-job.left/job.total,0,1);
-    c.save();c.beginPath();c.rect(x-2,gy-30,Math.max(1,(w+4)*prog),32);c.clip();GX.drawVeh(c,B.kind,x,gy,G.team.color,'#ffd84a',0);c.restore();
-    c.globalAlpha=0.35;c.save();c.beginPath();c.rect(x-2+(w+4)*prog,gy-30,w+4,32);c.clip();GX.drawVeh(c,B.kind,x,gy,'#cfd6dd','#cfd6dd',0);c.restore();c.globalAlpha=1;
+  if(v.status==='build'&&job){
+    const pi=job.pd?job.pi:Math.min(7,Math.floor(U.clamp(1-job.left/job.total,0,0.999)*8));const bare='#8d959d';
+    if(pi===0){c.globalAlpha=0.55;GX.drawVeh(c,B.kind,x,gy,'#5b8cff','#9fc0ff',0);c.globalAlpha=1;for(let k=0;k<5;k++)P(c,x-2+k*((w+4)/4),gy-26,1,26,'#2b4a8f');P(c,x-2,gy-13,w+4,1,'#2b4a8f');}
+    else if(pi<5){c.globalAlpha=0.45+0.11*pi;GX.drawVeh(c,B.kind,x,gy,bare,'#c3cbd3',0);c.globalAlpha=1;}
+    else if(pi===5){const pl=job.plen||job.total/8;const pp=job.pd?U.clamp(1-Math.max(0,job.pd[5])/pl,0,1):0.5;GX.drawVeh(c,B.kind,x,gy,bare,'#c3cbd3',0);
+      c.save();c.beginPath();c.rect(x-2,gy-30,Math.max(1,(w+4)*pp),32);c.clip();GX.drawVeh(c,B.kind,x,gy,G.team.color,'#ffd84a',0);c.restore();
+      if(Math.floor(GX.S.t*8)%2)P(c,x-3+(w+4)*pp,gy-14+Math.sin(GX.S.t*9)*4,2,2,'#dfe6ee');}
+    else GX.drawVeh(c,B.kind,x,gy,G.team.color,'#ffd84a',0);
+    if(pi>=1&&pi<=3){P(c,x+2,gy-3,3,3,'#5a4a2a');P(c,x+w-5,gy-3,3,3,'#5a4a2a');}
+    if(pi===2&&Math.floor(GX.S.t*6)%3===0)P(c,x+w/2,gy-12,2,2,'#fff7a0');
     P(c,x-2,gy-24,1,24,'#8a6d3b');P(c,x+w+1,gy-24,1,24,'#8a6d3b');P(c,x-2,gy-24,w+4,1,'#8a6d3b');
+    if(job.wait&&Math.floor(GX.S.t*3)%2){c.font='9px '+GX.FONT;c.fillStyle='#ffd84a';c.textAlign='center';c.textBaseline='middle';c.fillText('?',x+w/2,gy-17);}
   }else{
     if(job){P(c,x+2,gy-1,w-4,1,'#444');gy-=3;P(c,x+3,gy+1,1,2,SV);P(c,x+w-4,gy+1,1,2,SV);}
     GX.drawVeh(c,B.kind,x,gy,G.team.color,'#ffd84a',job?f:0);
     if(v.hp<0.6&&!job){c.font='7px '+GX.FONT;c.fillStyle='#f66';c.textAlign='center';c.fillText('!',x+w/2,gy-20);}
   }
   if(job){const prog=U.clamp(1-job.left/job.total,0,1);P(c,x,b.gy-30,w,3,'#111');P(c,x+1,b.gy-29,Math.round((w-2)*prog),1,job.type==='rep'?'#f66':job.type==='up'?'#6cf':'#7f7');
-    c.font='6px '+GX.FONT;c.fillStyle='#fff';c.textAlign='center';c.fillText(job.type==='rep'?'REPAIR':job.type==='up'?'TUNE '+job.k.toUpperCase():'BUILD',x+w/2,b.gy-34);}
+    c.font='6px '+GX.FONT;c.fillStyle='#fff';c.textAlign='center';c.fillText(job.type==='rep'?'REPAIR':job.type==='up'?'TUNE '+job.k.toUpperCase():job.type==='reb'?'REBUILD':job.type==='swap'?'FUEL SYS':(job.pd?D.BPHS[D.BPH[job.pi]]+' '+(job.pi+1)+'/8':'BUILD'),x+w/2,b.gy-34);}
 };
 
 // ---------- TRACK SHAPE ----------
@@ -2403,11 +2579,11 @@ UI.paused = ()=>!!(UI.view||UI.popOpen||UI.race||!G||Object.values(G.series).som
 // ---------- toast / popup ----------
 UI.toast = (t)=>{const el=document.createElement('div');el.textContent=t;$('toast').appendChild(el);while($('toast').children.length>3)$('toast').firstChild.remove();setTimeout(()=>el.remove(),2600);};
 UI.popup = (o)=>{UI.popQ.push(o);if(!UI.popOpen)UI.nextPop();};
-UI.nextPop = ()=>{const o=UI.popQ.shift();if(!o){UI.popOpen=false;$('pop').classList.add('hidden');return;}
+UI.nextPop = ()=>{const o=UI.popQ.shift();UI.curPop=o||null;if(!o){UI.popOpen=false;$('pop').classList.add('hidden');return;}
   UI.popOpen=true;const btns=o.buttons||[{t:'OK'}];
-  $('pop').innerHTML=`<div class="pw"><div class="ph">${o.title||''}</div><div class="pb">${o.html||''}</div><div class="pf">${btns.map((b,i)=>`<button class="btn ${b.cls||''}" data-i="${i}">${b.t}</button>`).join('')}</div></div>`;
+  $('pop').innerHTML=`<div class="pw"><div class="ph">${o.title||''}</div><div class="pb">${o.html||''}</div><div class="pf">${btns.map((b,i)=>`<button class="btn ${b.cls||''}" data-i="${i}" ${b.dis?'disabled':''}>${b.t}</button>`).join('')}</div></div>`;
   $('pop').classList.remove('hidden');
-  $('pop').querySelectorAll('.pf button').forEach(el=>el.onclick=()=>{SFX.play('click');const b=btns[+el.dataset.i];let keep=false;if(b.fn)keep=b.fn($('pop'))===false;if(!keep)UI.nextPop();UI.hud();if(UI.view)UI.render();});
+  $('pop').querySelectorAll('.pf button').forEach(el=>el.onclick=()=>{if(el.disabled)return;SFX.play('click');const b=btns[+el.dataset.i];let keep=false;if(b.fn)keep=b.fn($('pop'))===false;if(!keep)UI.nextPop();UI.hud();if(UI.view)UI.render();});
   if(o.after)o.after($('pop'));};
 UI.confirm = (title,html,fn,yes='Yes',cls='red')=>UI.popup({title,html,buttons:[{t:'Cancel',cls:'gray'},{t:yes,cls,fn}]});
 
@@ -2426,7 +2602,7 @@ UI.hud = ()=>{if(!G)return;
   // activity
   let h='';
   if(G.jobs.length){h+=`<div class="hd">WORKSHOP (${G.jobs.length}/${E.bays()} bays)</div>`;
-    for(const j of G.jobs){const v=E.veh(j.vid);if(!v)continue;const pr=U.clamp(1-j.left/j.total,0,1);const nm=j.type==='build'?'Build':j.type==='up'?'Tune '+j.k.toUpperCase():'Repair';
+    for(const j of G.jobs){const v=E.veh(j.vid);if(!v)continue;const pr=U.clamp(1-j.left/j.total,0,1);const nm=j.type==='build'?'Build':j.type==='up'?'Tune '+j.k.toUpperCase():j.type==='reb'?'Engine rebuild':j.type==='swap'?'Fuel system':'Repair';
       h+=`<div class="row"><span class="lbl">${nm} · ${U.esc(v.name)}</span><span class="bar"><i style="width:${pr*100}%;background:${j.type==='rep'?'#ff7a7a':j.type==='up'?'#7ac8ff':'#8ef58e'}"></i></span></div>`;}}
   h+=`<div class="hd">DRIVERS</div>`;
   for(const s of E.drivers())h+=`<div class="row"><span class="lbl">${U.esc(s.name)}</span><span class="bar"><i style="width:${s.energy/s.maxE*100}%;background:linear-gradient(90deg,#ffb347,#8ef58e)"></i></span><span style="width:30px;text-align:right">${Math.round(s.energy)}</span></div>`;
@@ -2552,11 +2728,11 @@ UI.V.build = (tab)=>{
   h+=`<div class="note">Garage ${G.vehicles.length}/${E.ws().veh} · Bays busy ${G.jobs.length}/${E.bays()} · Team Tech ${Math.round(E.teamTech())}</div>`;
   if(UI.sel.body){const b=D.BODY[UI.sel.body];
     if(UI.sel.layout){const L=D.LAYOUT[UI.sel.layout];const cost=E.vehCost(b.id,L.id)+E.sysCost(b.id,L.id,UI.sel.sys);const q=E.buildQ(b.id)+(UI.sel.spark?{b:0.1,s:0.2,g:0.3}[UI.sel.spark]:0);
-      const job={req:D.RANK_REQ[b.rank],nob:false};const days=Math.ceil(b.days/(U.clamp(0.5+0.7*E.teamTech()/job.req,0.5,2.6)*(1+E.facV('speed')/100)));
+      const job={req:D.RANK_REQ[b.rank],nob:false};const days=Math.ceil(b.days*D.BUILD_MULT/(U.clamp(0.5+0.7*E.teamTech()/job.req,0.5,1.8)*(1+E.facV('speed')/100)));
       h+=`<div class="card"><div class="row"><img class="vth" src="${GX.thumb(b.kind,G.team.color,'#ffd84a')}"><div class="sp1"><b>${U.esc(b.n)}</b> <span class="rk rk${b.rank}">${b.rank}</span> · ${L.n}
         <div class="sub">${L.d}</div><div class="sub hl">${UI.sel.sys?(UI.sel.sys.type==='efi'?'💻 EFI':D.CARBS[UI.sel.sys.carb].n):''}</div></div></div>
         <div class="sec-h">Estimate</div><div class="sub">Team skill vs. this vehicle: <b class="${q>=1?'gd':'bd'}">${Math.round(q*100)}%</b> → stats ≈ ${Math.round(E.qMult(Math.min(1.6,q))*100)}% of spec</div>
-        <div class="sub">Build time ≈ ${days} days · Cost <b class="hl">${U.money(cost)}</b></div>
+        <div class="sub">Build time ≈ ${days} days over 8 phases · Cost <b class="hl">${U.money(cost)}</b></div><div class="sub">You'll choose the concept, frame, engine build, drivetrain, suspension, bodywork, wiring and shakedown as it comes together — plus whatever the shop throws at you.</div>
         ${UI.sparkChips()}
         <button class="btn big grn" data-a="doBuild" ${G.money<cost?'disabled':''}>🔧 Build for ${U.money(cost)}</button></div>`;
       return {title:'🔧 Build',html:h,back:'bBackL',key:'c'};}
@@ -2590,7 +2766,7 @@ UI.V.garage = (tab)=>{
   for(const v of G.vehicles){const b=D.BODY[v.body],st=E.vs(v);
     h+=`<div class="card" data-a="selVeh" data-v="${v.id}"><div class="row"><img class="vth" src="${GX.thumb(b.kind,G.team.color,'#ffd84a')}"><div class="sp1">
       <b>${U.esc(v.name)}</b><span class="rk rk${b.rank}">${b.rank}</span> <span class="sub">${D.LAYOUT[v.layout].n} · Lv${v.lv} · ${v.wins}W/${v.races}R</span>
-      <div class="sub">${{ready:'<span class="gd">Ready</span>',build:'Building…',upgrade:'Tuning…',repair:'<span class="bd">Repairing</span>'}[v.status]} · HP ${Math.round(v.hp*100)}% · Parts ${v.parts.length}/${b.slots}</div>
+      <div class="sub">${{ready:'<span class="gd">Ready</span>',build:UI.buildTag(v),upgrade:'In the shop…',repair:'<span class="bd">Repairing</span>'}[v.status]} · HP ${Math.round(v.hp*100)}% · Parts ${v.parts.length}/${E.slots(v)}</div>
       ${v.status==='build'?'':UI.vehStats(st)+UI.terrChips(st)}</div></div></div>`;}
   return {title:'🚗 Garage',html:h};
 };
@@ -2834,7 +3010,7 @@ UI.V.vehicle = (v,tab)=>{
     <div class="sub">${b.cls==='car'?'Car':'Bike'} · ${D.LAYOUT[v.layout].n}${v.eng&&v.eng.fuel!=='none'?' · '+(v.eng.fuel==='efi'?'EFI':D.CARBS[v.eng.carb].n.split(' (')[0]):''} · Lv${v.lv}</div>
     <div class="sub">Status: ${v.status} · HP ${Math.round(v.hp*100)}%${v.eng&&v.eng.fuel!=='none'?` · Engine ${Math.round(v.eng.cond*100)}%`:''} · ${v.wins}W/${v.races}R</div></div></div></div>`;
   const tabs=[['info','Info'],['tune','Upgrade'],['parts','Parts'],['setup','Setup'],['fuel',v.eng&&v.eng.fuel==='efi'?'EFI':'Carbs'],['engine','Engine']];
-  if(v.status==='build')return {title:'🚗 '+U.esc(v.name),html:h+`<div class="note">Still being built…</div>`,back:'gBack'};
+  if(v.status==='build')return {title:'🚗 '+U.esc(v.name),html:h+UI.buildSheet(v),back:'gBack',key:'b'+v.id};
   if(tab==='info'){
     h+=`<div class="card">${UI.vehStats(st)}${UI.terrChips(st)}<div class="sub" style="margin-top:4px">Ad appeal ${st.adv}${st.fx.rp?` · RP +${Math.round(st.fx.rp*100)}%`:''}${st.fx.mis<1?` · mistakes -${Math.round((1-st.fx.mis)*100)}%`:''}${st.fx.wear<1?` · wear -${Math.round((1-st.fx.wear)*100)}%`:''}</div></div>`;
     if(v.status==='repair')h+=`<button class="btn big" data-a="rush">⚡ Rush repair ${U.money(E.rushCost(v))}</button>`;
@@ -2846,7 +3022,7 @@ UI.V.vehicle = (v,tab)=>{
         ${lv<5?`<button class="btn" data-a="tune" data-k="${k}" ${v.status!=='ready'||G.money<c?'disabled':''}>${U.money(c)}</button>`:'<span class="gd">MAX</span>'}</div></div>`;}
     h+=UI.sparkChips();if(v.status!=='ready')h+=`<div class="note">Vehicle must be Ready to upgrade.</div>`;
   }else if(tab==='parts'){
-    h+=`<div class="note">Slots ${v.parts.length}/${b.slots}. One part per category. ⚠ Engine, exhaust and intake parts make the engine want more fuel — re-jet or retune after fitting!</div><div class="sec-h">Installed</div>`;
+    h+=`<div class="note">Slots ${v.parts.length}/${E.slots(v)}. One part per category. ⚠ Engine, exhaust and intake parts make the engine want more fuel — re-jet or retune after fitting!</div><div class="sec-h">Installed</div>`;
     if(!v.parts.length)h+=`<div class="sub">None</div>`;
     for(const pid of v.parts){const P=D.PART[pid];h+=`<div class="card"><div class="row"><div class="sp1"><b>${P.n}</b> <span class="sub">${D.PART_CATS[P.cat]} · Lv${E.partLv(pid)}</span><div class="sub hl">${UI.partFx(P)}</div></div><button class="btn sm red" data-a="rmPart" data-p="${pid}">Remove</button></div></div>`;}
     h+=`<div class="sec-h">Available</div>`;
@@ -3260,6 +3436,51 @@ UI.benchFrame = dt=>{
   c=g('dynoCv');if(c){const d=Bench.s.dyno;if(d&&d.vid===v.id){Bench.dynoStep(v,dt);if(d.done&&!d.logged){d.logged=true;Bench.dynoDone(v);}}Bench.drawDyno(c,v,dt);}
 };
 
+// ===================== UI v3: staged build decisions =====================
+D.BPH_HINT = {
+  design:'What kind of machine is this going to be? This sets its character.',
+  frame:'The backbone. Stiffer and lighter is faster, heavier is tougher.',
+  engine:'How the motor goes together decides power, torque and how long it lives.',
+  drive:'Gearing and how the power gets to the ground.',
+  susp:'Spring, damper and brake package. Pick for the surfaces you race on.',
+  body:'Panels, aero and paint. Sponsors care about the paint.',
+  elec:'Wiring loom and fuel system hookup.',
+  shake:'Last checks before it rolls out the door.',
+};
+UI.buildTag = v=>{const j=E.bJob(v.id);if(!j||!j.pd)return 'Building…';return `Building — ${D.BPHN[D.BPH[j.pi]]} (${j.pi+1}/8)${j.wait?' <b class="hl">❓ decision</b>':''}`;};
+UI.buildAsk = j=>{
+  const v=E.veh(j.vid);const w=j.wait;if(!v||!w)return;j.asked=true;
+  if(UI.popQ.some(o=>o._bvid===v.id)||(UI.popOpen&&UI.curPop&&UI.curPop._bvid===v.id))return;
+  let o;
+  if(w.k==='ph'){const opts=E.bOpts(v,w.ph);
+    o={_bvid:v.id,title:`🔧 ${U.esc(v.name)} — ${D.BPHN[w.ph]} <span class="sub">(${j.pi+1}/8)</span>`,html:`<div class="sub">${D.BPH_HINT[w.ph]}</div>${UI.buildSoFar(v)}`,
+      buttons:opts.map((op,i)=>{const r=E.bReq(op,v);return {t:`<b>${U.esc(op.n)}${op.crew?' <span class="rec">crew pick</span>':''}</b><span class="od">${U.esc(op.d)}</span><span class="ofx">${E.bFx(op,v)||'No change'}</span>${r.ok?'':`<span class="bd">🔒 ${r.why}</span>`}`,cls:'opt',dis:!r.ok,fn:()=>{if(!E.bChoose(v.id,i))return false;SFX.play('good');}};})
+        .concat([{t:'👷 Let the crew decide',cls:'gray',fn:()=>{E.bChoose(v.id,'crew');}}])};}
+  else{const e=D.BEVM[w.ev];
+    o={_bvid:v.id,title:`⚠️ ${U.esc(e.n)}`,html:`<div>${U.esc(w.txt)}</div><div class="sub" style="margin-top:4px">${U.esc(v.name)} · ${D.BPHN[w.next]} coming up</div>`,
+      buttons:e.o.map((op,i)=>{const c=E.bCost(op,v);const ok=!(c>0&&G.money<c);return {t:`<b>${U.esc(op.n)}</b><span class="ofx">${E.bFx(op,v)||'—'}</span>`,cls:'opt',dis:!ok,fn:()=>{if(!E.bChoose(v.id,i))return false;}};})};}
+  UI.popup(o);SFX.play('bump');
+};
+UI.buildSoFar = v=>{const l=v.blog||[];if(!l.length)return '';return `<div class="bsofar">${l.slice(-4).map(x=>`✓ ${U.esc(x)}`).join('<br>')}</div>`;};
+UI.buildSheet = v=>{
+  const j=E.bJob(v.id);if(!j||!j.pd)return `<div class="note">Still being built…</div>`;
+  const pr=U.clamp(1-j.left/j.total,0,1);let h=`<div class="card"><b>🏗️ Build sheet</b><div class="ebar" style="margin:4px 0"><i style="width:${pr*100}%"></i></div><div class="sub">≈${Math.ceil(j.left)} work-days left (crew speed decides real days)</div>`;
+  for(let i=0;i<8;i++){const ph=D.BPH[i];const ch=j.ch&&j.ch[ph];const op=ch&&E.bOpts(v,ph).find(x=>x.id===ch);
+    h+=`<div class="bph ${i<j.pi?'done':i===j.pi?'cur':''}"><span>${i<j.pi||op?'✓':i===j.pi?'▶':'·'} ${D.BPHN[ph]}</span><span class="sub">${op?U.esc(op.n):i===j.pi&&j.wait?'<b class="hl">waiting on you</b>':''}</span></div>`;}
+  h+=`</div>`;
+  const ev=(v.blog||[]).filter(x=>!D.BPH.some(p=>x.startsWith(D.BPHN[p])));if(ev.length)h+=`<div class="card"><b>Shop log</b><div class="sub">${ev.map(x=>'• '+U.esc(x)).join('<br>')}</div></div>`;
+  const bm=v.bm||{};const fx=['spd','acc','hnd','dur'].filter(k=>bm[k]).map(k=>`${k.toUpperCase()} ${bm[k]>0?'+':''}${Math.round(bm[k])}%`).concat(['on','off','wet','ice'].filter(k=>bm[k]).map(k=>`${D.TERR_N[k]} ${bm[k]>0?'+':''}${bm[k]}`));
+  if(fx.length)h+=`<div class="note">Build so far: ${fx.join(' · ')}${v.slotB?` · +${v.slotB} slot`:''}</div>`;
+  if(j.wait)h+=`<button class="btn big grn" data-a="bDecide">❓ Make the ${j.wait.k==='ph'?D.BPHN[j.wait.ph].toLowerCase():'shop'} call</button>`;
+  return h;};
+UI.A.bDecide = ()=>{const j=E.bJob(UI.sel.vid);if(j&&j.wait){j.asked=false;UI.buildAsk(j);}};
+UI.A.doBuild = ()=>{const v=E.startBuild(UI.sel.body,UI.sel.layout,UI.sel.spark||null,UI.sel.sys||null);if(v){UI.close();const j=E.bJob(v.id);if(j&&j.wait)UI.buildAsk(j);}};
+// activity rows: show phase
+const _hud=UI.hud;
+UI.hud = ()=>{_hud();if(!G)return;const rows=$('activity').querySelectorAll('.row .lbl');
+  rows.forEach(el=>{const t=el.textContent;if(!t.startsWith('Build · '))return;const nm=t.slice(8);const v=G.vehicles.find(x=>x.name===nm);const j=v&&E.bJob(v.id);
+    if(j&&j.pd)el.innerHTML=`${D.BPHS[D.BPH[j.pi]]} ${j.pi+1}/8${j.wait?' ❓':''} · ${U.esc(nm)}`;});};
+
 // ===================== SOUND =====================
 const SFX = {ctx:null};
 SFX.init = ()=>{if(SFX.ctx)return;try{SFX.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){SFX.ctx=null;}};
@@ -3333,6 +3554,7 @@ Main.tutorial = ()=>{
 };
 Main.hooks = ()=>{
   E.H.toast=t=>UI.toast(t);E.H.popup=o=>{if(UI.race)UI.deferPop.push(o);else UI.popup(o);};E.H.float=(t,vid,col)=>GX.floatAtVeh(t,vid,col);E.H.sfx=n=>SFX.play(n);
+  E.H.buildAsk=j=>UI.buildAsk(j);
   E.H.roundDue=sid=>{const S=D.SER[sid],a=G.series[sid].act;const r=D.RACE[S.rounds[a.round]];Save.save();
     UI.popup({title:'🏁 Race Day!',html:`<b>${U.esc(S.n)}</b> — Round ${a.round+1}/${S.rounds.length}<br><span class="hl">${U.esc(r.n)}</span><br><br>Choose who races.`,buttons:[{t:"Let's go!",cls:'grn',fn:()=>{UI.open('prerace',null,{rid:r.id,sid});}}]});};
   E.H.yearEnd=({y,yr,bonus,rank})=>{Save.save(true);UI.popup({title:`📅 Year ${y} Report`,html:`Wins <b>${yr.wins}</b> · Podiums <b>${yr.podiums}</b> · Titles <b>${yr.titles}</b><br>Prize money ${U.money(yr.earn)}<br>Team rank: <b class="hl">${D.FAN_RANKS[rank][1]}</b> (${U.num(G.fans)} fans)<br><br>Fan-club bonus: <b class="gd">+${U.money(bonus)}</b>${y<D.YEARS?`<br><br>${D.YEARS-y} seasons to go!`:''}`});};

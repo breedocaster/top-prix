@@ -1,7 +1,7 @@
 // Headless balance bot: plays the game greedily and reports progression per year.
 const fs=require('fs'),vm=require('vm'),path=require('path');
 const ctx={console,Math,JSON,Object,Array,Set,Map,String,Number,Date};vm.createContext(ctx);
-const code=['data.js','data2.js','util.js','tune.js','engine.js','race.js'].map(f=>fs.readFileSync(path.join(__dirname,'../src',f),'utf8')).join('\n');vm.runInContext(code+'\n;globalThis.D=D;globalThis.U=U;globalThis.E=E;globalThis.Race=Race;globalThis.T=T;globalThis.getG=()=>G;',ctx,{filename:'game.js'});
+const code=['data.js','data2.js','util.js','tune.js','engine.js','build.js','race.js'].map(f=>fs.readFileSync(path.join(__dirname,'../src',f),'utf8')).join('\n');vm.runInContext(code+'\n;globalThis.D=D;globalThis.U=U;globalThis.E=E;globalThis.Race=Race;globalThis.T=T;globalThis.getG=()=>G;',ctx,{filename:'game.js'});
 const {D,U,E,Race,T}=ctx;
 const FOCUS=(process.argv[2]||'CR,BO').split(',');
 const YEARS=+(process.argv[3]||15);

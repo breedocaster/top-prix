@@ -6,11 +6,11 @@ UI.paused = ()=>!!(UI.view||UI.popOpen||UI.race||!G||Object.values(G.series).som
 // ---------- toast / popup ----------
 UI.toast = (t)=>{const el=document.createElement('div');el.textContent=t;$('toast').appendChild(el);while($('toast').children.length>3)$('toast').firstChild.remove();setTimeout(()=>el.remove(),2600);};
 UI.popup = (o)=>{UI.popQ.push(o);if(!UI.popOpen)UI.nextPop();};
-UI.nextPop = ()=>{const o=UI.popQ.shift();if(!o){UI.popOpen=false;$('pop').classList.add('hidden');return;}
+UI.nextPop = ()=>{const o=UI.popQ.shift();UI.curPop=o||null;if(!o){UI.popOpen=false;$('pop').classList.add('hidden');return;}
   UI.popOpen=true;const btns=o.buttons||[{t:'OK'}];
-  $('pop').innerHTML=`<div class="pw"><div class="ph">${o.title||''}</div><div class="pb">${o.html||''}</div><div class="pf">${btns.map((b,i)=>`<button class="btn ${b.cls||''}" data-i="${i}">${b.t}</button>`).join('')}</div></div>`;
+  $('pop').innerHTML=`<div class="pw"><div class="ph">${o.title||''}</div><div class="pb">${o.html||''}</div><div class="pf">${btns.map((b,i)=>`<button class="btn ${b.cls||''}" data-i="${i}" ${b.dis?'disabled':''}>${b.t}</button>`).join('')}</div></div>`;
   $('pop').classList.remove('hidden');
-  $('pop').querySelectorAll('.pf button').forEach(el=>el.onclick=()=>{SFX.play('click');const b=btns[+el.dataset.i];let keep=false;if(b.fn)keep=b.fn($('pop'))===false;if(!keep)UI.nextPop();UI.hud();if(UI.view)UI.render();});
+  $('pop').querySelectorAll('.pf button').forEach(el=>el.onclick=()=>{if(el.disabled)return;SFX.play('click');const b=btns[+el.dataset.i];let keep=false;if(b.fn)keep=b.fn($('pop'))===false;if(!keep)UI.nextPop();UI.hud();if(UI.view)UI.render();});
   if(o.after)o.after($('pop'));};
 UI.confirm = (title,html,fn,yes='Yes',cls='red')=>UI.popup({title,html,buttons:[{t:'Cancel',cls:'gray'},{t:yes,cls,fn}]});
 
@@ -29,7 +29,7 @@ UI.hud = ()=>{if(!G)return;
   // activity
   let h='';
   if(G.jobs.length){h+=`<div class="hd">WORKSHOP (${G.jobs.length}/${E.bays()} bays)</div>`;
-    for(const j of G.jobs){const v=E.veh(j.vid);if(!v)continue;const pr=U.clamp(1-j.left/j.total,0,1);const nm=j.type==='build'?'Build':j.type==='up'?'Tune '+j.k.toUpperCase():'Repair';
+    for(const j of G.jobs){const v=E.veh(j.vid);if(!v)continue;const pr=U.clamp(1-j.left/j.total,0,1);const nm=j.type==='build'?'Build':j.type==='up'?'Tune '+j.k.toUpperCase():j.type==='reb'?'Engine rebuild':j.type==='swap'?'Fuel system':'Repair';
       h+=`<div class="row"><span class="lbl">${nm} · ${U.esc(v.name)}</span><span class="bar"><i style="width:${pr*100}%;background:${j.type==='rep'?'#ff7a7a':j.type==='up'?'#7ac8ff':'#8ef58e'}"></i></span></div>`;}}
   h+=`<div class="hd">DRIVERS</div>`;
   for(const s of E.drivers())h+=`<div class="row"><span class="lbl">${U.esc(s.name)}</span><span class="bar"><i style="width:${s.energy/s.maxE*100}%;background:linear-gradient(90deg,#ffb347,#8ef58e)"></i></span><span style="width:30px;text-align:right">${Math.round(s.energy)}</span></div>`;
@@ -155,11 +155,11 @@ UI.V.build = (tab)=>{
   h+=`<div class="note">Garage ${G.vehicles.length}/${E.ws().veh} · Bays busy ${G.jobs.length}/${E.bays()} · Team Tech ${Math.round(E.teamTech())}</div>`;
   if(UI.sel.body){const b=D.BODY[UI.sel.body];
     if(UI.sel.layout){const L=D.LAYOUT[UI.sel.layout];const cost=E.vehCost(b.id,L.id)+E.sysCost(b.id,L.id,UI.sel.sys);const q=E.buildQ(b.id)+(UI.sel.spark?{b:0.1,s:0.2,g:0.3}[UI.sel.spark]:0);
-      const job={req:D.RANK_REQ[b.rank],nob:false};const days=Math.ceil(b.days/(U.clamp(0.5+0.7*E.teamTech()/job.req,0.5,2.6)*(1+E.facV('speed')/100)));
+      const job={req:D.RANK_REQ[b.rank],nob:false};const days=Math.ceil(b.days*D.BUILD_MULT/(U.clamp(0.5+0.7*E.teamTech()/job.req,0.5,1.8)*(1+E.facV('speed')/100)));
       h+=`<div class="card"><div class="row"><img class="vth" src="${GX.thumb(b.kind,G.team.color,'#ffd84a')}"><div class="sp1"><b>${U.esc(b.n)}</b> <span class="rk rk${b.rank}">${b.rank}</span> · ${L.n}
         <div class="sub">${L.d}</div><div class="sub hl">${UI.sel.sys?(UI.sel.sys.type==='efi'?'💻 EFI':D.CARBS[UI.sel.sys.carb].n):''}</div></div></div>
         <div class="sec-h">Estimate</div><div class="sub">Team skill vs. this vehicle: <b class="${q>=1?'gd':'bd'}">${Math.round(q*100)}%</b> → stats ≈ ${Math.round(E.qMult(Math.min(1.6,q))*100)}% of spec</div>
-        <div class="sub">Build time ≈ ${days} days · Cost <b class="hl">${U.money(cost)}</b></div>
+        <div class="sub">Build time ≈ ${days} days over 8 phases · Cost <b class="hl">${U.money(cost)}</b></div><div class="sub">You'll choose the concept, frame, engine build, drivetrain, suspension, bodywork, wiring and shakedown as it comes together — plus whatever the shop throws at you.</div>
         ${UI.sparkChips()}
         <button class="btn big grn" data-a="doBuild" ${G.money<cost?'disabled':''}>🔧 Build for ${U.money(cost)}</button></div>`;
       return {title:'🔧 Build',html:h,back:'bBackL',key:'c'};}
@@ -193,7 +193,7 @@ UI.V.garage = (tab)=>{
   for(const v of G.vehicles){const b=D.BODY[v.body],st=E.vs(v);
     h+=`<div class="card" data-a="selVeh" data-v="${v.id}"><div class="row"><img class="vth" src="${GX.thumb(b.kind,G.team.color,'#ffd84a')}"><div class="sp1">
       <b>${U.esc(v.name)}</b><span class="rk rk${b.rank}">${b.rank}</span> <span class="sub">${D.LAYOUT[v.layout].n} · Lv${v.lv} · ${v.wins}W/${v.races}R</span>
-      <div class="sub">${{ready:'<span class="gd">Ready</span>',build:'Building…',upgrade:'Tuning…',repair:'<span class="bd">Repairing</span>'}[v.status]} · HP ${Math.round(v.hp*100)}% · Parts ${v.parts.length}/${b.slots}</div>
+      <div class="sub">${{ready:'<span class="gd">Ready</span>',build:UI.buildTag(v),upgrade:'In the shop…',repair:'<span class="bd">Repairing</span>'}[v.status]} · HP ${Math.round(v.hp*100)}% · Parts ${v.parts.length}/${E.slots(v)}</div>
       ${v.status==='build'?'':UI.vehStats(st)+UI.terrChips(st)}</div></div></div>`;}
   return {title:'🚗 Garage',html:h};
 };

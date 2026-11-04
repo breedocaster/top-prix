@@ -161,3 +161,13 @@ input[type=range]{accent-color:#ffd84a;height:28px}
 #title .modes button{background:#1a2550;color:#cfe0ff;border:2px solid #4a5d9e;border-radius:7px;padding:6px 12px;font-family:inherit}
 #title .modes button.on{background:#ffd84a;color:#2a1a00;border-color:#fff}
 .wtabs button{font-size:12px;padding:6px 3px}
+
+#pop .pf .btn.opt{width:100%;text-align:left;white-space:normal;display:flex;flex-direction:column;gap:1px;padding:7px 10px;background:linear-gradient(#3f58ad,#2d4185);color:#fff;border-color:#9fb3ff;box-shadow:0 2px 0 #0b0f1c}
+#pop .pf .btn.opt:disabled{opacity:.5;background:#2a3358}
+#pop .pf .btn.opt .od{font-size:12px;color:#cfe0ff}
+#pop .pf .btn.opt .ofx{font-size:12px;color:#ffd84a}
+#pop .pf .btn.opt .rec{font-size:10px;background:#8ef58e;color:#0b2d06;border-radius:4px;padding:0 4px;margin-left:4px}
+#pop .pf .btn.gray{width:100%}
+.bsofar{margin-top:6px;font-size:11px;color:#8ef58e;background:#1a2550;border-radius:6px;padding:4px 6px}
+.bph{display:flex;justify-content:space-between;gap:6px;padding:3px 0;border-bottom:1px dashed #3b4b7a;font-size:12px;color:#8fa3d8}
+.bph.done{color:#cfe0ff}.bph.cur{color:#ffd84a}

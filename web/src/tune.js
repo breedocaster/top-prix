@@ -47,6 +47,7 @@ T.need = v=>{
   for(const pid of v.parts){const P=D.PART[pid];if(!['exh','ful','eng'].includes(P.cat))continue;const t=P.tier+1;
     n.wot+=0.014*t;n.mid+=0.008*t;n.low+=0.003*t;n.trans+=0.006*t;if(pid==='nitrous')n.wot+=0.05;if(pid.includes('turbo'))n.wot+=0.03,n.mid+=0.02;}
   if(T.has('porting')){n.wot+=0.03;n.mid+=0.02;}
+  const fl=v.bflags||[];if(fl.includes('rev'))n.wot+=0.04;if(fl.includes('torque'))n.mid+=0.03,n.low+=0.01;
   if(T.has('bigvalve')){n.wot+=0.06;n.mid+=0.02;}
   return n;
 };

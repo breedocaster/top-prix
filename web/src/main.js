@@ -71,6 +71,7 @@ Main.tutorial = ()=>{
 };
 Main.hooks = ()=>{
   E.H.toast=t=>UI.toast(t);E.H.popup=o=>{if(UI.race)UI.deferPop.push(o);else UI.popup(o);};E.H.float=(t,vid,col)=>GX.floatAtVeh(t,vid,col);E.H.sfx=n=>SFX.play(n);
+  E.H.buildAsk=j=>UI.buildAsk(j);
   E.H.roundDue=sid=>{const S=D.SER[sid],a=G.series[sid].act;const r=D.RACE[S.rounds[a.round]];Save.save();
     UI.popup({title:'🏁 Race Day!',html:`<b>${U.esc(S.n)}</b> — Round ${a.round+1}/${S.rounds.length}<br><span class="hl">${U.esc(r.n)}</span><br><br>Choose who races.`,buttons:[{t:"Let's go!",cls:'grn',fn:()=>{UI.open('prerace',null,{rid:r.id,sid});}}]});};
   E.H.yearEnd=({y,yr,bonus,rank})=>{Save.save(true);UI.popup({title:`📅 Year ${y} Report`,html:`Wins <b>${yr.wins}</b> · Podiums <b>${yr.podiums}</b> · Titles <b>${yr.titles}</b><br>Prize money ${U.money(yr.earn)}<br>Team rank: <b class="hl">${D.FAN_RANKS[rank][1]}</b> (${U.num(G.fans)} fans)<br><br>Fan-club bonus: <b class="gd">+${U.money(bonus)}</b>${y<D.YEARS?`<br><br>${D.YEARS-y} seasons to go!`:''}`});};

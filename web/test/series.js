@@ -8,7 +8,7 @@ const {chromium}=require('playwright');const path=require('path');require('fs').
   const shot=async n=>{await p.screenshot({path:path.resolve(__dirname,'shots',n+'.png')});};
   const closePops=async()=>{let g=0;while(await p.$('#pop:not(.hidden)')&&g++<20){await p.click('#pop .pf button:last-child');await p.waitForTimeout(80);}};
   await p.click('#tStart');await p.waitForTimeout(200);await closePops();
-  await p.evaluate(()=>{const v=E.startBuild('kei','fr');G.jobs=[];E.finishBuild(v);G.races.c1a={best:1,n:1,w:1};G.races.c1b={best:1,n:1,w:1};G.money=2e6;});
+  await p.evaluate(()=>{const v=E.startBuild('kei','fr');G.jobs=[];E.finishBuild(v);UI.popQ=[];G.races.c1a={best:1,n:1,w:1};G.races.c1b={best:1,n:1,w:1};G.money=2e6;});
   await closePops();await p.click('[data-m="race"]');await p.waitForTimeout(150);await p.click('#wtabs button[data-tab="series"]');await p.waitForTimeout(150);await shot('40_series');
   await p.click('[data-a="enterSeries"][data-sid="s1c"]');await p.waitForTimeout(150);await p.click('#pop .pf button:last-child');await p.waitForTimeout(150);
   await p.click('#wclose');await p.waitForTimeout(100);

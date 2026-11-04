@@ -189,17 +189,25 @@ GX.drawScene = (c,dt)=>{
 GX.drawBayVeh = (c,v,b,job)=>{
   const P=GX.P;const B=D.BODY[v.body];const w=GX.vehW(B.kind);const x=Math.round(b.x+(b.w-w)/2);let gy=b.gy;
   const f=Math.floor(GX.S.t*4)%2;
-  if(v.status==='build'&&job){const prog=U.clamp(1-job.left/job.total,0,1);
-    c.save();c.beginPath();c.rect(x-2,gy-30,Math.max(1,(w+4)*prog),32);c.clip();GX.drawVeh(c,B.kind,x,gy,G.team.color,'#ffd84a',0);c.restore();
-    c.globalAlpha=0.35;c.save();c.beginPath();c.rect(x-2+(w+4)*prog,gy-30,w+4,32);c.clip();GX.drawVeh(c,B.kind,x,gy,'#cfd6dd','#cfd6dd',0);c.restore();c.globalAlpha=1;
+  if(v.status==='build'&&job){
+    const pi=job.pd?job.pi:Math.min(7,Math.floor(U.clamp(1-job.left/job.total,0,0.999)*8));const bare='#8d959d';
+    if(pi===0){c.globalAlpha=0.55;GX.drawVeh(c,B.kind,x,gy,'#5b8cff','#9fc0ff',0);c.globalAlpha=1;for(let k=0;k<5;k++)P(c,x-2+k*((w+4)/4),gy-26,1,26,'#2b4a8f');P(c,x-2,gy-13,w+4,1,'#2b4a8f');}
+    else if(pi<5){c.globalAlpha=0.45+0.11*pi;GX.drawVeh(c,B.kind,x,gy,bare,'#c3cbd3',0);c.globalAlpha=1;}
+    else if(pi===5){const pl=job.plen||job.total/8;const pp=job.pd?U.clamp(1-Math.max(0,job.pd[5])/pl,0,1):0.5;GX.drawVeh(c,B.kind,x,gy,bare,'#c3cbd3',0);
+      c.save();c.beginPath();c.rect(x-2,gy-30,Math.max(1,(w+4)*pp),32);c.clip();GX.drawVeh(c,B.kind,x,gy,G.team.color,'#ffd84a',0);c.restore();
+      if(Math.floor(GX.S.t*8)%2)P(c,x-3+(w+4)*pp,gy-14+Math.sin(GX.S.t*9)*4,2,2,'#dfe6ee');}
+    else GX.drawVeh(c,B.kind,x,gy,G.team.color,'#ffd84a',0);
+    if(pi>=1&&pi<=3){P(c,x+2,gy-3,3,3,'#5a4a2a');P(c,x+w-5,gy-3,3,3,'#5a4a2a');}
+    if(pi===2&&Math.floor(GX.S.t*6)%3===0)P(c,x+w/2,gy-12,2,2,'#fff7a0');
     P(c,x-2,gy-24,1,24,'#8a6d3b');P(c,x+w+1,gy-24,1,24,'#8a6d3b');P(c,x-2,gy-24,w+4,1,'#8a6d3b');
+    if(job.wait&&Math.floor(GX.S.t*3)%2){c.font='9px '+GX.FONT;c.fillStyle='#ffd84a';c.textAlign='center';c.textBaseline='middle';c.fillText('?',x+w/2,gy-17);}
   }else{
     if(job){P(c,x+2,gy-1,w-4,1,'#444');gy-=3;P(c,x+3,gy+1,1,2,SV);P(c,x+w-4,gy+1,1,2,SV);}
     GX.drawVeh(c,B.kind,x,gy,G.team.color,'#ffd84a',job?f:0);
     if(v.hp<0.6&&!job){c.font='7px '+GX.FONT;c.fillStyle='#f66';c.textAlign='center';c.fillText('!',x+w/2,gy-20);}
   }
   if(job){const prog=U.clamp(1-job.left/job.total,0,1);P(c,x,b.gy-30,w,3,'#111');P(c,x+1,b.gy-29,Math.round((w-2)*prog),1,job.type==='rep'?'#f66':job.type==='up'?'#6cf':'#7f7');
-    c.font='6px '+GX.FONT;c.fillStyle='#fff';c.textAlign='center';c.fillText(job.type==='rep'?'REPAIR':job.type==='up'?'TUNE '+job.k.toUpperCase():'BUILD',x+w/2,b.gy-34);}
+    c.font='6px '+GX.FONT;c.fillStyle='#fff';c.textAlign='center';c.fillText(job.type==='rep'?'REPAIR':job.type==='up'?'TUNE '+job.k.toUpperCase():job.type==='reb'?'REBUILD':job.type==='swap'?'FUEL SYS':(job.pd?D.BPHS[D.BPH[job.pi]]+' '+(job.pi+1)+'/8':'BUILD'),x+w/2,b.gy-34);}
 };
 
 // ---------- TRACK SHAPE ----------

@@ -14,11 +14,11 @@ const {chromium}=require('playwright');const path=require('path');require('fs').
   await closePops();await p.click('[data-m="build"]');await p.waitForTimeout(200);await shot('04_build');
   await p.click('[data-a="selB"][data-v="kei"]');await p.waitForTimeout(150);await shot('05_layout');
   await p.click('[data-a="selL"][data-v="fr"]');await p.waitForTimeout(150);await shot('06a_sys');await p.click('[data-a="pickSys"]');await p.waitForTimeout(150);await shot('06_confirm');
-  await p.click('[data-a="doBuild"]');await p.waitForTimeout(200);
+  await p.click('[data-a="doBuild"]');await p.waitForTimeout(200);await closePops();
   await p.click('#top .sp button[data-s="f"]');
   await p.waitForTimeout(2500);await shot('07_building');
   // fast forward
-  await p.evaluate(()=>{for(let i=0;i<14;i++)E.tick();});await p.waitForTimeout(300);await shot('08_built');
+  await p.evaluate(()=>{for(let i=0;i<80&&G.vehicles[0].status!=='ready';i++){E.tick();const j=E.bJob(G.vehicles[0].id);if(j&&j.wait)E.bChoose(G.vehicles[0].id,'crew');}});await p.waitForTimeout(300);await shot('08_built');
   await closePops();await p.click('[data-m="race"]');await p.waitForTimeout(200);await shot('09_races');
   await closePops();await p.click('[data-a="pick"][data-rid="c1a"]');await p.waitForTimeout(250);await shot('10_prerace');
   await closePops();await p.click('[data-a="go"]');await p.waitForTimeout(3000);await shot('11_race');

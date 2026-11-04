@@ -11,7 +11,7 @@ const {chromium}=require('playwright');const path=require('path');require('fs').
   await p.evaluate(()=>{G.money=5e7;G.rp=9000;G.ws=4;for(const t of D.TECH)G.tech[t.id]=1;delete G.tech.wideband;delete G.tech.syncgauge;
     for(const id in D.BODY)G.res.body[id]=1;for(const id in D.LAYOUT)G.res.layout[id]=1;
     for(let i=0;i<6;i++)G.staff.push(E.genStaff('mec',6));G.staff.push(E.genStaff('drv',6));G.staff.push(E.genStaff('drv',6));
-    const mk=(bid,lid,sys)=>{const v=E.startBuild(bid,lid,null,sys);G.jobs=G.jobs.filter(j=>j.vid!==v.id);E.finishBuild(v);return v;};
+    const mk=(bid,lid,sys)=>{const v=E.startBuild(bid,lid,null,sys);UI.popQ=[];G.jobs=G.jobs.filter(j=>j.vid!==v.id);E.finishBuild(v);return v;};
     window.V={tri:mk('ss600','triple',{type:'carb',carb:'cv'}),i4:mk('sbk','inline4',{type:'carb',carb:'cv'}),pe:mk('dirt250','single',{type:'carb',carb:'pe'}),
       q4:mk('coupe','fr',{type:'carb',carb:'q4'}),dc:mk('rallycoupe','awd',{type:'carb',carb:'dcoe'}),efi:mk('mx450','single',{type:'efi'}),fcr:mk('mx250f','stroke2',{type:'carb',carb:'fcr'})};
     E.buildFac('dyno');});

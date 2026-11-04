@@ -7,6 +7,7 @@ A Kairosoft-style motorsport team manager. It plays like Grand Prix Story 1 and 
 ## What's in it
 
 - **Team management, GP1-style.** Build vehicles from a body plus a drive layout. Your mechanics' Tech decides build quality. Upgrade Speed, Accel, Handling and Durability 5× each, and fit parts into slots. Research costs research data (RP). Drivers train using money and energy. Sponsors have goals that unlock things. Facilities live in garage slots. Workshops go Backyard Shed → Town Garage → Race Workshop → Factory HQ.
+- **Staged builds.** Every build in every difficulty mode goes through 8 shop phases: design, frame, engine, drivetrain, suspension, bodywork, electrics, shakedown. You pick an option at each phase, such as a chromoly vs. carbon frame, a blueprinted or high-rev engine, close vs. wide gearing, or a gravel vs. tarmac suspension setup. Each pick changes cost, days, stats, terrain bias and part slots. Random shop events (a cracked casting, backordered parts, a press visit) interrupt with their own choices. Can't decide? Hit "Let the crew decide" to auto-pick. The garage bay shows the vehicle moving from blueprint to bare metal to paint.
 - **46 vehicles**: 23 cars (hatches, formula cars, prototypes, rally cars, buggies, trophy trucks) and 23 bikes (scooters, sport bikes, GP bikes, MX, enduro, flat track, supermoto, sidecar).
 - **Bike engines** are single, twin, V-twin, triple, inline-4, 2-stroke or electric. There's **one carb per cylinder**, and multi-carb engines need **vacuum syncing**.
 - **Fuel tuning**

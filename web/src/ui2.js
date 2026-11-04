@@ -16,7 +16,7 @@ UI.V.vehicle = (v,tab)=>{
     <div class="sub">${b.cls==='car'?'Car':'Bike'} · ${D.LAYOUT[v.layout].n}${v.eng&&v.eng.fuel!=='none'?' · '+(v.eng.fuel==='efi'?'EFI':D.CARBS[v.eng.carb].n.split(' (')[0]):''} · Lv${v.lv}</div>
     <div class="sub">Status: ${v.status} · HP ${Math.round(v.hp*100)}%${v.eng&&v.eng.fuel!=='none'?` · Engine ${Math.round(v.eng.cond*100)}%`:''} · ${v.wins}W/${v.races}R</div></div></div></div>`;
   const tabs=[['info','Info'],['tune','Upgrade'],['parts','Parts'],['setup','Setup'],['fuel',v.eng&&v.eng.fuel==='efi'?'EFI':'Carbs'],['engine','Engine']];
-  if(v.status==='build')return {title:'🚗 '+U.esc(v.name),html:h+`<div class="note">Still being built…</div>`,back:'gBack'};
+  if(v.status==='build')return {title:'🚗 '+U.esc(v.name),html:h+UI.buildSheet(v),back:'gBack',key:'b'+v.id};
   if(tab==='info'){
     h+=`<div class="card">${UI.vehStats(st)}${UI.terrChips(st)}<div class="sub" style="margin-top:4px">Ad appeal ${st.adv}${st.fx.rp?` · RP +${Math.round(st.fx.rp*100)}%`:''}${st.fx.mis<1?` · mistakes -${Math.round((1-st.fx.mis)*100)}%`:''}${st.fx.wear<1?` · wear -${Math.round((1-st.fx.wear)*100)}%`:''}</div></div>`;
     if(v.status==='repair')h+=`<button class="btn big" data-a="rush">⚡ Rush repair ${U.money(E.rushCost(v))}</button>`;
@@ -28,7 +28,7 @@ UI.V.vehicle = (v,tab)=>{
         ${lv<5?`<button class="btn" data-a="tune" data-k="${k}" ${v.status!=='ready'||G.money<c?'disabled':''}>${U.money(c)}</button>`:'<span class="gd">MAX</span>'}</div></div>`;}
     h+=UI.sparkChips();if(v.status!=='ready')h+=`<div class="note">Vehicle must be Ready to upgrade.</div>`;
   }else if(tab==='parts'){
-    h+=`<div class="note">Slots ${v.parts.length}/${b.slots}. One part per category. ⚠ Engine, exhaust and intake parts make the engine want more fuel — re-jet or retune after fitting!</div><div class="sec-h">Installed</div>`;
+    h+=`<div class="note">Slots ${v.parts.length}/${E.slots(v)}. One part per category. ⚠ Engine, exhaust and intake parts make the engine want more fuel — re-jet or retune after fitting!</div><div class="sec-h">Installed</div>`;
     if(!v.parts.length)h+=`<div class="sub">None</div>`;
     for(const pid of v.parts){const P=D.PART[pid];h+=`<div class="card"><div class="row"><div class="sp1"><b>${P.n}</b> <span class="sub">${D.PART_CATS[P.cat]} · Lv${E.partLv(pid)}</span><div class="sub hl">${UI.partFx(P)}</div></div><button class="btn sm red" data-a="rmPart" data-p="${pid}">Remove</button></div></div>`;}
     h+=`<div class="sec-h">Available</div>`;
