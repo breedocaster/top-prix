@@ -104,12 +104,17 @@ func _fill(b: VBoxContainer) -> void:
 	var hv := SK.card(b)
 	hv.add_child(SK.big("How to play", SK.HL))
 	for l in HELP: hv.add_child(SK.small("- " + l, SK.SUB))
+	hv.add_child(SK.act(SK.btn("OPEN THE HOW-TO GUIDE", _guide, SK.GREEN, true), "guide"))
+	hv.add_child(SK.small("21 topics, each in Simple and Detailed. Also on the ? in the garage and the GUIDE button on the bench.", SK.DIM))
 	# credits (the soundfonts' MIT notice ships in the build as audio/CREDITS.md)
 	var cv := SK.card(b)
 	cv.add_child(SK.big("Credits", SK.HL))
 	for l in CREDITS: cv.add_child(SK.small(l, SK.SUB))
 	# quit
 	b.add_child(SK.act(SK.btn("QUIT TO TITLE", _ask_quit, SK.RED), "quit"))
+
+func _guide() -> void:
+	if router: router.open("guide", {})
 
 func _rename(ne: LineEdit) -> void:
 	var t := ne.text.strip_edges()

@@ -917,7 +917,11 @@ func makeRace(def: Dictionary, vid, sid, opts: Dictionary = {}) -> RaceSim:
 				toast.emit("Crew reset the tune: it was %s" % why)
 		var p := profile(v, s)
 		var rsx := Tune.raceSecs(v, def, tr, cond)
-		var extra := {"isPlayer": true, "entry": k, "vid": v.id, "sid": s.id, "hair": s.get("hair", "#222"),
+		# exhaust show from the real tune: lean idle / 1/8 throttle pops on lift-off, rich WOT smokes
+		var lam: Dictionary = rsx.ev.lam if rsx.get("ev") is Dictionary and rsx.ev.get("lam") is Dictionary else {}
+		var fx_pop := clampf((float(lam.get("idle", 0.93)) - 0.95) * 8.0 + (float(lam.get("low", 0.9)) - 0.93) * 6.0, 0.0, 1.0) + 0.05
+		var fx_smoke := clampf((0.82 - float(lam.get("wot", 0.87))) * 9.0, 0.0, 1.0)
+		var extra := {"isPlayer": true, "entry": k, "vid": v.id, "sid": s.id, "hair": s.get("hair", "#222"), "fx_pop": fx_pop, "fx_smoke": fx_smoke,
 			"fouled": bool(rsx.foul) and U.chance(0.3), "seizeRisk": bool(rsx.seize), "seized": false, "holed": false,
 			"forged": Tune.has("forged"), "tcmap": Tune.has("tcmap") and v.eng.fuel == "efi"}
 		hs.append({"name": s.name, "team": G.team.name, "team_key": "you", "col": G.team.color, "kind": b.kind, "cls": b.cls,

@@ -275,6 +275,10 @@ func _build_status() -> Control:
 	var sp_box := CareerKit.hbox(1)
 	sp_box.size_flags_horizontal = Control.SIZE_SHRINK_END
 	r1.add_child(sp_box)
+	var hb := CareerKit.chip("?", open.bind("guide", {}), false, false, "guide")
+	hb.custom_minimum_size = Vector2(16, 16)
+	CareerKit.shrink(hb, true)
+	sp_box.add_child(hb)
 	for sp in [0, 1, 2]:
 		var b := CareerKit.chip(["II", "1x", "2x"][sp], _speed_btn.bind(sp), false, false, "speed_%d" % sp)
 		b.custom_minimum_size = Vector2(22, 16)

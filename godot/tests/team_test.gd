@@ -187,6 +187,17 @@ func _qol() -> void:
 		ok(await _press(cs.top(), "rename"), "settings: rename button")
 		ok(str(Career.G.team.name) == "Lime Time Racing", "settings: team renamed")
 	await r.shot("team_settings")
+	# the bench's GUIDE button opens the matching how-to topic; the hub has a ? too
+	var vb: Dictionary = Career.G.vehicles.filter(func(x): return x.get("eng") is Dictionary and x.eng.fuel == "carb")[0] if Career.G.vehicles.any(func(x): return x.get("eng") is Dictionary and x.eng.fuel == "carb") else {}
+	if not vb.is_empty():
+		vb.status = "ready"
+		cs.open("bench", {"vid": vb.id})
+		await _frames(3)
+		ok(await _press(cs.top(), "guide"), "bench has a GUIDE button")
+		await _frames(2)
+		var gt = cs.top()
+		ok(gt != null and str(gt.get("topic")) == GuideData.for_bench("carb", str(Data.D.CARBS[vb.eng.carb].kind)), "bench GUIDE opens the carb topic (%s)" % str(gt.get("topic")))
+		gt.back(); await _frames(2)
 	# race speed is remembered between local races
 	Game.player.race_speed = 1.0
 	var rs := RaceSim.create(Data.race("c1a"), [Game.make_entry(Game.presets()[4], RaceSim.build_track(Data.race("c1a"), false), 1, "T", "me", "#e8432f")], {})

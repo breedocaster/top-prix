@@ -1,0 +1,454 @@
+class_name GuideData
+extends RefCounted
+## How-to guide content. Every topic has two versions:
+##   "kid" - SIMPLE: for Easy / Standard. Plain words and pictures-in-your-head, fine for kids and adults.
+##   "sim" - DETAILED: for Sim. Real-world tuning knowledge you'd actually use on a bench, kept practical.
+## Line markup: "# " heading, "- " bullet, "> " tip box, "= " in-game note (how this works in Top Prix),
+## anything else is a paragraph. ASCII only (the pixel fonts have no extra glyphs).
+## "bench": which bench tab / carb kind a topic belongs to, so the bench's GUIDE button opens it.
+
+const TOPICS := [
+	{"id": "start", "t": "Your first season", "ic": "build",
+	"sum": {"kid": "What to do first, and what comes next.", "sim": "The career loop and where the time goes."},
+	"kid": [
+		"# The big idea",
+		"You run a little racing team from a shed. Build a machine, race it, win money and fans, and make the team bigger.",
+		"# Your first steps",
+		"- BUILD a machine. Pick a body, then answer the crew's questions while they build it.",
+		"- Open RACES and pick a race your machine is allowed in. Green 'Outlook' means you have a good chance.",
+		"- After the race, fix the machine (it goes in for repairs on its own) and rest your driver.",
+		"- Spend prize money on UPGRADES, PARTS and RESEARCH.",
+		"# Getting bigger",
+		"- Win races to open a SERIES. Win a series and you can move to a bigger workshop.",
+		"- More fans means better sponsors and more staff slots. A bigger workshop lets you enter more cars in the same race.",
+		"> Stuck? The gold lines under the garage picture show what to try next.",
+	],
+	"sim": [
+		"# The loop",
+		"Build -> race -> repair/rest -> upgrade -> repeat. Money buys builds, upgrades, parts and staff; RP buys research; fans unlock sponsors, staff slots and your team rank.",
+		"- Prize money scales with the event rating and your finishing place; repeat wins at the same event in one year pay less.",
+		"- Every race wears the machine (HP and engine condition) and costs the driver energy. Repairs take days.",
+		"- Series give the most RP and fans, and a title is what unlocks the next workshop.",
+		"# Time is the real currency",
+		"Days pass while you build, repair and rest. Two machines and two drivers let one race while the other recovers - and later you can enter both in the same race.",
+		"= Team rank comes from fans: Local 300, Regional 1,500, National 6,000, Continental 20,000, World 60,000, Legendary 200,000.",
+	]},
+
+	{"id": "build", "t": "Building machines", "ic": "machines",
+	"sum": {"kid": "Bodies, engines and the crew's questions.", "sim": "Bodies, layouts, fuel systems, build quality."},
+	"kid": [
+		"# Pick a body",
+		"Cars and bikes each have bodies for different races: road, dirt, rally and more. Each one is good at some things and weaker at others.",
+		"- SPD = top speed. ACC = how fast it gets going. HND = turning. DUR = how tough it is.",
+		"- ON / OFF / WET / ICE are grip numbers: how well it holds on to each kind of ground.",
+		"# The crew asks questions",
+		"While they build, the crew asks things like 'balanced or fast?'. The CREW PICK is always a safe answer.",
+		"# Make it better later",
+		"- UPGRADE makes a stat stronger (up to 5 times each).",
+		"- PARTS go in the free part slots. Better parts come from research and sponsors.",
+		"> A machine with the right grip for the ground beats a faster one with the wrong grip.",
+	],
+	"sim": [
+		"# Body, layout, fuel system",
+		"The body sets class, base stats and grip per terrain; the engine layout (single, twin, triple, inline-4, V-twin, two-stroke, electric) sets character and how many carbs it runs; the fuel system is a carb type or EFI.",
+		"- One carb per cylinder on most bike layouts: more carbs = more power potential, more syncing.",
+		"- EFI costs more up front but lets you map fuel and spark cell by cell.",
+		"# Build quality",
+		"Mechanics' Tech sets build speed and quality. Quality multiplies the finished stats, so a strong crew builds a better car from the same body.",
+		"# Grip vs stats",
+		"Pace in each track section is a mix of speed, accel and handling weighted by the section (straights reward speed, hairpins reward accel and handling), times grip for that surface. Wet tarmac and ice punish low grip hard.",
+		"= The pre-race OUTLOOK is that same maths run against the field: 100% pace = mid-pack.",
+	]},
+
+	{"id": "staff", "t": "Drivers & crew", "ic": "staff",
+	"sum": {"kid": "Who drives, who wrenches, and keeping them fresh.", "sim": "Driver skills, traits, energy, mechanics, staff caps."},
+	"kid": [
+		"# Drivers",
+		"- PEDAL helps top speed, SHIFT helps getting going, STEER helps in the turns.",
+		"- Some drivers like cars more and some like bikes more.",
+		"- Every race uses ENERGY. Tired drivers need a few days off.",
+		"# Mechanics",
+		"Mechanics build and fix your machines. Better TECH means faster, better builds.",
+		"# A bigger team",
+		"As more fans cheer for you, more people want to join. You get more staff slots and can enter more cars in the same race.",
+		"> Train drivers when they have energy to spare and no race is coming up.",
+	],
+	"sim": [
+		"# Driver stats",
+		"Pedal -> speed, Shift -> accel (and launch reaction time with Analysis), Steer -> handling. Car/bike affinity multiplies all three for that class.",
+		"- Traits matter: Dirt Devil (+15 off-road grip), Rain Master (+20 wet), Steady Hands (-40% mistakes), Hothead (+4% pace, more mistakes), Iron Body (less energy per race).",
+		"- Energy: 30 per race (20 for Iron Body). Below that they can't start.",
+		"# Mechanics",
+		"Tech drives build quality and speed; Analysis adds RP after races. Mechanic levels come from RP.",
+		"# Caps",
+		"Driver and mechanic slots grow with the workshop and with fame (rank 2 and 4 add a driver; each rank adds a mechanic, up to 4). Two cars per race from the start, three from the third workshop.",
+	]},
+
+	{"id": "racing", "t": "Race day", "ic": "races",
+	"sum": {"kid": "Tactics, sparks, passing and staying safe.", "sim": "Tactics, sparks, traffic, damage, retiring."},
+	"kid": [
+		"# Tactics",
+		"- SAFE: a bit slower, fewer mistakes, kinder to the machine.",
+		"- NORMAL: in between.",
+		"- PUSH: faster, but more mistakes, more wear, a hotter engine. Also more bumping!",
+		"# Sparks",
+		"Sparks are a power boost. Bronze is small, Silver is bigger, Gold is huge. You earn them for first podiums and titles.",
+		"# Passing",
+		"Cars need room to pass. If someone is in the way, you wait for a gap or change lanes. Pushy drivers bump each other.",
+		"# Your camera",
+		"Racing two cars? Tap a driver's name on their card to watch them.",
+		"> If the machine is badly hurt, RETIRE saves it. A wrecked machine is gone for good.",
+	],
+	"sim": [
+		"# Tactics",
+		"Safe: 95% pace, 60% mistakes, 70% damage. Normal: baseline. Push: 105.5% pace, 150% mistakes, 135% damage and engine wear - and more aggressive in traffic.",
+		"# Traffic",
+		"Cars hold lanes and need a gap to pass. Lane changes come easy on straights, hard in hairpins and chicanes. Held up long enough, aggressive drivers bump: both cars lose time and take a little damage.",
+		"# Sparks",
+		"A spark is a short boost (bronze < silver < gold). Best used on a straight out of a slow corner, or to break a tow at the end.",
+		"# Damage and retiring",
+		"HP and engine condition fall with mistakes, bumps and a bad tune (lean or knocking engines wear fast). Auto-retire (Settings) parks the car at 8% so it is never destroyed.",
+		"= Two or three of your cars in one race: tap a driver's name on their card to move the camera.",
+	]},
+
+	{"id": "formats", "t": "Race formats", "ic": "records",
+	"sum": {"kid": "Sprints, heats, drags, hill climbs and more.", "sim": "How each format runs and scores."},
+	"kid": [
+		"- SPRINT: a short race. Everyone starts together.",
+		"- FEATURE: longer, more prize money, more wear.",
+		"- HEATS + MAIN: a short heat first. Do well and you start near the front of the main race.",
+		"- ENDURANCE: long race. Look after the machine!",
+		"- DRAG: two machines, one straight line. Win and you go to the next round.",
+		"- HILL CLIMB: you race the clock up a mountain, twice. Your best run counts.",
+		"- RALLY: you race the clock on a twisty stage.",
+		"> In clock races, other teams' runs are 'ghosts' that pass through you. Your own team's cars still share the road.",
+	],
+	"sim": [
+		"- Sprint / Feature / Endurance: mass start; prize, RP, fan and wear multipliers are shown on the format card.",
+		"- Heats + Main: the field is split; your heat order interleaves with the other heat's times to set the main grid.",
+		"- Drag eliminations: an 8-car ladder. Reaction time (driver Shift + Analysis) and launch matter; PUSH risks a red light.",
+		"- Hill climb (best of 2): run, retune for the summit air if you need to, run again. Air thins as you climb, so carbs go rich at the top.",
+		"- Rally stages: time trial on point-to-point roads, often mixed surfaces.",
+		"= Team entries: every format except drag eliminations takes all your cars at once.",
+	]},
+
+	{"id": "grip", "t": "Surfaces & weather", "ic": "races",
+	"sum": {"kid": "Why the ground and the weather change everything.", "sim": "Grip by terrain, rain, air density, temperature."},
+	"kid": [
+		"# Ground",
+		"Tarmac is smooth road. Dirt, sand and mud are loose. Snow and ice are slippery. Each machine has a grip number for each kind.",
+		"# Weather",
+		"- Rain makes tarmac slippery. Machines with good WET grip shine.",
+		"- High up on mountains the air is thin. Engines get less air, so they need less fuel.",
+		"- Cold air is thick air. Hot air is thin air.",
+		"> Check the race card: it shows the ground, the height and the temperature before you start.",
+	],
+	"sim": [
+		"# Grip",
+		"Each body has ON / OFF / WET / ICE grip. Section pace is scaled by the grip for that surface, so a dirt bike on tarmac is slow and a road car in mud is slower still.",
+		"# Air density",
+		"Power and mixture follow air density. Density falls about 10% per 1,000 m of altitude (standard atmosphere) and about 3% per 10 C of heat (ideal gas law).",
+		"- Thinner air = less power and a RICHER mixture with the same jets.",
+		"- Cold dense air = more power and a LEANER mixture.",
+		"= The race card shows temperature, altitude and air % (100% = sea level at 15 C). Hill climbs show start and summit.",
+	]},
+
+	{"id": "mixture", "t": "Air, fuel & mixture", "ic": "research", "bench": "carb",
+	"sum": {"kid": "Why engines need the right amount of fuel.", "sim": "AFR, lambda, targets and what rich/lean do."},
+	"kid": [
+		"# An engine is like a campfire",
+		"A fire needs air and wood. An engine needs air and fuel. The trick is the right amount of each.",
+		"- TOO MUCH FUEL (rich): smoky, sluggish, wastes fuel. Like a fire smothered with too much wood.",
+		"- TOO LITTLE FUEL (lean): runs hot and can hurt the engine. Like blowing too hard on a fire.",
+		"- JUST RIGHT: lots of power and a happy engine.",
+		"# The colour bars",
+		"The bench shows the mixture as colours: green is good, yellow is a bit off, red means fix it!",
+		"> Fix one thing at a time, then look again. Little changes are best.",
+	],
+	"sim": [
+		"# AFR and lambda",
+		"AFR is mass of air per mass of fuel. Stoichiometric for gasoline is 14.7:1; lambda = measured AFR / stoich, so lambda 1.0 is stoich for any fuel.",
+		"- Best power on a naturally aspirated gasoline engine is roughly 12.5-13.2:1 (lambda 0.85-0.90).",
+		"- Idle and light cruise run near stoich or a touch richer for a smooth idle.",
+		"- Leaner than about 13.0:1 under full load raises combustion and exhaust temperatures and the risk of knock.",
+		"# Targets in Top Prix",
+		"= Idle 13.7, 1/8-1/4 13.2, 1/4-3/4 12.9, 3/4-full 12.8 (gasoline AFR). The wideband shows AFR; without it you read plugs.",
+		"# Throttle position, not rpm",
+		"A carb's circuits overlap by THROTTLE OPENING. Diagnose by where the problem is on the twist grip / pedal, then change the part for that range.",
+	]},
+
+	{"id": "carb_slide", "t": "Bike carbs: slide & CV", "ic": "facility", "bench": "slide",
+	"sum": {"kid": "Main jet, pilot jet, needle and screws on bike carbs.", "sim": "Circuits by throttle opening, part by part."},
+	"kid": [
+		"# Four helpers inside",
+		"A bike carb has helpers that each work at a different part of the throttle:",
+		"- PILOT JET: just above idle (barely twisting).",
+		"- SLIDE CUTAWAY: just off idle. A bigger cutaway lets in more air.",
+		"- NEEDLE: the middle. Move the clip to change it.",
+		"- MAIN JET: full throttle. Bigger number = more fuel.",
+		"# The screw",
+		"The little screw fine-tunes idle. Some screws add AIR when you turn them out, some add FUEL. The bench tells you which.",
+		"> Problem at full throttle? Change the main. Problem in the middle? Move the needle clip. Problem at idle? Pilot jet or screw.",
+	],
+	"sim": [
+		"# Circuits by throttle opening (they overlap)",
+		"- Idle to ~1/4: pilot (slow) jet and air or fuel screw.",
+		"- 1/8 to 1/4: slide cutaway. Bigger cutaway number (mm) = leaner. Strongest effect 1/8-1/4, fading toward 1/2.",
+		"- 1/4 to 3/4: jet needle. Raising the needle (clip to a LOWER groove = higher number here) richens.",
+		"- 3/4 to full: main jet. Bigger = richer.",
+		"# The screw",
+		"An AIR screw sits on the intake side: out = leaner. A FUEL screw sits on the engine side: out = richer. With the right pilot jet the screw usually ends up about 1-2 turns out.",
+		"# Order of work",
+		"Main first (it's the full-power circuit), then needle, then pilot/screw, then cutaway; recheck the main after. Change one thing at a time.",
+		"- CV carbs: a vacuum piston replaces the cable slide, so there is no cutaway; needle shims do the job of clip positions.",
+		"- Flat slides (FCR-style) add an accelerator pump for the snap off a hairpin.",
+		"= Fuel level (float height): higher = richer everywhere; too low starves over jumps, too high floods on rough ground.",
+	]},
+
+	{"id": "carb_down", "t": "Car carbs: downdraft", "ic": "facility", "bench": "down",
+	"sum": {"kid": "Main jets, idle jets, power valve and the pump.", "sim": "Holley-style metering: mains, IFRs, PV, pump, bleeds."},
+	"kid": [
+		"# Up-and-down carbs",
+		"Car carbs sit on top of the engine and air falls down through them. They have:",
+		"- MAIN JETS: fuel for most of the driving and full throttle.",
+		"- IDLE JETS: fuel for idling and just off idle.",
+		"- POWER VALVE: opens when you floor it, for extra fuel.",
+		"- PUMP SQUIRTER: a squirt of fuel when you stomp the pedal, so it doesn't stumble.",
+		"- MIXTURE SCREWS: fine-tune the idle.",
+		"> If the car coughs when you floor it out of a hairpin, give it more pump squirt.",
+	],
+	"sim": [
+		"# Metering (Holley-style)",
+		"- Main jets: the main circuit from cruise to full throttle. 4-barrels have primary and secondary mains; secondaries come in at high load.",
+		"- Idle feed restrictors (idle jets): meter the idle and transfer-slot fuel. Typical .028-.038\" on a 4150-style block; bigger = richer idle and off-idle.",
+		"- Idle mixture screws: out = richer idle.",
+		"- Power valve: adds fuel when manifold vacuum drops below its rating (a 6.5 opens at 6.5 inHg or less). Holley's starting rule is half the idle vacuum (in gear for an automatic); many tuners prefer a few inHg below cruise vacuum so it never opens at cruise.",
+		"- Accelerator pump (squirter size / cam): covers the lean gap on a throttle snap; a bog or stumble when you stab it is usually pump.",
+		"- High-speed air bleeds: bigger = leaner main circuit as airflow rises (top end). Small steps only.",
+		"- Float level: higher = richer, and it can push fuel out of the vents on hard braking.",
+		"= In Standard you set mains, idle jets and idle screws; the crew sets the rest. Sim opens everything.",
+	]},
+
+	{"id": "carb_side", "t": "Sidedraft carbs (DCOE)", "ic": "facility", "bench": "side",
+	"sum": {"kid": "Twin carbs that feed two cylinders each.", "sim": "Mains, air correctors, idle jets, pump jets."},
+	"kid": [
+		"Sidedraft carbs sit on the side of the engine, one barrel for each cylinder. They are racy and loud!",
+		"- MAIN JET: fuel for big throttle.",
+		"- AIR CORRECTOR: a bigger one makes the top end leaner.",
+		"- IDLE JET: fuel at idle and just above.",
+		"- PUMP JET: the squirt when you stomp the pedal.",
+		"> Two carbs must match each other. Use the SYNC tab so both cylinders pull the same.",
+	],
+	"sim": [
+		"- Main jet sets the bulk of the main circuit; the air corrector shapes it with rpm - bigger corrector = leaner at high rpm, smaller = richer at the top.",
+		"- Idle jet covers idle and the progression holes into the main circuit; a flat spot just off idle is usually idle jet.",
+		"- Mixture screws trim idle per barrel; balance airflow between carbs before trimming.",
+		"- Pump jet sizes the squirt on a throttle snap.",
+		"= Emulsion tubes and chokes (venturis) are fixed in Top Prix to keep it sane.",
+	]},
+
+	{"id": "altitude", "t": "Jetting for weather & altitude", "ic": "research", "bench": "carb",
+	"sum": {"kid": "Why mountains and cold days need different jets.", "sim": "Density, rules of thumb, hill climbs."},
+	"kid": [
+		"# Thin air, thick air",
+		"Way up a mountain the air is thin. Same fuel + less air = too much fuel (rich). Use smaller jets up high.",
+		"On a cold day the air is thick. Same fuel + more air = not enough fuel (lean). Use slightly bigger jets when it's cold.",
+		"# Hill climbs",
+		"The air changes as you climb! Tune for the middle of the hill so it's OK at the bottom and the top.",
+		"> TUNING FOR on the bench lets you pick a race, so you tune for that day's air, not the shop's.",
+	],
+	"sim": [
+		"Jets meter fuel by pressure drop, which follows air density, so a carb runs richer as density falls and leaner as it rises.",
+		"- About 10% thinner per 1,000 m of altitude; about 3% per 10 C of temperature (ideal gas law).",
+		"- Go down on mains (and usually pilots/idle jets) as density drops; up as it rises. Needles and screws trim what's left.",
+		"- Humidity also displaces oxygen (humid days run a little richer) - not modelled here.",
+		"# Hill climbs",
+		"The mixture moves through the run: at the summit WOT goes rich. Most tuners split the difference, slightly lean-safe at the start. Run 2 lets you retune after seeing run 1.",
+		"= The outlook warns when the summit pushes WOT out of range.",
+	]},
+
+	{"id": "reading", "t": "Reading the engine", "ic": "records", "bench": "carb",
+	"sum": {"kid": "Plugs, smoke and sounds tell you what's wrong.", "sim": "Plug chops, symptoms, wideband."},
+	"kid": [
+		"# Spark plug colours",
+		"- Light brown / tan: just right!",
+		"- Black and sooty: too much fuel (rich).",
+		"- White or blistered: too little fuel (lean). Fix it fast!",
+		"# Clues while it runs",
+		"- Bogs when you stomp it: needs more squirt (pump) or more fuel just off idle.",
+		"- Pops when you let off: a bit lean at low throttle.",
+		"- Smoky and lazy: rich.",
+		"> Buy the WIDEBAND research and the bench shows exact numbers instead of plug colours.",
+	],
+	"sim": [
+		"# Plug chops",
+		"Run at a steady throttle, kill it clean, pull the plug. Tan/light grey insulator = good; sooty black = rich; white, blistered or speckled = lean or too hot (or too much advance).",
+		"# Symptoms",
+		"- Bog/stumble on a snap: lean transition - pump shot, cutaway, or idle/transfer fuel.",
+		"- Hangs at idle, pops on decel: lean pilot/idle circuit.",
+		"- Blubbery, sooty, rough at part throttle: rich needle / mid circuit.",
+		"- Signs of knock (ping) under load: too much advance, too little octane, or lean.",
+		"# Wideband",
+		"A wideband O2 reads lambda directly; Top Prix shows it as gasoline AFR. In Sim you read plugs until you research it.",
+	]},
+
+	{"id": "timing", "t": "Ignition timing & knock", "ic": "research", "bench": "carb",
+	"sum": {"kid": "When the spark happens, and the bad 'ping'.", "sim": "Advance, MBT, knock and octane."},
+	"kid": [
+		"The spark plug lights the fuel. TIMING is WHEN it sparks.",
+		"- A little earlier = more power.",
+		"- Too early = KNOCK (a 'ping' sound). Knock can break pistons!",
+		"- Better fuel (race gas, E85) lets you spark earlier safely.",
+		"> If the bench says KNOCK, turn the timing back a step.",
+	],
+	"sim": [
+		"- Advance the spark until you reach MBT (minimum advance for best torque) or knock - whichever comes first. Past MBT you lose power; past the knock limit you risk the pistons.",
+		"- Knock limit rises with octane and richer mixtures and falls with heat, high load, high compression and lean mixtures.",
+		"- Less advance needed at high rpm on fast-burning chambers; more at light load (part-throttle cells on EFI).",
+		"= Carbs here have one advance setting; EFI has a full spark table. Forged pistons survive brief knock.",
+	]},
+
+	{"id": "fuel", "t": "Fuel: pump, race gas, E85", "ic": "facility", "bench": "carb",
+	"sum": {"kid": "Different fuels and why E85 needs more.", "sim": "Octane, stoich and jetting changes."},
+	"kid": [
+		"- PUMP: normal gas. Cheap.",
+		"- RACE GAS: resists knock, a bit more power, costs money each race.",
+		"- E85: lots of power and great against knock, but you need about a third MORE fuel. Bigger jets!",
+		"> After switching fuel, let the crew tune it or check the mixture before racing.",
+	],
+	"sim": [
+		"- Octane is resistance to knock, not energy. Race fuel lets you run more advance and compression.",
+		"- E85 stoich is about 9.8:1 vs 14.7:1, so it needs roughly 30-40% more fuel flow for the same lambda. It also cools the charge and resists knock strongly.",
+		"- On a wideband set for gasoline, tune E85 to the same displayed lambda/AFR targets.",
+		"= Top Prix: Race 110 adds knock margin and +1% power; E85 needs 1.32x fuel, adds big knock margin and +3.5% power.",
+	]},
+
+	{"id": "twostroke", "t": "Two-strokes", "ic": "machines", "bench": "slide",
+	"sum": {"kid": "Small, screamy engines that hate running lean.", "sim": "Lean seizure, fuel level, pipes."},
+	"kid": [
+		"Two-stroke engines are light and powerful but fussy.",
+		"- If they run too lean they can SEIZE (lock up). Keep them a little rich.",
+		"- Too much fuel makes them blubber and smoke.",
+		"> When in doubt on a two-stroke, one main jet size bigger is the safe side.",
+	],
+	"sim": [
+		"- Lean two-strokes seize: the piston expands and grabs the bore. Keep WOT on the rich side of best power.",
+		"- The oil comes in the fuel (premix), so a lean mixture is also less oil.",
+		"- Fuel level matters on rough ground: too high floods and fouls, too low starves on jumps.",
+		"= Seize risk shows on the outlook in Standard; in Sim it just happens.",
+	]},
+
+	{"id": "sync", "t": "Syncing multiple carbs", "ic": "settings", "bench": "sync",
+	"sum": {"kid": "Making all the carbs pull together.", "sim": "Vacuum balance and why it matters."},
+	"kid": [
+		"Engines with two, three or four carbs need them all to open the same amount.",
+		"If one carb pulls more than another, the engine shakes, idles rough and loses power.",
+		"> On the SYNC tab, turn the screws until all the gauges match.",
+	],
+	"sim": [
+		"- Synchronize butterflies/slides so each cylinder gets the same airflow; measured as equal manifold vacuum per cylinder (gauges or a manometer).",
+		"- One carb is the reference (no adjuster); the others are set to match it at idle and just off idle.",
+		"- An out-of-sync rack idles rough, transitions badly and loses a little everywhere.",
+		"= Sync drifts after every race; check it before big events.",
+	]},
+
+	{"id": "efi", "t": "EFI: fuel & spark maps", "ic": "research", "bench": "efi",
+	"sum": {"kid": "A computer squirts the fuel. You fill in its tables.", "sim": "VE, AFR targets, spark, accel enrichment."},
+	"kid": [
+		"With EFI, a small computer decides how much fuel to squirt. It uses TABLES: grids of numbers for every speed and throttle.",
+		"- The fuel table (VE): how much air the engine breathes at each spot.",
+		"- The spark table: when to spark at each spot.",
+		"- Paint cells by tapping them, then nudge them up or down.",
+		"> Run a test day or a datalog, then fix the red cells first.",
+	],
+	"sim": [
+		"- VE (volumetric efficiency) table: rpm x load. The ECU calculates fuel from VE, air density and the AFR target; correct VE until measured AFR matches target.",
+		"- AFR target table: richer at high load for power and safety, near stoich at light load.",
+		"- Spark table: advance per cell; less at high load, more at light load. Watch the knock column.",
+		"- Accel enrichment (TPS-dot): extra fuel on throttle snaps - fixes the bog off hairpins.",
+		"- Work from datalogs: fix cells with enough hits, smooth neighbours, avoid big steps.",
+		"= Standard hides the spark and settings tabs; Sim opens them.",
+	]},
+
+	{"id": "dyno", "t": "Dyno, flow bench & datalogs", "ic": "records", "bench": "dyno",
+	"sum": {"kid": "Testing your tune without racing.", "sim": "Reading curves and logs."},
+	"kid": [
+		"- The FLOW BENCH shows fuel and air moving. Slide the throttle and watch the mixture colour.",
+		"- SWEEP checks every throttle position. SNAP checks a quick stomp.",
+		"- The DYNO spins the engine and draws its power curve. Bigger hill = more power.",
+		"- TEST DAY runs laps on a private track and saves a DATALOG.",
+		"> Change one thing, run the dyno again, and see if the line went up.",
+	],
+	"sim": [
+		"- Flow bench: the AFR trace across throttle shows which circuit is off; SNAP shows the transient (pump / AE).",
+		"- Dyno pull: power and torque vs rpm plus AFR; lean spots at the top of the pull are main-jet or VE territory.",
+		"- Datalog (test day or race with the research): AFR per zone/cell under real load - better than the static bench for EFI.",
+		"= Test days cost money and some driver energy; the bench and dyno are free.",
+	]},
+
+	{"id": "setup", "t": "Chassis setup", "ic": "settings", "bench": "setup",
+	"sum": {"kid": "Gears, springs, tyres and wings.", "sim": "Gearing ratios, stiffness, pressures, aero."},
+	"kid": [
+		"- GEARING: shorter gears = quick off the line, lower top speed. Taller gears = the opposite.",
+		"- SUSPENSION: stiff is great on smooth roads, soft is better on bumpy dirt.",
+		"- TYRE PRESSURE: lower = more grip on dirt; a bit higher is crisp on tarmac.",
+		"- WING (cars): more wing = more grip in turns, less top speed.",
+		"> Lots of hairpins? Shorter gears and more wing. Long straights? Taller gears, less wing.",
+	],
+	"sim": [
+		"- Final ratio = rear/front sprocket (bikes) or final drive (cars). Bigger rear or smaller front = shorter gearing: more accel, less top speed. One tooth on the front is roughly 3 on the rear.",
+		"- Suspension stiffness trades tarmac response for rough-ground compliance and traction.",
+		"- Tyre pressure: air down for dirt/sand traction; up slightly on tarmac for response. Too low on tarmac costs speed and heat.",
+		"- Wing: cornering grip vs drag; worth it on tight, twisty layouts.",
+		"= The setup sheet applies per vehicle; recheck it when a track's mix of straights and hairpins changes.",
+	]},
+
+	{"id": "money", "t": "Sponsors, research & growth", "ic": "sponsor",
+	"sum": {"kid": "Getting money, unlocking stuff, getting famous.", "sim": "Sponsors, RP, facilities, workshops."},
+	"kid": [
+		"- SPONSORS pay you to show their name. Finish their goals for bonus rewards.",
+		"- RESEARCH (RP) unlocks new parts, tools and tricks - like the wideband.",
+		"- FACILITIES in the workshop make things faster or better.",
+		"- Win a SERIES to move to a bigger workshop with more room.",
+		"> Fans count! More fans = better sponsors and a bigger team.",
+	],
+	"sim": [
+		"- Sponsors: a signing fee plus goals; ad level rises with races, driver appeal and the car's ad value.",
+		"- RP comes from races (more in series), driver and mechanic Analysis, and facilities.",
+		"- Research is the long game: tuning tools (wideband, datalog, crew chief), fuels, parts, layouts.",
+		"- Workshop upgrades need titles and cash; they add bays, staff and vehicle capacity.",
+	]},
+
+	{"id": "multi", "t": "Multiplayer", "ic": "staff",
+	"sum": {"kid": "Racing friends on the same Wi-Fi.", "sim": "Co-op, versus, classes, bringing your cars."},
+	"kid": [
+		"- CO-OP: everyone races for the same team against the computer. Each phone drives one car.",
+		"- VERSUS: everyone races for their own team.",
+		"- Your story and career machines can come along!",
+		"> Pick a tier class so everyone's machines are fair.",
+	],
+	"sim": [
+		"- Same Wi-Fi: one phone hosts, the others join by the list or IP.",
+		"- Tier classes cap faster machines so builds compete fairly; OPEN lets the best build win.",
+		"- In time trials human cars share the road; rival ghosts don't.",
+		"- Race calls (tactic, sparks, retire) are made on each phone for its own car.",
+	]},
+]
+
+## Topic dictionary by id ({} if unknown).
+static func topic(id: String) -> Dictionary:
+	for t in TOPICS:
+		if t.id == id: return t
+	return {}
+
+## Best topic for a bench tab / carb kind.
+static func for_bench(tab: String, carb_kind := "") -> String:
+	match tab:
+		"efi": return "efi"
+		"dyno": return "dyno"
+		"setup": return "setup"
+		"sync": return "sync"
+	match carb_kind:
+		"down": return "carb_down"
+		"side": return "carb_side"
+	return "carb_slide"

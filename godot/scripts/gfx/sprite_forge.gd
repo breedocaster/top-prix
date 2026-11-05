@@ -341,6 +341,58 @@ const PCELL := Vector2i(40, 52)
 static func bake_prop(name: String) -> Image:
 	return render_sd(SDModels.prop(name), Vector2.ZERO, 1, PCELL, 1, 0.3)
 
+## 3x5 pixel text straight into an Image (MiniFont glyphs), for trackside boards and banners.
+static func img_text(img: Image, text: String, x: int, y: int, col: Color, s := 1) -> void:
+	var MF = load("res://scripts/ui/career/mini_font.gd")
+	var cx := x
+	for ch in text.to_upper():
+		var g: String = MF.GLYPHS.get(ch, MF.GLYPHS[" "])
+		for i in 15:
+			if g[i] == "1":
+				var px := cx + (i % 3) * s
+				var py := y + (i / 3) * s
+				img.fill_rect(Rect2i(px, py, s, s), col)
+		cx += (2 if ch in MF.NARROW else 4) * s
+
+static func text_w(text: String, s := 1) -> int:
+	var MF = load("res://scripts/ui/career/mini_font.gd")
+	var w := 0
+	for ch in text: w += (2 if ch in MF.NARROW else 4) * s
+	return w
+
+## Trackside advertising board (a fictional sponsor from the game's sponsor list).
+static func board_texture(text: String, bg: Color, fg: Color) -> ImageTexture:
+	var key := "board:%s:%s" % [text, bg.to_html(false)]
+	if _tex_cache.has(key): return _tex_cache[key]
+	var tw := text_w(text)
+	var img := Image.create(tw + 6, 12, false, Image.FORMAT_RGBA8)
+	var post := snes(Color("#3a3f4a"))
+	img.fill_rect(Rect2i(0, 0, tw + 6, 9), snes(bg.darkened(0.45)))
+	img.fill_rect(Rect2i(1, 1, tw + 4, 7), snes(bg))
+	img.fill_rect(Rect2i(1, 1, tw + 4, 1), snes(bg.lightened(0.3)))
+	img_text(img, text, 3, 2, snes(fg))
+	img.fill_rect(Rect2i(2, 9, 2, 3), post); img.fill_rect(Rect2i(tw + 2, 9, 2, 3), post)
+	_tex_cache[key] = ImageTexture.create_from_image(img)
+	return _tex_cache[key]
+
+## Start / finish gantry banner (the lamps are drawn live over it by SpriteLayer).
+static func banner_texture(text: String) -> ImageTexture:
+	var key := "banner:" + text
+	if _tex_cache.has(key): return _tex_cache[key]
+	var w := 72
+	var img := Image.create(w, 16, false, Image.FORMAT_RGBA8)
+	img.fill_rect(Rect2i(0, 0, w, 16), snes(Color("#141a3a")))
+	for x in range(0, w, 2):
+		for y in [1, 14]:
+			img.set_pixel(x + (0 if y == 1 else 1), y, snes(Color("#f2f2ee")))
+			img.set_pixel(x + (1 if y == 1 else 0), y, snes(Color("#1a1a20")))
+	img.fill_rect(Rect2i(0, 2, w, 1), snes(Color("#ffd84a")))
+	img.fill_rect(Rect2i(0, 13, w, 1), snes(Color("#ffd84a")))
+	var tw := text_w(text, 2)
+	img_text(img, text, (w - tw) / 2, 3, snes(Color("#ffffff")), 2)
+	_tex_cache[key] = ImageTexture.create_from_image(img)
+	return _tex_cache[key]
+
 ## Small crowd/grandstand billboard drawn directly in pixels.
 static func stand_texture(seed: int) -> ImageTexture:
 	var key := "stand%d" % seed

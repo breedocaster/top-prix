@@ -136,7 +136,16 @@ func _veh_line(b: VBoxContainer) -> void:
 		el.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		h.add_child(el)
 	v2.add_child(h)
-	v2.add_child(SK.small(fuel, SK.SUB))
+	var fh := UIKit.hbox(4)
+	var fl := SK.small(fuel, SK.SUB)
+	fl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	fl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	fh.add_child(fl)
+	if router and router.has_method("has_screen") and router.has_screen("guide"):
+		var gk := ""
+		if e is Dictionary and e.fuel == "carb": gk = str(Data.D.CARBS[e.carb].get("kind", ""))
+		fh.add_child(SK.act(SK.sbtn("? GUIDE", go.bind("guide", {"topic": GuideData.for_bench(tab, gk)}), UIKit.BTN_LO, 58), "guide"))
+	v2.add_child(fh)
 	if not _ready_ok(): v2.add_child(SK.small("Vehicle must be Ready to change the tune.", SK.BD))
 
 func _cond_line(c: Dictionary) -> String:

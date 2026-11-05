@@ -178,6 +178,13 @@ func _render() -> void:
 		th.add_child(c)
 	add(th)
 	note("Safe: fewer mistakes, less wear, cooler engine. Push: faster, riskier, hotter." + (" Push also risks a red light." if r.style == "drag" else ""), CareerKit.DIMC)
+	if can_open("guide"):
+		var gh := CareerKit.hbox(3)
+		for gt in [["? RACE DAY", "racing"], ["? FORMATS", "formats"], ["? GRIP", "grip"]]:
+			var gb := CareerKit.btn(gt[0], open.bind("guide", {"topic": gt[1]}), UIKit.BTN_LO, true, "guide_" + gt[1])
+			gb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			gh.add_child(gb)
+		add(gh)
 	# outlook + start
 	var s0 := Career.staff(sel_d)
 	if not v0.is_empty() and not s0.is_empty():

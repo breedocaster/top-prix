@@ -58,6 +58,14 @@ func _draw() -> void:
 			if i % 2 == 0:
 				for side in [-1.0, 1.0]:
 					draw_rect(Rect2((p + nrm * side * (W * 0.5 - 4.0)).floor(), Vector2(2, 2)), _col("#e8e8e0"))
+			# rubber: skid marks into the braking zone and through hairpins / chicanes
+			var sk := _skid(i)
+			if sk > 0.0 and rng.randf() < sk:
+				for k2 in geo.lanes:
+					var lo := (k2 - (geo.lanes - 1) * 0.5) * TrackGeo.LANE_PX
+					for tw in [-5.0, 5.0]:
+						if rng.randf() < 0.7:
+							draw_rect(Rect2((p + nrm * (lo + tw + rng.randf_range(-1.5, 1.5))).floor(), Vector2(2, 2)), Color(0.06, 0.06, 0.08, 0.32 * sk + 0.1))
 			# dashed lane dividers: each car gets its own strip of road
 			if (i / 3) % 2 == 0:
 				for k in range(1, geo.lanes):
@@ -98,6 +106,24 @@ func _draw() -> void:
 			var nrm := Vector2.from_angle(geo.heads[i] + PI / 2.0)
 			for side in [-1.0, 1.0]:
 				draw_rect(Rect2((pts[i] + nrm * side * W * 0.22 - Vector2(4, 1)).floor(), Vector2(8, 2)), _col("#f2f2ee"))
+
+## 0..1: how much braking rubber at road point i (end of the section before a hairpin / chicane,
+## and the first part of the corner itself).
+func _skid(i: int) -> float:
+	var sp := i * TrackGeo.STEP
+	var k := geo.sec_index_at_px(sp)
+	var secs: Array = geo.tr.secs
+	var u: float = (sp - geo.sec_px[k]) / maxf(geo.sec_len[k], 1.0)
+	var tight := ["hp", "chi"]
+	if secs[k].type in tight and u < 0.4: return (0.4 - u) / 0.4 * 0.8
+	var nk := k + 1
+	if nk >= secs.size():
+		if not geo.closed: return 0.0
+		nk = 0
+	if secs[nk].type in tight and u > 0.6:
+		var dist: float = (1.0 - u) * geo.sec_len[k]
+		if dist < 140.0: return (1.0 - dist / 140.0) * 0.9
+	return 0.0
 
 func _cross(p: Vector2, nrm: Vector2, w: float, c: Color) -> void:
 	var a := p - nrm * w * 0.5

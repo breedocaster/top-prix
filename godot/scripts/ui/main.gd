@@ -171,7 +171,9 @@ func title_screen(note: String = "") -> void:
 	var fb := UIKit.btn("FREE CAREER", new_team_screen.bind("free", ""))
 	fb.set_meta("tid", "free")
 	w.add_child(_row([sb, fb]))
-	w.add_child(UIKit.btn("QUICK RACE", quick_screen))
+	var hq := UIKit.btn("HOW TO PLAY", guide_screen, UIKit.BTN_LO)
+	hq.set_meta("tid", "howto")
+	w.add_child(_row([UIKit.btn("QUICK RACE", quick_screen), hq]))
 	w.add_child(_row([UIKit.btn("CO-OP LAN", lan_screen.bind("coop"), UIKit.OK), UIKit.btn("VERSUS LAN", lan_screen.bind("versus"), UIKit.ACCENT)]))
 	w.add_child(_row([UIKit.btn("GARAGE", garage_screen, UIKit.BTN_LO), UIKit.btn("PROFILE", profile_screen, UIKit.BTN_LO)]))
 	var mh := UIKit.hbox(4)
@@ -202,6 +204,14 @@ func _attract() -> Control:
 	return holder
 
 # ---------------- career ----------------
+## The how-to guide (the career's guide screen, outside a career: no router, BACK -> title).
+func guide_screen() -> void:
+	_clear()
+	var g = load("res://scripts/ui/career/guide_screen.gd").new()
+	add_child(g)
+	g.setup({"level": "sim" if str(Game.player.get("mode", "standard")) == "sim" else "kid"})
+	g.closed.connect(title_screen.bind(""))
+
 func _story_pick() -> void:
 	_clear()
 	var p := CampaignPicker.new()

@@ -138,6 +138,7 @@ func _build(rain: bool) -> void:
 	layer = SpriteLayer.new()
 	layer.rv = self
 	layer.rain = rain
+	layer.night = env == "night"
 	layer.place_props(geo, theme, URng.fnv(def.id) & 0xFFFF, env)
 	screen.add_child(layer)
 	var cols := []

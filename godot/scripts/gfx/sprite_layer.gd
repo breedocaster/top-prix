@@ -8,7 +8,10 @@ var props := []        # [world Vector2, ImageTexture, scale]
 var sheets := {}       # ent idx -> indexed Texture2D (palette-swapped on the GPU)
 var shadow := Color(0.05, 0.03, 0.12, 0.45)
 var rain := false
+var night := false
 var t := 0.0
+var gantries := []     # {l: Vector2, r: Vector2, tex, lamps: bool} start / finish arches
+var _fxv := {}         # ent idx -> last speed (exhaust pops on lift-off)
 var puffs := []        # [world pos, age, life, colour, size px, drift]
 var _puff_acc := {}    # ent idx -> seconds until next puff
 
@@ -51,7 +54,37 @@ func _update_puffs(d: float) -> void:
 				var at: Vector2 = smp.pos - back * 9.0 + side * wsd * 5.0
 				puffs.append([at, 0.0, randf_range(0.35, 0.6), col, randf_range(3.0, 5.0), -back * randf_range(4, 14) + side * wsd * randf_range(2, 8)])
 		_puff_acc[int(e.idx)] = acc
+	_exhaust(d)
 	if puffs.size() > 160: puffs = puffs.slice(puffs.size() - 160)
+
+## Exhaust: pops (a flame flicker) when a car lifts off, black smoke when one accelerates rich.
+## Career cars take both from their real tune (lean idle/low = pops, rich WOT = smoke, see
+## Career.makeRace fx_pop / fx_smoke); everyone else gets a little crackle from race exhausts.
+func _exhaust(d: float) -> void:
+	if d <= 0.0: return
+	var geo: TrackGeo = rv.geo
+	var tier := int(rv.def.get("tier", 1))
+	for e in rv.ents:
+		if e.get("fin", false) or e.get("dnf", false): continue
+		var v := float(e.get("v", 0.0))
+		var k := int(e.idx)
+		var pv: float = _fxv.get(k, v)
+		_fxv[k] = v
+		if v < 0.05: continue
+		var acc := (v - pv) / d / maxf(v, 0.05)
+		var pop := float(e.get("fx_pop", 0.04 + 0.04 * tier + 0.05 * float(k % 3)))
+		var smoke := float(e.get("fx_smoke", 0.0))
+		var lifting := acc < -0.35
+		var hard := acc > 0.12
+		if not ((lifting and randf() < pop * d * 30.0) or (hard and smoke > 0.0 and randf() < smoke * d * 18.0)): continue
+		var smp: Dictionary = geo.sample(e.rprog, e.rlane)
+		if (smp.pos - rv.cam_pos).length() > 420.0: continue
+		var back := Vector2.from_angle(smp.ang)
+		var at: Vector2 = smp.pos - back * 11.0
+		if lifting:
+			puffs.append([at, 0.0, randf_range(0.06, 0.11), Color("#ffb020"), randf_range(2.5, 4.0), -back * 6.0, true])
+		else:
+			puffs.append([at, 0.0, randf_range(0.4, 0.7), Color("#2a2a30"), randf_range(3.0, 4.5), -back * randf_range(6, 12), false])
 
 ## Trackside dressing: sparse groves and singles set well back from the road (never on it, never
 ## crowding the verge), grandstands at the start in stadium-type settings, the tree at a drag strip.
@@ -84,6 +117,125 @@ func place_props(geo: TrackGeo, theme: Dictionary, seed: int, env: String) -> vo
 			if _clear(geo, w2, W * 0.5 + 44): props.append([w2, SpriteForge.stand_texture(seed + g), 2.0])
 	if geo.tr.drag:
 		props.append([geo.pts[0] + Vector2.from_angle(geo.heads[0] + PI / 2.0) * (W * 0.5 + 14), _tree_light(), 1.4])
+	else:
+		_dress_track(geo, env, rng)
+
+## Purpose-built dressing: start/finish gantry (and a finish arch on stages), tyre walls or hay bales
+## on the outside of hairpins and chicanes, 3-2-1 marker boards before hairpins, sponsor boards
+## along the straights at circuits.
+func _dress_track(geo: TrackGeo, env: String, rng: RandomNumberGenerator) -> void:
+	var n := geo.pts.size()
+	var W := geo.width
+	gantries.clear()
+	_add_gantry(geo, 2, "TOP PRIX" if geo.closed else "START", true)
+	if not geo.closed: _add_gantry(geo, n - 3, "FINISH", false)
+	var secs: Array = geo.tr.secs
+	var circuit := env in ["stadium", "night", "rain"]
+	var spons: Array = Data.D.SPON.values().map(func(x): return str(x.n))
+	var cols := [Color("#c8402e"), Color("#2f5fbf"), Color("#f2b01e"), Color("#2fb34a"), Color("#e8e8e0"), Color("#9b4de8")]
+	for k in secs.size():
+		var tp: String = secs[k].type
+		var i0 := int(geo.sec_px[k] / TrackGeo.STEP)
+		var i1 := mini(n - 1, int((geo.sec_px[k] + geo.sec_len[k]) / TrackGeo.STEP))
+		var dirt: bool = not (str(secs[k].surf) in ["tar", "wet"])
+		if tp == "hp" or tp == "chi":
+			var dh := angle_difference(geo.heads[i0], geo.heads[i1])
+			var sides: Array = [-signf(dh)] if (tp == "hp" and absf(dh) > 0.3) else [-1.0, 1.0]
+			var a := i0 + (i1 - i0) / 5
+			var b := i1 - (i1 - i0) / 5
+			for side in sides:
+				for j in range(a, b, 6 if sides.size() == 1 else 9):
+					var w: Vector2 = geo.pts[j] + Vector2.from_angle(geo.heads[j] + PI / 2.0) * float(side) * (W * 0.5 + 22)
+					if _clear(geo, w, W * 0.5 + 8): props.append([w, SpriteForge.prop_texture("hay" if dirt else "tires"), 0.6])
+			if tp == "hp" and sides.size() == 1:
+				for m in 3:
+					var jm := i0 - (m + 1) * 9
+					if jm < 0:
+						if not geo.closed: continue
+						jm = posmod(jm, n)
+					var wm: Vector2 = geo.pts[jm] + Vector2.from_angle(geo.heads[jm] + PI / 2.0) * sides[0] * (W * 0.5 + 12)
+					if _clear(geo, wm, W * 0.5 + 4): props.append([wm, _marker_tex(m + 1), 1.0])
+		elif circuit and tp == "str" and not dirt:
+			var side2 := -1.0 if k % 2 == 0 else 1.0
+			for j in range(i0 + 6, i1 - 6, 34):
+				var wb := geo.pts[j] + Vector2.from_angle(geo.heads[j] + PI / 2.0) * side2 * (W * 0.5 + 14)
+				if _clear(geo, wb, W * 0.5 + 6):
+					var nm: String = spons[rng.randi() % spons.size()]
+					var bg: Color = cols[rng.randi() % cols.size()]
+					props.append([wb, SpriteForge.board_texture(nm, bg, Color("#1a1a20") if bg.get_luminance() > 0.6 else Color.WHITE), 0.8])
+				side2 = -side2
+
+func _add_gantry(geo: TrackGeo, i: int, text: String, lamps: bool) -> void:
+	var nrm := Vector2.from_angle(geo.heads[i] + PI / 2.0)
+	var half := geo.width * 0.5 + 6.0
+	gantries.append({"l": geo.pts[i] - nrm * half, "r": geo.pts[i] + nrm * half, "c": geo.pts[i], "tex": SpriteForge.banner_texture(text), "lamps": lamps})
+
+## Marker board: white post with 1-3 red stripes (distance to the corner).
+## Start / finish gantry: two posts at the road edges, the banner across them in perspective, and
+## the start lamps hanging under it (red one by one in the countdown, all green at the start).
+func _draw_gantry(g: Dictionary, ql: Vector3, qr: Vector3) -> void:
+	var fl: float = rv.FOCAL / ql.z
+	var fr: float = rv.FOCAL / qr.z
+	var tex: ImageTexture = g.tex
+	var bw: float = (g.l as Vector2).distance_to(g.r)
+	var hb: float = bw * tex.get_height() / tex.get_width()
+	var hp := 34.0
+	var post := Color("#7c8494"); var post_d := Color("#4a505e")
+	for q in [[ql, fl], [qr, fr]]:
+		var qq: Vector3 = q[0]
+		var f: float = q[1]
+		var pw := maxf(1.0, 3.0 * f)
+		draw_rect(Rect2(Vector2(qq.x - pw * 0.5, qq.y - (hp + hb) * f).round(), Vector2(pw, (hp + hb) * f).round()), post)
+		draw_rect(Rect2(Vector2(qq.x + pw * 0.15, qq.y - (hp + hb) * f).round(), Vector2(maxf(1.0, pw * 0.35), (hp + hb) * f).round()), post_d)
+	var tl := Vector2(ql.x, ql.y - (hp + hb) * fl)
+	var tr := Vector2(qr.x, qr.y - (hp + hb) * fr)
+	var br := Vector2(qr.x, qr.y - hp * fr)
+	var bl := Vector2(ql.x, ql.y - hp * fl)
+	draw_polygon(PackedVector2Array([tl, tr, br, bl]), PackedColorArray([Color.WHITE, Color.WHITE, Color.WHITE, Color.WHITE]),
+		PackedVector2Array([Vector2(0, 0), Vector2(1, 0), Vector2(1, 1), Vector2(0, 1)]), tex)
+	if not g.lamps: return
+	var lit := 0
+	var col := Color("#3a1010")
+	if rv.countdown > 0.0 and not rv.tr.drag:
+		lit = clampi(int((1.6 - rv.countdown) / 1.6 * 5.0) + 1, 1, 5)
+		col = Color("#ff3020")
+	elif rv.started and rv.race_t < 1.6:
+		lit = 5
+		col = Color("#40ff60")
+	for k in 5:
+		var u := 0.3 + k * 0.1
+		var p := bl.lerp(br, u)
+		var f2 := lerpf(fl, fr, u)
+		var ls := maxf(1.0, 4.0 * f2)
+		draw_rect(Rect2((p + Vector2(-ls * 0.5 - 1, 1)).round(), Vector2(ls + 2, ls + 2).round()), Color("#141a3a"))
+		draw_rect(Rect2((p + Vector2(-ls * 0.5, 2)).round(), Vector2(ls, ls).round()), col if k < lit else Color("#2a2030"))
+
+## Night: each car throws a pool of headlight on the road ahead of it.
+func _headlights() -> void:
+	for e in rv.ents:
+		if e.get("dnf", false): continue
+		var smp: Dictionary = rv.geo.sample(e.rprog, e.rlane)
+		var fwd := Vector2.from_angle(smp.ang)
+		var side := Vector2.from_angle(smp.ang + PI / 2.0)
+		var p0: Vector2 = smp.pos + fwd * 7.0
+		var pts := [p0 - side * 4.0, p0 + side * 4.0, smp.pos + fwd * 90.0 + side * 22.0, smp.pos + fwd * 90.0 - side * 22.0]
+		var sp := PackedVector2Array()
+		var ok := true
+		for w in pts:
+			var q := project(w as Vector2)
+			if q.z <= 0: ok = false; break
+			sp.append(Vector2(q.x, q.y))
+		if not ok: continue
+		var a := Color(1.0, 0.95, 0.7, 0.42); var b := Color(1.0, 0.95, 0.7, 0.0)
+		draw_polygon(sp, PackedColorArray([a, a, b, b]))
+
+func _marker_tex(stripes: int) -> ImageTexture:
+	var img := Image.create(8, 22, false, Image.FORMAT_RGBA8)
+	img.fill_rect(Rect2i(3, 10, 2, 12), SpriteForge.snes(Color("#8a90a0")))
+	img.fill_rect(Rect2i(0, 0, 8, 11), SpriteForge.snes(Color("#f2f2ee")))
+	img.fill_rect(Rect2i(0, 0, 8, 1), SpriteForge.snes(Color("#c8ccd8")))
+	for k in stripes: img.fill_rect(Rect2i(1, 2 + k * 3, 6, 2), SpriteForge.snes(Color("#d8402e")))
+	return ImageTexture.create_from_image(img)
 
 func _clear(geo: TrackGeo, w: Vector2, r: float) -> bool:
 	var r2 := r * r
@@ -130,8 +282,21 @@ func _draw() -> void:
 		var sz0: float = pf[4] * (1.0 + f * 1.6) * rv.FOCAL / q0.z
 		var lift0: float = (2.0 + f * 8.0) * rv.FOCAL / q0.z
 		var cc: Color = pf[3]
-		cc.a = 0.75 * (1.0 - f)
-		items.append([q0.z + 0.5, null, Rect2(), Rect2(Vector2(q0.x - sz0 * 0.5, q0.y - lift0 - sz0 * 0.5).round(), Vector2(maxf(1.0, sz0), maxf(1.0, sz0 * 0.8)).round()), false, cc])
+		var flame: bool = pf.size() > 6 and pf[6]
+		if flame:
+			lift0 = 3.0 * rv.FOCAL / q0.z
+			sz0 = pf[4] * rv.FOCAL / q0.z * (1.0 - f * 0.4)
+		cc.a = (1.0 if flame else 0.75) * (1.0 - f)
+		var pr := Rect2(Vector2(q0.x - sz0 * 0.5, q0.y - lift0 - sz0 * 0.5).round(), Vector2(maxf(1.0, sz0), maxf(1.0, sz0 * 0.8)).round())
+		items.append([q0.z - 0.02 if flame else q0.z + 0.5, null, Rect2(), pr, false, cc])
+		if flame: items.append([q0.z - 0.03, null, Rect2(), pr.grow(-maxf(0.0, pr.size.x * 0.3)), false, Color(1, 1, 0.85, cc.a)])
+	for g in gantries:
+		var ql := project(g.l)
+		var qr := project(g.r)
+		if ql.z <= 0 or qr.z <= 0 or minf(ql.z, qr.z) > far: continue
+		if maxf(ql.x, qr.x) < -8 or minf(ql.x, qr.x) > rv.VIEW.x + 8: continue
+		items.append([(ql.z + qr.z) * 0.5, "fn", _draw_gantry.bind(g, ql, qr)])
+	if night: _headlights()
 	var cell := Vector2(SpriteForge.VCELL)
 	for e in rv.ents:
 		if e.get("dnf", false) and not e.get("crash_show", false) and e.get("retired", false): continue
@@ -153,6 +318,9 @@ func _draw() -> void:
 		items.append([q.z - 0.01, tex, Rect2(fr * cell.x, pose * cell.y, cell.x, cell.y), Rect2(pos.round(), sz.round()), true, lift, q, s, e])
 	items.sort_custom(func(a, b): return a[0] > b[0])
 	for it in items:
+		if it[1] is String:
+			(it[2] as Callable).call()
+			continue
 		if it[4]:
 			var q2: Vector3 = it[6]
 			var s2: float = it[7]
