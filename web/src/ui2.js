@@ -63,7 +63,7 @@ UI.carbHTML = v=>{
     ${!wb?`<div class="row" style="margin-top:4px"><span class="plug" style="background:${T.plug(ev.lam.wot)[1]}"></span><span class="sub">Plug chop (WOT): <b>${T.plug(ev.lam.wot)[0]}</b></span></div>`:''}
     <div class="sub">${T.symptoms(ev,v.eng.fuel==='efi').map(x=>'• '+x).join('<br>')}</div></div>`;
   h+=`<div class="sec-h">${U.esc(C.n)} ${n>1?`×${n}`:''}</div>`;
-  for(const p of C.p){const val=e.jets[p.k];h+=UI.stepper('jet',p.n,(p.k==='clip'?'#':'')+val+(p.u||''),p.d||'',v.status!=='ready',`data-k="${p.k}"`);}
+  for(const p of C.p){const val=e.jets[p.k]!=null?e.jets[p.k]:p.stock;h+=UI.stepper('jet',p.n,(p.k==='clip'?'#':'')+val+(p.u||''),p.d||'',v.status!=='ready',`data-k="${p.k}"`);}
   h+=UI.stepper('timing','Ignition advance',(e.timing>0?'+':'')+e.timing+'°',T.mode()==='sim'?'Base timing vs. stock':'More advance = more power until it knocks. Hot days & pump gas knock sooner.',v.status!=='ready');
   h+=`<div class="grid2" style="margin-top:6px">${T.mode()==='standard'&&T.has('crewchief')?`<button class="btn" data-a="crewTune">👷 Crew tune ${U.money(T.crewCost())}</button>`:''}<button class="btn gray" data-a="stockJets">Reset to stock</button></div>`;
   if(n>1)h+=UI.syncHTML(v);
@@ -79,7 +79,7 @@ UI.dynoHTML = v=>{const has=E.facLv('dyno')>0;const d=Bench.s.dyno;
 UI.logHTML = log=>{let h=`<div class="sec-h">📋 Last datalog</div><div class="card"><div class="sub">${U.esc(log.src)} · ${E.dateStr(log.d)} · ${U.esc(log.cond)}</div><div class="ztab">`;
   for(const z of[...D.ZONES,'trans']){const lam=log.lam[z];const tz=z==='trans'?'low':z;const[l,col]=T.zoneLabel(lam,tz);h+=`<div><span class="zn">${z==='trans'?'Snap':D.ZONE_N[z]}</span><b style="color:${col}">${log.wb?(lam*14.7).toFixed(1):l}</b>${(log.kd[z]||0)>0.3?'<span class="bd"> knock</span>':''}</div>`;}
   return h+`</div></div>`;};
-UI.A.jet = d=>{const v=E.veh(UI.sel.vid);const C=D.CARBS[v.eng.carb];const p=C.p.find(x=>x.k===d.k);v.eng.jets[p.k]=+U.clamp(v.eng.jets[p.k]+(+d.dir)*p.step,p.min,p.max).toFixed(2);E.ach('jet1');UI.checkSpot(v);};
+UI.A.jet = d=>{const v=E.veh(UI.sel.vid);const C=D.CARBS[v.eng.carb];const p=C.p.find(x=>x.k===d.k);v.eng.jets[p.k]=+U.clamp((v.eng.jets[p.k]!=null?v.eng.jets[p.k]:p.stock)+(+d.dir)*p.step,p.min,p.max).toFixed(2);E.ach('jet1');UI.checkSpot(v);};
 UI.A.timing = d=>{const v=E.veh(UI.sel.vid);v.eng.timing=U.clamp(v.eng.timing+(+d.dir),-6,8);};
 UI.A.stockJets = ()=>{const v=E.veh(UI.sel.vid);T.stockJets(v);v.eng.timing=0;};
 UI.A.crewTune = ()=>{const v=E.veh(UI.sel.vid);const c=T.crewCost();if(G.money<c){UI.toast('Not enough money');return;}G.money-=c;T.crewTune(v,UI.cond(),0.96);UI.toast('Crew tuned it for '+UI.cond().name);};

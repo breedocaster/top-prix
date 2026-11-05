@@ -88,7 +88,7 @@ Bench.drawDown = (c,v,ev,C,j,thr,lam,snap,t,dt)=>{
   BP(c,bx+6,lvl-5,22,5,'#d7c78a');BP(c,bx+bw-6,by-4,3,6,'#777');BP(c,bx+bw,by,10,3,'#5b3a1a');Bench.txt(c,`level ${(j.float||0)>0?'+':''}${j.float||0}mm`,bx,by+bh+1,'#ffd84a');
   // metering block & jets
   BP(c,106,34,6,40,'#8d959d');const mainP=C.p[0];const mw=U.clamp(Math.round(2+(j.main/mainP.stock-1)*12),1,5);BP(c,107,64,4,4,'#c8a24a');BP(c,109-mw/2,64,mw,4,'#1a1206');
-  Bench.txt(c,`pri #${j.main}`,112,72,'#ffd84a');if(j.sec!=null)Bench.txt(c,`sec #${j.sec}`,112,78,'#ffd84a');
+  Bench.txt(c,`pri #${j.main}`,112,72,'#ffd84a');if(j.sec!=null)Bench.txt(c,`sec #${j.sec}`,112,78,'#ffd84a');if(j.hsab!=null)Bench.txt(c,`hsab ${j.hsab}`,112,90,'#ffd84a');if(j.pilot!=null)Bench.txt(c,`IFR ${j.pilot}`,3,82,'#ffd84a');
   if(j.pv!=null){BP(c,107,48,4,6,pvOpen?'#8ef58e':'#b05050');Bench.txt(c,`PV ${j.pv}" ${pvOpen?'OPEN':'shut'}`,112,84,pvOpen?'#8ef58e':'#ff9a9a');}
   // pump
   if(j.pump!=null){BP(c,40,86,30,6,'#7a6a4a');BP(c,44,84,22,2,'#5a4a2a');Bench.txt(c,`squirter #${j.pump}`,4,86,'#ffd84a');

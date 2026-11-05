@@ -14,6 +14,9 @@ var sel_d = null
 var picks: Array = []         # [{"v": vehicle id, "d": driver id}] one per team car
 var cur := 0
 var tactic := "normal"
+## Last start per race class (car / bike / any): the cars, drivers and tactic come back next time
+## (machines or drivers that are busy or tired are swapped for the next best automatically).
+static var _last := {}
 var _map: TrackMini
 
 func _init_page() -> void:
@@ -24,6 +27,12 @@ func _init_page() -> void:
 	set_title(r.n)
 	tactic = str(ctx.get("tactic", "normal"))
 	fmt_id = str(ctx.get("fmt", ""))
+	var mem: Dictionary = _last.get(_mem_key(r), {})
+	if not mem.is_empty():
+		picks = (mem.picks as Array).duplicate(true)
+		if not ctx.has("tactic"): tactic = str(mem.tactic)
+
+static func _mem_key(r: Dictionary) -> String: return "%s|%s" % [str(Career.G.team.get("name", "")), str(r.cls)]
 
 func _on_back() -> bool:
 	if sid == null: return true
@@ -345,6 +354,7 @@ func _go() -> void:
 			if router: router._on_toast("%s is too tired" % s.name)
 			return
 		ens.append([pk.v, pk.d])
+	_last[_mem_key(Data.D.RACE[rid])] = {"picks": picks.duplicate(true), "tactic": tactic}
 	var c := {"rid": rid, "vid": ens[0][0], "drv": ens[0][1], "tactic": tactic, "sid": sid, "fmt": fmt_id}
 	if ens.size() > 1: c.entries = ens
 	if router: router.replace("race", c)

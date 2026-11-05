@@ -700,6 +700,8 @@ D.RIVALS = [
 ];
 
 D.TEAM_COLORS = ['#e8432f','#2f7de8','#2fb34a','#f2b01e','#9b4de8','#ff7f2a','#1fc6c6','#e84393'];
+// every colour a team can pick (first 8 = the original set, kept first so old saves look the same)
+D.TEAM_COLORS_ALL = [...D.TEAM_COLORS,'#8a1f2e','#2a3a9a','#1f7a5a','#9ad81e','#c8a02a','#c86ad8','#d8dce8','#3a3f4a'];
 
 D.MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
 D.DAYS_MONTH = 28; D.DAYS_YEAR = 336; D.YEARS = 15;
@@ -731,6 +733,7 @@ D.CARBS = {
     p:[{k:'main',n:'Main jet',min:100,max:170,step:2.5,stock:130,t:'jet',w:{idle:0,low:0.08,mid:0.3,wot:1}},
        {k:'pilot',n:'Pilot jet',min:25,max:50,step:2.5,stock:40,t:'jet',w:{idle:1,low:0.7,mid:0.2,wot:0.08}},
        {k:'clip',n:'Needle clip',min:1,max:5,step:1,stock:3,t:'clip',w:{idle:0,low:0.035,mid:0.07,wot:0.02},d:'Lower groove (higher #) raises the needle = richer midrange'},
+       {k:'cut',n:'Slide cutaway',min:1.5,max:4.5,step:0.5,stock:2.5,t:'lin',w:{idle:-0.02,low:-0.06,mid:-0.015,wot:0},u:' mm',d:'Bigger cutaway = leaner just off idle (1/8-1/4 throttle)'},
        {k:'screw',n:'Air screw',min:0.5,max:3.5,step:0.25,stock:1.5,t:'lin',w:{idle:-0.07,low:-0.025,mid:0,wot:0},u:' turns',d:'Air screw: turning OUT leans the pilot circuit'},
        {k:'float',n:'Fuel level',min:-3,max:3,step:0.5,stock:0,t:'lin',w:{idle:0.035,low:0.03,mid:0.02,wot:0.015},u:' mm',d:'Higher fuel level = richer everywhere. Too low starves on jumps; too high floods on rough ground'}]},
   cv:{n:'CV 32 (BS-style)',cls:'bike',kind:'cv',trans:0.97,pw:0.99,un:'S',
@@ -743,6 +746,7 @@ D.CARBS = {
     p:[{k:'main',n:'Main jet',min:100,max:160,step:2.5,stock:125,t:'jet',w:{idle:0,low:0.08,mid:0.3,wot:1}},
        {k:'pilot',n:'Pilot jet',min:30,max:50,step:2.5,stock:40,t:'jet',w:{idle:1,low:0.7,mid:0.2,wot:0.08}},
        {k:'clip',n:'Needle clip',min:1,max:5,step:1,stock:3,t:'clip',w:{idle:0,low:0.035,mid:0.07,wot:0.02}},
+       {k:'cut',n:'Slide cutaway',min:2.5,max:6,step:0.5,stock:3.5,t:'lin',w:{idle:-0.02,low:-0.06,mid:-0.015,wot:0},u:' mm',d:'Bigger cutaway = leaner just off idle (1/8-1/4 throttle)'},
        {k:'screw',n:'Air screw',min:0.5,max:3.5,step:0.25,stock:1.5,t:'lin',w:{idle:-0.07,low:-0.025,mid:0,wot:0},u:' turns',d:'Air screw: OUT = leaner'},
        {k:'float',n:'Fuel level',min:-3,max:3,step:0.5,stock:0,t:'lin',w:{idle:0.035,low:0.03,mid:0.02,wot:0.015},u:' mm'}]},
   fcr:{n:'Flat-Slide Pumper 39 (FCR-style)',cls:'bike',kind:'flat',trans:1,pw:1.045,un:'fcr',
@@ -754,6 +758,7 @@ D.CARBS = {
        {k:'pump',n:'Accel pump shot',min:50,max:160,step:10,stock:100,t:'pump',u:'%',d:'Squirt on a throttle snap — cures the lean bog off hairpins'}]},
   d2:{n:'Downdraft 2-Barrel 350',cls:'car',kind:'down',barrels:2,trans:0.95,pw:1,un:'S',
     p:[{k:'main',n:'Main jets',min:56,max:80,step:1,stock:66,t:'jet',w:{idle:0,low:0.15,mid:0.8,wot:1}},
+       {k:'pilot',n:'Idle feed restrictors',min:26,max:38,step:1,stock:31,t:'jet',w:{idle:1,low:0.7,mid:0.15,wot:0.03},u:' thou',d:'The idle jets: bigger = richer idle and off-idle transfer'},
        {k:'pv',n:'Power valve',min:2.5,max:10.5,step:1,stock:6.5,t:'pv',u:' inHg',d:'Higher rating opens sooner = richer under part-throttle load'},
        {k:'screw',n:'Idle mixture screws',min:0.5,max:3,step:0.25,stock:1.5,t:'lin',w:{idle:0.07,low:0.03,mid:0,wot:0},u:' turns',d:'OUT = richer idle'},
        {k:'float',n:'Fuel level',min:-3,max:3,step:0.5,stock:0,t:'lin',w:{idle:0.03,low:0.025,mid:0.02,wot:0.015},u:' mm'},
@@ -761,7 +766,9 @@ D.CARBS = {
   q4:{n:'Downdraft 4-Barrel 600',cls:'car',kind:'down',barrels:4,trans:0.96,pw:1.05,un:'carb4',
     p:[{k:'main',n:'Primary jets',min:56,max:80,step:1,stock:65,t:'jet',w:{idle:0,low:0.15,mid:0.85,wot:0.5}},
        {k:'sec',n:'Secondary jets',min:60,max:90,step:1,stock:74,t:'jet',w:{idle:0,low:0,mid:0.05,wot:0.5}},
+       {k:'pilot',n:'Idle feed restrictors',min:26,max:38,step:1,stock:31,t:'jet',w:{idle:1,low:0.7,mid:0.15,wot:0.03},u:' thou',d:'The idle jets: bigger = richer idle and off-idle transfer'},
        {k:'pv',n:'Power valve',min:2.5,max:10.5,step:1,stock:6.5,t:'pv',u:' inHg'},
+       {k:'hsab',n:'High-speed air bleeds',min:22,max:34,step:1,stock:28,t:'airc',u:' thou',d:'Bigger bleed = leaner main circuit as airflow climbs (top end)'},
        {k:'screw',n:'Idle mixture screws',min:0.5,max:3,step:0.25,stock:1.5,t:'lin',w:{idle:0.07,low:0.03,mid:0,wot:0},u:' turns'},
        {k:'float',n:'Fuel level',min:-3,max:3,step:0.5,stock:0,t:'lin',w:{idle:0.03,low:0.025,mid:0.02,wot:0.015},u:' mm'},
        {k:'pump',n:'Pump squirter',min:22,max:40,step:3,stock:31,t:'pump',u:''}]},
@@ -937,6 +944,7 @@ D.ACH = [
  {id:'win50',n:'Fifty Up',d:'Win 50 races',ic:'🏆',chk:G=>G.st.wins>=50,rw:{cash:500,spark:'s'}},
  {id:'win150',n:'Dynasty',d:'Win 150 races',ic:'👑',chk:G=>G.st.wins>=150,rw:{cash:2000,spark:'g'}},
  {id:'hat',n:'Hat Trick',d:'Win 3 races in a row',ic:'🎩',rw:{rp:40}},
+ {id:'onetwo',n:'One-Two',d:'Your team takes 1st and 2nd in one race',ic:'🥇',rw:{rp:60,spark:'b'}},
  {id:'title1',n:'Champions!',d:'Win a series title',ic:'🏆',chk:G=>G.st.titles.length>=1,rw:{cash:100,spark:'s'}},
  {id:'title5',n:'Trophy Cabinet',d:'Win 5 series titles',ic:'🏆',chk:G=>G.st.titles.length>=5,rw:{cash:500}},
  {id:'world',n:'World Champions',d:'Win a World-tier series',ic:'🌍',chk:G=>G.st.titles.some(t=>D.SER[t].tier===4),rw:{cash:3000,spark:'g'}},
@@ -1037,6 +1045,8 @@ T.initEng = (v,sys)=>{
   return e;
 };
 T.stockJets = v=>{const C=D.CARBS[v.eng.carb];v.eng.jets={};for(const p of C.p)v.eng.jets[p.k]=p.stock;};
+// saves from before a carb gained a part (idle feed restrictors, cutaway...) get the stock part
+T.fillJets = v=>{const e=v.eng;if(!e||e.fuel!=='carb'||!D.CARBS[e.carb])return;e.jets=e.jets||{};for(const p of D.CARBS[e.carb].p)if(e.jets[p.k]==null)e.jets[p.k]=p.stock;};
 T.initEFI = v=>{
   const tv=T.trueVE(v);const rng=U.seeded(v.id*977+3);
   v.eng.efi={ve:tv.map(r=>r.map(x=>Math.round(x*(1+(rng()*2-1)*0.11)))),ign:[],afr:D.LOAD_B.map((l,j)=>D.RPM_B.car.map(()=>D.AFR_DEF[j])),ae:100,edits:0};
@@ -1176,7 +1186,7 @@ T.err = (v,cond)=>{let s=0;const hill=cond.alt2!==cond.alt;const pts=hill?[0,0.5
   return s;};
 T.crewTune = (v,cond,q=0.97)=>{
   const e=v.eng;if(!e||e.fuel==='none')return;
-  if(e.fuel==='carb'){const C=D.CARBS[e.carb];e.jets.float=0;
+  if(e.fuel==='carb'){const C=D.CARBS[e.carb];T.fillJets(v);e.jets.float=0;
     for(let it=0;it<4;it++)for(const p of C.p){if(p.k==='float')continue;let best=e.jets[p.k],bs=T.err(v,cond);
       for(let x=p.min;x<=p.max+1e-9;x+=p.step){e.jets[p.k]=+x.toFixed(2);const s=T.err(v,cond);if(s<bs-1e-9){bs=s;best=e.jets[p.k];}}e.jets[p.k]=best;}
     // timing: as far as safe
@@ -1726,7 +1736,7 @@ E.serialize = ()=>JSON.stringify(G);
 E.load = (str)=>{const o=typeof str==='string'?JSON.parse(str):str;if(!o||o.v!==1||!o.team)throw new Error('bad save');G=o;
   G.settings=Object.assign({speed:1,autoRetire:true,sound:true,mode:'standard'},G.settings||{});G.st.wc=G.st.wc||{};G.year=G.year||{wins:0,podiums:0,earn:0,titles:0};
   G.tech=G.tech||{carbbasic:1};G.ach=G.ach||{};G.st.tests=G.st.tests||0;G.st.streak=G.st.streak||0;G.st.cells=G.st.cells||0;
-  for(const v of G.vehicles){if(!v.eng)T.initEng(v,null);if(!v.setup)v.setup=T.defaultSetup(v);}for(const j of G.jobs)j.asked=false;return G;};
+  for(const v of G.vehicles){if(!v.eng)T.initEng(v,null);T.fillJets(v);if(!v.setup)v.setup=T.defaultSetup(v);}for(const j of G.jobs)j.asked=false;return G;};
 
 // ===================== STAGED BUILD PROCESS =====================
 D.BPH = ['design','frame','engine','drive','susp','body','elec','shake'];
@@ -2500,7 +2510,7 @@ Bench.drawDown = (c,v,ev,C,j,thr,lam,snap,t,dt)=>{
   BP(c,bx+6,lvl-5,22,5,'#d7c78a');BP(c,bx+bw-6,by-4,3,6,'#777');BP(c,bx+bw,by,10,3,'#5b3a1a');Bench.txt(c,`level ${(j.float||0)>0?'+':''}${j.float||0}mm`,bx,by+bh+1,'#ffd84a');
   // metering block & jets
   BP(c,106,34,6,40,'#8d959d');const mainP=C.p[0];const mw=U.clamp(Math.round(2+(j.main/mainP.stock-1)*12),1,5);BP(c,107,64,4,4,'#c8a24a');BP(c,109-mw/2,64,mw,4,'#1a1206');
-  Bench.txt(c,`pri #${j.main}`,112,72,'#ffd84a');if(j.sec!=null)Bench.txt(c,`sec #${j.sec}`,112,78,'#ffd84a');
+  Bench.txt(c,`pri #${j.main}`,112,72,'#ffd84a');if(j.sec!=null)Bench.txt(c,`sec #${j.sec}`,112,78,'#ffd84a');if(j.hsab!=null)Bench.txt(c,`hsab ${j.hsab}`,112,90,'#ffd84a');if(j.pilot!=null)Bench.txt(c,`IFR ${j.pilot}`,3,82,'#ffd84a');
   if(j.pv!=null){BP(c,107,48,4,6,pvOpen?'#8ef58e':'#b05050');Bench.txt(c,`PV ${j.pv}" ${pvOpen?'OPEN':'shut'}`,112,84,pvOpen?'#8ef58e':'#ff9a9a');}
   // pump
   if(j.pump!=null){BP(c,40,86,30,6,'#7a6a4a');BP(c,44,84,22,2,'#5a4a2a');Bench.txt(c,`squirter #${j.pump}`,4,86,'#ffd84a');
@@ -3057,7 +3067,7 @@ UI.carbHTML = v=>{
     ${!wb?`<div class="row" style="margin-top:4px"><span class="plug" style="background:${T.plug(ev.lam.wot)[1]}"></span><span class="sub">Plug chop (WOT): <b>${T.plug(ev.lam.wot)[0]}</b></span></div>`:''}
     <div class="sub">${T.symptoms(ev,v.eng.fuel==='efi').map(x=>'• '+x).join('<br>')}</div></div>`;
   h+=`<div class="sec-h">${U.esc(C.n)} ${n>1?`×${n}`:''}</div>`;
-  for(const p of C.p){const val=e.jets[p.k];h+=UI.stepper('jet',p.n,(p.k==='clip'?'#':'')+val+(p.u||''),p.d||'',v.status!=='ready',`data-k="${p.k}"`);}
+  for(const p of C.p){const val=e.jets[p.k]!=null?e.jets[p.k]:p.stock;h+=UI.stepper('jet',p.n,(p.k==='clip'?'#':'')+val+(p.u||''),p.d||'',v.status!=='ready',`data-k="${p.k}"`);}
   h+=UI.stepper('timing','Ignition advance',(e.timing>0?'+':'')+e.timing+'°',T.mode()==='sim'?'Base timing vs. stock':'More advance = more power until it knocks. Hot days & pump gas knock sooner.',v.status!=='ready');
   h+=`<div class="grid2" style="margin-top:6px">${T.mode()==='standard'&&T.has('crewchief')?`<button class="btn" data-a="crewTune">👷 Crew tune ${U.money(T.crewCost())}</button>`:''}<button class="btn gray" data-a="stockJets">Reset to stock</button></div>`;
   if(n>1)h+=UI.syncHTML(v);
@@ -3073,7 +3083,7 @@ UI.dynoHTML = v=>{const has=E.facLv('dyno')>0;const d=Bench.s.dyno;
 UI.logHTML = log=>{let h=`<div class="sec-h">📋 Last datalog</div><div class="card"><div class="sub">${U.esc(log.src)} · ${E.dateStr(log.d)} · ${U.esc(log.cond)}</div><div class="ztab">`;
   for(const z of[...D.ZONES,'trans']){const lam=log.lam[z];const tz=z==='trans'?'low':z;const[l,col]=T.zoneLabel(lam,tz);h+=`<div><span class="zn">${z==='trans'?'Snap':D.ZONE_N[z]}</span><b style="color:${col}">${log.wb?(lam*14.7).toFixed(1):l}</b>${(log.kd[z]||0)>0.3?'<span class="bd"> knock</span>':''}</div>`;}
   return h+`</div></div>`;};
-UI.A.jet = d=>{const v=E.veh(UI.sel.vid);const C=D.CARBS[v.eng.carb];const p=C.p.find(x=>x.k===d.k);v.eng.jets[p.k]=+U.clamp(v.eng.jets[p.k]+(+d.dir)*p.step,p.min,p.max).toFixed(2);E.ach('jet1');UI.checkSpot(v);};
+UI.A.jet = d=>{const v=E.veh(UI.sel.vid);const C=D.CARBS[v.eng.carb];const p=C.p.find(x=>x.k===d.k);v.eng.jets[p.k]=+U.clamp((v.eng.jets[p.k]!=null?v.eng.jets[p.k]:p.stock)+(+d.dir)*p.step,p.min,p.max).toFixed(2);E.ach('jet1');UI.checkSpot(v);};
 UI.A.timing = d=>{const v=E.veh(UI.sel.vid);v.eng.timing=U.clamp(v.eng.timing+(+d.dir),-6,8);};
 UI.A.stockJets = ()=>{const v=E.veh(UI.sel.vid);T.stockJets(v);v.eng.timing=0;};
 UI.A.crewTune = ()=>{const v=E.veh(UI.sel.vid);const c=T.crewCost();if(G.money<c){UI.toast('Not enough money');return;}G.money-=c;T.crewTune(v,UI.cond(),0.96);UI.toast('Crew tuned it for '+UI.cond().name);};

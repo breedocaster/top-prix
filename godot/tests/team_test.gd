@@ -13,12 +13,12 @@ func run(runner) -> void:
 	r = runner
 	ok(Career.load_json(FileAccess.get_file_as_string("res://tests/fixtures/web_save.json")), "load web save")
 	var G := Career.G
-	var cars: Array = G.vehicles.filter(func(v): return v.body in ["hothatch", "mx250f"])
-	ok(cars.size() == 2, "fixture has a car and a bike")
+	var cars := _pair()
+	ok(cars.size() == 2, "fixture has two machines of one class")
 	var drv: Array = Career.drivers().slice(0, 2)
 	ok(drv.size() == 2, "fixture has two drivers")
 	ok(Career.entryCap() >= 2 and not Career.multiEntryOk({"kind": "drag"}), "entry cap %d, drag ladder single" % Career.entryCap())
-	var any_races: Array = Data.D.RACES.filter(func(x): return x.cls == "any")
+	var any_races: Array = Data.D.RACES.filter(func(x): return Career.clsOk(x, cars[0]) and Career.clsOk(x, cars[1]))
 	var pick := func(kind: String, runs := 1) -> Dictionary:
 		for x in any_races:
 			for f in Data.formats(x.id):
@@ -80,7 +80,37 @@ func run(runner) -> void:
 			if hs[0].fin or hs[1].fin or hs[0].dnf or hs[1].dnf: continue
 			if absf(float(hs[0].lat) - float(hs[1].lat)) < 0.5 and absf(rs._gap(hs[0].prog, hs[1].prog)) < RaceSim.CAR_LEN * 0.9: overlap += 1
 		ok(rs.tt and overlap < 5, "versus time trial: humans share the road (%d overlapping steps)" % overlap)
+	_old_save_migration()
 	await _render(cars, drv)
+
+## Two raceable machines of the same class (fixture saves change when the web bot is re-run).
+func _pair() -> Array:
+	var by := {}
+	for v in Career.G.vehicles:
+		if v.status == "build" or not (v.get("eng") is Dictionary): continue
+		var c: String = Data.D.BODY[v.body].cls
+		if not by.has(c): by[c] = []
+		by[c].append(v)
+	for c in by:
+		if by[c].size() >= 2: return by[c].slice(0, 2)
+	return []
+
+## A save from before carbs gained idle feed restrictors / air bleeds / cutaways loads with stock parts.
+func _old_save_migration() -> void:
+	var G := Career.G
+	var v: Dictionary = G.vehicles[0]
+	var swaps := {"car": ["q4", ["pilot", "hsab"]], "bike": ["pwk", ["cut"]]}
+	var sw: Array = swaps[Data.D.BODY[v.body].cls]
+	v.eng.fuel = "carb"; v.eng.carb = sw[0]
+	Tune.stockJets(v)
+	for k in sw[1]: v.eng.jets.erase(k)
+	ok(Career.load_json(Career.serialize()), "reload a save missing the new carb parts")
+	var v2: Dictionary = Career.G.vehicles[0]
+	var C: Dictionary = Data.D.CARBS[sw[0]]
+	for p in C.p:
+		if p.k in sw[1]: ok(v2.eng.jets.get(p.k) != null and is_equal_approx(float(v2.eng.jets[p.k]), float(p.stock)), "%s %s back at stock %s" % [sw[0], p.k, str(p.stock)])
+	Career.adjJet(v2.id, sw[1][0], 1)
+	ok(float(v2.eng.jets[sw[1][0]]) > float(C.p.filter(func(x): return x.k == sw[1][0])[0].stock), "new part adjusts on the bench")
 
 func _reset(cars: Array, drv: Array) -> void:
 	for v in cars:
@@ -89,10 +119,12 @@ func _reset(cars: Array, drv: Array) -> void:
 	for s in drv: s.energy = s.maxE
 	Career.G.jobs = Career.G.jobs.filter(func(j): return j.type != "rep")
 
-func _render(cars: Array, drv: Array) -> void:
+func _render(_cars: Array, _drv: Array) -> void:
 	if DisplayServer.get_name() == "headless": return
+	var cars := _pair()          # the save was reloaded: fetch the live dictionaries
+	var drv: Array = Career.drivers().slice(0, 2)
 	_reset(cars, drv)
-	var mass: Array = Data.D.RACES.filter(func(x): return x.cls == "any" and Data.formats(x.id)[0].kind == "mass")
+	var mass: Array = Data.D.RACES.filter(func(x): return Career.clsOk(x, cars[0]) and Career.clsOk(x, cars[1]) and Data.formats(x.id)[0].kind == "mass")
 	var f := Career.startRace(mass[0].id, cars[0].id, drv[0].id, "normal", null, "", {"entries": [[cars[0].id, drv[0].id], [cars[1].id, drv[1].id]]})
 	r.main._open_race(func(rv): rv.start_sim(f.rs, "local", 1))
 	var rv: RaceView = r.main.race_view
@@ -123,11 +155,64 @@ func _render(cars: Array, drv: Array) -> void:
 	rv._skip()
 	await r.get_tree().create_timer(1.5).timeout
 	await _career_flow(mass[0].id)
+	await _qol()
+
+## Quality-of-life checks: team colour pickers, back button in the menus, race speed memory.
+func _qol() -> void:
+	var m = r.main
+	m.new_team_screen("free", "")
+	await _frames(2)
+	ok(await _press(m, "col_2f7de8"), "new team: colour swatch found")
+	ok(str(m._nt.col) == "#2f7de8", "new team: picking a colour sticks (%s)" % str(m._nt.col))
+	ok(await _press(m, "col_3a3f4a"), "new team: second-row colour swatch")
+	ok(str(m._nt.col) == "#3a3f4a", "new team: extended palette colour (%s)" % str(m._nt.col))
+	await r.shot("team_new_colours")
+	# back button: quick race -> title
+	m.quick_screen()
+	await _frames(2)
+	m._go_back()
+	await _frames(2)
+	ok(CareerKit.find_button(m, "story") != null, "back from Quick Race lands on the title")
+	# career settings: rename + recolour mid-career
+	m.career_screen()
+	await _frames(4)
+	var cs = m.career
+	var st = cs.open("settings")
+	await _frames(3)
+	ok(await _press(cs.top(), "col_9ad81e"), "settings: team colour swatch")
+	ok(str(Career.G.team.color) == "#9ad81e", "settings: team colour changed (%s)" % str(Career.G.team.color))
+	var le: LineEdit = _find_line_edit(cs.top())
+	if le:
+		le.text = "Lime Time Racing"
+		ok(await _press(cs.top(), "rename"), "settings: rename button")
+		ok(str(Career.G.team.name) == "Lime Time Racing", "settings: team renamed")
+	await r.shot("team_settings")
+	# race speed is remembered between local races
+	Game.player.race_speed = 1.0
+	var rs := RaceSim.create(Data.race("c1a"), [Game.make_entry(Game.presets()[4], RaceSim.build_track(Data.race("c1a"), false), 1, "T", "me", "#e8432f")], {})
+	m._open_race(func(rv): rv.start_sim(rs, "local", 1))
+	await _frames(2)
+	m.race_view._toggle_speed()
+	ok(float(Game.player.race_speed) == 2.0, "speed choice saved")
+	var rs2 := RaceSim.create(Data.race("c1a"), [Game.make_entry(Game.presets()[4], RaceSim.build_track(Data.race("c1a"), false), 1, "T", "me", "#e8432f")], {})
+	m._open_race(func(rv): rv.start_sim(rs2, "local", 1))
+	await _frames(2)
+	ok(m.race_view.speed == 2.0, "next race starts at the saved speed")
+	m.race_view.set_speed(1.0)
+	m.title_screen()
+	await _frames(2)
+
+func _find_line_edit(n: Node) -> LineEdit:
+	if n is LineEdit: return n
+	for c in n.get_children():
+		var x := _find_line_edit(c)
+		if x: return x
+	return null
 
 ## Garage UI: prerace -> + ADD CAR -> start -> race screen with both cars -> results window.
 func _career_flow(rid: String) -> void:
 	ok(Career.load_json(FileAccess.get_file_as_string("res://tests/fixtures/web_save.json")), "reload web save")
-	var cars: Array = Career.G.vehicles.filter(func(v): return v.body in ["hothatch", "mx250f"])
+	var cars := _pair()
 	_reset(cars, Career.drivers().slice(0, 2))
 	Career.G.jobs = []          # no build-decision windows over the screens we look at
 	r.main.career_screen()

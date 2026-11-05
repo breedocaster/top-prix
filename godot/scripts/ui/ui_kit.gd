@@ -412,6 +412,45 @@ static func window(child: Control, kind := "window") -> PanelContainer:
 	p.add_child(child)
 	return p
 
+## Team-colour picker: two rows of swatches (Data.D.TEAM_COLORS_ALL), the picked one framed in gold
+## with a check. cb(hex). Used by new team, Profile and career Settings.
+static func swatches(cur: String, cb: Callable, tid_prefix := "col_") -> VBoxContainer:
+	var all: Array = Data.D.get("TEAM_COLORS_ALL", Data.D.TEAM_COLORS)
+	var box := vbox(3)
+	var row: HBoxContainer = null
+	for i in all.size():
+		if i % 8 == 0:
+			row = hbox(3)
+			box.add_child(row)
+		var hex: String = all[i]
+		var on: bool = hex.to_lower() == cur.to_lower()
+		var b := Button.new()
+		b.focus_mode = Control.FOCUS_NONE
+		b.text = "" 
+		b.custom_minimum_size = Vector2(26, 24)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		style_btn(b, Color(hex))
+		b.add_theme_color_override("font_color", Color.WHITE if Color(hex).get_luminance() < 0.6 else OUTLINE)
+		b.set_meta("tid", tid_prefix + hex.trim_prefix("#"))
+		b.pressed.connect(func(): cb.call(hex))      # a lambda, not bind(): chained binds reverse the arguments
+		if on:
+			# picked: a gold ring around the swatch plus a small white pip in the middle
+			var holder := PanelContainer.new()
+			holder.add_theme_stylebox_override("panel", frame_new("card_gold", 2, 2, 2, 2))
+			holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			b.custom_minimum_size = Vector2(22, 20)
+			holder.add_child(b)
+			var pip := ColorRect.new()
+			pip.color = Color.WHITE if Color(hex).get_luminance() < 0.7 else OUTLINE
+			pip.custom_minimum_size = Vector2(6, 6)
+			pip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+			pip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			holder.add_child(pip)
+			row.add_child(holder)
+		else: row.add_child(b)
+	return box
+
 ## Music / sound effects / engine volume sliders (Game.player.*_vol, applied live, saved with the profile).
 ## Used by the title Profile page, career Settings and the race screen's VOL panel.
 const VOLUMES := [["Music", "music_vol", 0.6], ["Sound effects", "sfx_vol", 0.8], ["Engines", "engine_vol", 0.8]]

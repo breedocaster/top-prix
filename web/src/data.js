@@ -471,6 +471,8 @@ D.RIVALS = [
 ];
 
 D.TEAM_COLORS = ['#e8432f','#2f7de8','#2fb34a','#f2b01e','#9b4de8','#ff7f2a','#1fc6c6','#e84393'];
+// every colour a team can pick (first 8 = the original set, kept first so old saves look the same)
+D.TEAM_COLORS_ALL = [...D.TEAM_COLORS,'#8a1f2e','#2a3a9a','#1f7a5a','#9ad81e','#c8a02a','#c86ad8','#d8dce8','#3a3f4a'];
 
 D.MONTHS = ['Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
 D.DAYS_MONTH = 28; D.DAYS_YEAR = 336; D.YEARS = 15;

@@ -113,7 +113,7 @@ func _stage_title() -> String:
 	return t.left(31)
 
 func _start_stage() -> void:
-	var sp := 1.0
+	var sp := float(Game.player.get("race_speed", 1.0))
 	if rv:
 		sp = rv.speed
 		rv.queue_free()

@@ -527,4 +527,4 @@ E.serialize = ()=>JSON.stringify(G);
 E.load = (str)=>{const o=typeof str==='string'?JSON.parse(str):str;if(!o||o.v!==1||!o.team)throw new Error('bad save');G=o;
   G.settings=Object.assign({speed:1,autoRetire:true,sound:true,mode:'standard'},G.settings||{});G.st.wc=G.st.wc||{};G.year=G.year||{wins:0,podiums:0,earn:0,titles:0};
   G.tech=G.tech||{carbbasic:1};G.ach=G.ach||{};G.st.tests=G.st.tests||0;G.st.streak=G.st.streak||0;G.st.cells=G.st.cells||0;
-  for(const v of G.vehicles){if(!v.eng)T.initEng(v,null);if(!v.setup)v.setup=T.defaultSetup(v);}for(const j of G.jobs)j.asked=false;return G;};
+  for(const v of G.vehicles){if(!v.eng)T.initEng(v,null);T.fillJets(v);if(!v.setup)v.setup=T.defaultSetup(v);}for(const j of G.jobs)j.asked=false;return G;};

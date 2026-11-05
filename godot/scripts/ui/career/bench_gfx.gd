@@ -169,7 +169,11 @@ static func draw_carb(ci: CanvasItem, origin: Vector2, v: Dictionary, ev: Dictio
 		var sb := 56.0 - thr * 17.0
 		p.r(sx, sb - 24, sw, 24, C("#d8dde2") if flat else C("#b7bfc7"))
 		p.r(sx, sb - 1, sw, 1, C("#555555"))
-		if not flat: p.r(sx + sw - 3, sb - 6, 3, 6, C("#8d959d"))
+		if not flat:
+			# cutaway on the intake side of the slide: deeper with a bigger cutaway number
+			var ch := clampf(roundf(2.0 + float(j.get("cut", 3.0)) * 1.2), 3.0, 10.0)
+			p.r(sx, sb - ch, 4, ch, BORE)
+			p.r(sx + sw - 3, sb - 6, 3, 6, C("#8d959d"))
 		for k in 22:
 			var w := 2.0 if k < 8 else 1.0
 			p.r(78 - (1.0 if w > 1 else 0.0), sb + k - 2, w, 1, C("#e6e9ec"))
@@ -302,6 +306,8 @@ static func _draw_down(p: Pen, v: Dictionary, C_: Dictionary, j: Dictionary, thr
 	p.r(107, 64, 4, 4, C("#c8a24a")); p.r(109 - mw / 2.0, 64, mw, 4, C("#1a1206"))
 	p.txt("PRI %s" % _jets_txt(j.main), 112, 74, C("#ffd84a"))
 	if j.has("sec"): p.txt("SEC %s" % _jets_txt(j.sec), 112, 80, C("#ffd84a"))
+	if j.has("hsab"): p.txt("HSAB %s" % _jets_txt(j.hsab), 112, 92, C("#ffd84a"))
+	if j.has("pilot"): p.txt("IFR %s" % _jets_txt(j.pilot), 3, 83, C("#ffd84a"))
 	if j.has("pv"):
 		p.r(107, 48, 4, 6, C("#8ef58e") if pv_open else C("#b05050"))
 		p.txt("PV %s\" %s" % [_jets_txt(j.pv), "OPEN" if pv_open else "SHUT"], 112, 86, C("#8ef58e") if pv_open else C("#ff9a9a"))

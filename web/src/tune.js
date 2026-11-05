@@ -33,6 +33,8 @@ T.initEng = (v,sys)=>{
   return e;
 };
 T.stockJets = v=>{const C=D.CARBS[v.eng.carb];v.eng.jets={};for(const p of C.p)v.eng.jets[p.k]=p.stock;};
+// saves from before a carb gained a part (idle feed restrictors, cutaway...) get the stock part
+T.fillJets = v=>{const e=v.eng;if(!e||e.fuel!=='carb'||!D.CARBS[e.carb])return;e.jets=e.jets||{};for(const p of D.CARBS[e.carb].p)if(e.jets[p.k]==null)e.jets[p.k]=p.stock;};
 T.initEFI = v=>{
   const tv=T.trueVE(v);const rng=U.seeded(v.id*977+3);
   v.eng.efi={ve:tv.map(r=>r.map(x=>Math.round(x*(1+(rng()*2-1)*0.11)))),ign:[],afr:D.LOAD_B.map((l,j)=>D.RPM_B.car.map(()=>D.AFR_DEF[j])),ae:100,edits:0};
@@ -172,7 +174,7 @@ T.err = (v,cond)=>{let s=0;const hill=cond.alt2!==cond.alt;const pts=hill?[0,0.5
   return s;};
 T.crewTune = (v,cond,q=0.97)=>{
   const e=v.eng;if(!e||e.fuel==='none')return;
-  if(e.fuel==='carb'){const C=D.CARBS[e.carb];e.jets.float=0;
+  if(e.fuel==='carb'){const C=D.CARBS[e.carb];T.fillJets(v);e.jets.float=0;
     for(let it=0;it<4;it++)for(const p of C.p){if(p.k==='float')continue;let best=e.jets[p.k],bs=T.err(v,cond);
       for(let x=p.min;x<=p.max+1e-9;x+=p.step){e.jets[p.k]=+x.toFixed(2);const s=T.err(v,cond);if(s<bs-1e-9){bs=s;best=e.jets[p.k];}}e.jets[p.k]=best;}
     // timing: as far as safe

@@ -31,7 +31,7 @@ const CREDITS := [
 
 func _title() -> String: return "Settings"
 
-func _sig() -> String: return str(Career.G.settings)
+func _sig() -> String: return str(Career.G.settings) + str(Career.G.team)
 
 func _fill(b: VBoxContainer) -> void:
 	var S: Dictionary = Career.G.settings
@@ -45,6 +45,20 @@ func _fill(b: VBoxContainer) -> void:
 	dv.add_child(ch)
 	dv.add_child(SK.small(Data.D.MODES[m].d, SK.SUB))
 	dv.add_child(SK.small("Change any time.", SK.DIM))
+	# team name + colour (changeable any time)
+	var tm := SK.card(b)
+	tm.add_child(SK.big("Team", SK.HL))
+	var nh := UIKit.hbox(3)
+	var ne := LineEdit.new()
+	ne.text = str(Career.G.team.name)
+	ne.max_length = 22
+	ne.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ne.text_submitted.connect(func(_t): _rename(ne))
+	nh.add_child(ne)
+	nh.add_child(SK.act(SK.sbtn("RENAME", _rename.bind(ne), UIKit.BTN, 64), "rename"))
+	tm.add_child(nh)
+	tm.add_child(SK.small("Colour", Color.WHITE, false))
+	tm.add_child(UIKit.swatches(str(Career.G.team.color), _team_col))
 	# toggles
 	var tv := SK.card(b)
 	tv.add_child(SK.big("Game", SK.HL))
@@ -96,6 +110,19 @@ func _fill(b: VBoxContainer) -> void:
 	for l in CREDITS: cv.add_child(SK.small(l, SK.SUB))
 	# quit
 	b.add_child(SK.act(SK.btn("QUIT TO TITLE", _ask_quit, SK.RED), "quit"))
+
+func _rename(ne: LineEdit) -> void:
+	var t := ne.text.strip_edges()
+	if t == "" or t == str(Career.G.team.name): return
+	Career.G.team.name = t
+	CareerScreen.save_game()
+	say("Team renamed to %s" % t)
+	rebuild()
+
+func _team_col(hex: String) -> void:
+	Career.G.team.color = hex
+	CareerScreen.save_game()
+	rebuild()
 
 func _toggle(label: String, desc: String, on: bool, key: String) -> Control:
 	var h := UIKit.hbox(4)

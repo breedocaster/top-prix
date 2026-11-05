@@ -120,6 +120,14 @@ static func stockJets(v: Dictionary) -> void:
 	v.eng.jets = {}
 	for p in C.p: v.eng.jets[p.k] = p.stock
 
+## T.fillJets: saves from before a carb gained a part (idle feed restrictors, cutaway...) get the stock part.
+static func fillJets(v: Dictionary) -> void:
+	var e = v.get("eng")
+	if not (e is Dictionary) or e.get("fuel") != "carb" or not D().CARBS.has(e.get("carb", "")): return
+	if not (e.get("jets") is Dictionary): e.jets = {}
+	for p in D().CARBS[e.carb].p:
+		if e.jets.get(p.k) == null: e.jets[p.k] = p.stock
+
 static func initEFI(v: Dictionary) -> void:
 	var tv := trueVE(v)
 	var rng := URng.new(int(v.id) * 977 + 3)
@@ -445,6 +453,7 @@ static func crewTune(v: Dictionary, cond: Dictionary, q := 0.97) -> void:
 	if e == null or e.fuel == "none": return
 	if e.fuel == "carb":
 		var C: Dictionary = D().CARBS[e.carb]
+		fillJets(v)
 		e.jets.float = 0
 		for _it in 4:
 			for p in C.p:

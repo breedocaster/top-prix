@@ -1699,7 +1699,7 @@ func adjJet(vid, k: String, dir: int) -> void:
 	var C: Dictionary = D.CARBS[v.eng.carb]
 	for p in C.p:
 		if p.k == k:
-			v.eng.jets[k] = U.fixed(U.clamp(float(v.eng.jets[k]) + dir * float(p.step), p.min, p.max), 2)
+			v.eng.jets[k] = U.fixed(U.clamp(float(v.eng.jets.get(k, p.stock)) + dir * float(p.step), p.min, p.max), 2)
 	ach("jet1")
 func adjTiming(vid, dir: int) -> void:
 	var v := veh(vid)
@@ -1836,6 +1836,7 @@ func load_json(text: String) -> bool:
 	if not G.st.get("cells"): G.st.cells = 0
 	for v in G.vehicles:
 		if v.get("eng") == null: Tune.initEng(v, null)
+		Tune.fillJets(v)
 		if v.get("setup") == null: v.setup = Tune.defaultSetup(v)
 	for j in G.jobs: j.asked = false
 	refresh.emit()

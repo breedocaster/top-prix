@@ -368,7 +368,7 @@ func _fill_carb(b: VBoxContainer) -> void:
 		_step(jg, "timing", "Ignition advance", "%s%d" % ["+" if int(e.timing) > 0 else "", int(e.timing)], tdesc, _timing, not _ready_ok())
 	else:
 		jg.add_child(UIKit.rule())
-		jg.add_child(SK.small("Standard: float, pump, power valve and timing are crew-set. Go too far and the crew resets it to a safe tune before the race.", SK.DIM))
+		jg.add_child(SK.small("Standard: float, pump, power valve, air bleeds, slide cutaway and timing are crew-set (Sim mode opens them up). Go too far and the crew resets it to a safe tune before the race.", SK.DIM))
 		var why := Tune.danger(v, cond)
 		if why != "":
 			var wc := SK.card(jg, "warn")
@@ -379,7 +379,7 @@ func _fill_carb(b: VBoxContainer) -> void:
 	if e.get("log") != null: _log_card(b, e.log)
 
 func _jet_val(p: Dictionary) -> String:
-	var x = v.eng.jets.get(p.k)
+	var x = v.eng.jets.get(p.k, p.stock)
 	var s := BG._jets_txt(x)
 	if p.k == "clip": s = "#" + s
 	return s + SK.ascii(str(p.get("u", "")))

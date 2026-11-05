@@ -167,6 +167,7 @@ func _build(rain: bool) -> void:
 		screen.add_child(banner)
 		_build_panel()
 		_setup_audio()
+		if net_mode == "local": set_speed(float(Game.player.get("race_speed", 1.0)))
 	follow = _pick_follow()
 	var e0: Dictionary = ents[max(0, follow)]
 	var s0 := geo.sample(e0.rprog, e0.rlane)
@@ -338,10 +339,13 @@ func apply_cmd(idx: int, kind: String, arg: String, from_peer: int) -> void:
 func _toggle_speed() -> void:
 	set_speed({1.0: 2.0, 2.0: 4.0, 4.0: 1.0}.get(speed, 1.0))
 
-## Set the sim speed (1, 2 or 4) and its button label (career keeps it across stages).
+## Set the sim speed (1, 2 or 4) and its button label. Local races remember it for the next race.
 func set_speed(s: float) -> void:
 	speed = s
 	if speed_btn: speed_btn.text = "SPEED x%d" % int(speed)
+	if net_mode == "local" and not attract and float(Game.player.get("race_speed", 1.0)) != s:
+		Game.player.race_speed = s
+		Game.save_profile()
 
 func _skip() -> void:
 	if net_mode == "client" or net_mode == "host":

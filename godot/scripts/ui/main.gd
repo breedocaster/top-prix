@@ -26,6 +26,7 @@ func _ready() -> void:
 	Net.results.connect(_on_results)
 	Net.closed.connect(title_screen)
 	Net.joined.connect(lobby_screen)
+	get_tree().quit_on_go_back = false      # Android back steps back a screen (see _go_back)
 	for a in OS.get_cmdline_user_args():
 		if a.begins_with("--test="):
 			var runner = load("res://tests/test_runner.gd").new()
@@ -51,6 +52,31 @@ func _on_results(r: Dictionary) -> void:
 	if race_view: race_view.show_results(r)
 
 # ---------------- helpers ----------------
+## Android back / Esc outside the career (the career router handles its own): press the screen's
+## BACK / LEAVE / MENU button; ignored mid-race; on the title screen it quits.
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_WM_GO_BACK_REQUEST: _go_back()
+
+func _unhandled_input(e: InputEvent) -> void:
+	if e.is_action_pressed("ui_cancel") and not (career and is_instance_valid(career)):
+		get_viewport().set_input_as_handled()
+		_go_back()
+
+func _go_back() -> void:
+	if career and is_instance_valid(career): return
+	if race_view and is_instance_valid(race_view) and not race_view.ended: return
+	var b := _back_button(self)
+	if b: b.pressed.emit()
+	elif OS.has_feature("mobile"): get_tree().quit()
+
+func _back_button(n: Node) -> Button:
+	var found: Button = null
+	for c in n.get_children():
+		var x := _back_button(c)
+		if x: found = x
+		if c is Button and c.is_visible_in_tree() and not c.disabled and str(c.text).strip_edges() in ["BACK", "LEAVE", "MENU"]: found = c
+	return found
+
 func _clear() -> VBoxContainer:
 	if race_view:
 		race_view.queue_free(); race_view = null
@@ -203,7 +229,7 @@ func new_team_screen(kind: String, len_id: String) -> void:
 	nm.text_changed.connect(func(t: String): _nt.name = t)
 	tg.add_child(nm)
 	var cg := _group("Team colour")
-	cg.add_child(_swatches(str(_nt.col), _nt_set.bind("col")))
+	cg.add_child(_swatches(str(_nt.col), func(hex: String): _nt_set("col", hex)))
 	var dg := _group("Difficulty")
 	var mh := UIKit.hbox(2)
 	for m in ["easy", "standard", "sim"]:
@@ -231,21 +257,9 @@ func _choice(text: String, cb: Callable, on: bool) -> Button:
 	UIKit.style_btn(b, UIKit.GOLD if on else UIKit.BTN, [4, 3, 4, 3])
 	return b
 
-## Row of team-colour swatches; the picked one is framed in gold. cb(hex).
-func _swatches(cur: String, cb: Callable) -> HBoxContainer:
-	var sw := UIKit.hbox(2)
-	for hex in Data.D.TEAM_COLORS:
-		var on: bool = hex == cur
-		var b := UIKit.btn("*" if on else " ", cb.bind(hex), Color(hex))
-		b.custom_minimum_size = Vector2(26, 24)
-		if on:
-			var holder := PanelContainer.new()
-			holder.add_theme_stylebox_override("panel", UIKit.frame_new("msg", 1, 1, 1, 1))
-			holder.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			holder.add_child(b)
-			sw.add_child(holder)
-		else: sw.add_child(b)
-	return sw
+## Team-colour swatches (UIKit.swatches). cb(hex).
+func _swatches(cur: String, cb: Callable) -> Control:
+	return UIKit.swatches(cur, cb)
 
 func _nt_set(k: String, val: String) -> void:
 	_nt[k] = val
