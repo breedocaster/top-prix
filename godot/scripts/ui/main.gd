@@ -65,9 +65,23 @@ func _unhandled_input(e: InputEvent) -> void:
 func _go_back() -> void:
 	if career and is_instance_valid(career): return
 	if race_view and is_instance_valid(race_view) and not race_view.ended: return
+	var sub := _top_sub(self)
+	if sub:
+		sub.back()
+		return
 	var b := _back_button(self)
 	if b: b.pressed.emit()
 	elif OS.has_feature("mobile"): get_tree().quit()
+
+## Deepest visible career-style sub screen (the how-to guide or its valve bench opened from the title).
+func _top_sub(n: Node) -> Node:
+	var ch := n.get_children()
+	for i in range(ch.size() - 1, -1, -1):
+		var c = ch[i]
+		if c is Control and c.visible and c.has_method("back") and c.has_signal("closed"):
+			var deeper = _top_sub(c)
+			return deeper if deeper else c
+	return null
 
 func _back_button(n: Node) -> Button:
 	var found: Button = null

@@ -63,9 +63,56 @@ func _guide() -> void:
 			for ch in str(line):
 				if ch.unicode_at(0) > 126: bad = true
 			if bad: r.ok(false, "non-ASCII text in topic %s: %s" % [t.id, line])
+	await _valves(gs)
 	gs.back(); await _frames(2)
 	gs.back(); await _frames(3)
 	r.ok(CareerKit.find_button(m, "howto") != null, "BACK returns to the title")
+
+## XJ550 valve bench: shim maths, measuring positions, the screens.
+func _valves(gs) -> void:
+	var VG = load("res://scripts/ui/career/valve_gfx.gd")
+	var E: Dictionary = VG.eng("xj550")
+	var r1: Dictionary = VG.shim_for(E, "in", 0.08, 2.05)
+	r.ok(VG.shim_name(r1.shim) == "Y200", "0.08 mm intake on a Y205 -> Y200 (%s)" % VG.shim_name(r1.shim))
+	var r2: Dictionary = VG.shim_for(E, "ex", 0.25, 2.70)
+	r.ok(VG.shim_name(r2.shim) == "Y275" and absf(float(r2.result) - 0.20) < 0.001, "0.25 mm exhaust on a Y270 -> Y275 (%s, %.3f)" % [VG.shim_name(r2.shim), float(r2.result)])
+	r.ok(VG.status(E, "in", 0.11) == "OK" and VG.status(E, "in", 0.10) == "TIGHT" and VG.status(E, "ex", 0.21) == "LOOSE", "spec windows")
+	# measure positions: exhaust ~100 deg before TDC compression, intake ~100 after (Maxim cam timing)
+	r.ok(VG.measurable(E, "in", 100.0) and VG.measurable(E, "ex", 620.0) and not VG.measurable(E, "in", 460.0), "measuring positions follow the cam timing")
+	r.ok(VG.lift(E, "in", 0.0) == 0.0 and VG.lift(E, "ex", 0.0) == 0.0, "both valves closed at #1 TDC compression")
+	var seen := {}
+	var th := 0.0
+	for i in 8:
+		var nc: Array = VG.next_check(E, th)
+		th = float(nc[0]); seen["%d%s" % [nc[1], nc[2]]] = true
+	r.ok(seen.size() == 8, "NEXT CHECK visits all 8 valves in two turns (%d)" % seen.size())
+	gs._open("xj550")
+	await _frames(3)
+	var tb := CareerKit.find_button(gs, "tool")
+	r.ok(tb != null, "XJ550 topic has OPEN THE VALVE BENCH")
+	if tb == null: return
+	tb.pressed.emit()
+	await _frames(3)
+	var vs = gs.get_children().filter(func(c): return c.has_method("draw_canvas"))
+	r.ok(vs.size() == 1, "valve bench opens over the guide")
+	if vs.is_empty(): return
+	var v = vs[0]
+	await r.shot("valves_xj550_tdc")
+	CareerKit.find_button(v, "next_check").pressed.emit(); await _frames(3)
+	CareerKit.find_button(v, "m-:" + "%d%s" % [v.cyl, v.sel]).pressed.emit(); await _frames(2)
+	await r.shot("valves_xj550_check")
+	v.tab = "timing"; v.running = true; v.rebuild(true)
+	await r.get_tree().create_timer(0.5).timeout
+	await r.shot("valves_xj550_timing")
+	v.tab = "sheet"; v.running = false; v.rebuild(true)
+	await _frames(3)
+	await r.shot("valves_xj550_sheet")
+	CareerKit.find_button(v, "model:single").pressed.emit(); await _frames(2)
+	v.tab = "valves"; v.rebuild(true); await _frames(3)
+	await r.shot("valves_single")
+	v.sheets.erase("xj550"); v.sheets.erase("single"); v._save()
+	v.back(); await _frames(2)
+
 
 func _frames(n: int) -> void:
 	for i in n: await r.get_tree().process_frame

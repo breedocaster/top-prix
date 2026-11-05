@@ -93,6 +93,9 @@ func _page(b: VBoxContainer, t: Dictionary) -> void:
 			nt.add_child(SK.small(s.substr(2), NOTE))
 		else:
 			v.add_child(_para(s))
+	if t.has("tool"):
+		var tool: Dictionary = t.tool
+		b.add_child(SK.act(SK.btn("OPEN THE VALVE BENCH", _open_tool.bind(tool), SK.GREEN), "tool"))
 	# prev / next / all
 	var ids: Array = GuideData.TOPICS.map(func(x): return str(x.id))
 	var i := ids.find(str(t.id))
@@ -109,6 +112,18 @@ func _para(text: String) -> Label:
 	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	l.add_theme_constant_override("line_spacing", -3)
 	return l
+
+## The valve & timing workbench: through the career router when there is one, otherwise (title screen)
+## as an overlay on top of this screen.
+func _open_tool(tool: Dictionary) -> void:
+	var c := {"model": str(tool.get("model", "xj550")), "level": level}
+	if router and router.has_method("open"):
+		router.open(str(tool.screen), c)
+		return
+	var vs = load("res://scripts/ui/career/%s_screen.gd" % str(tool.screen)).new()
+	add_child(vs)
+	vs.setup(c)
+	vs.closed.connect(func(): vs.queue_free())
 
 func _open(id: String) -> void:
 	topic = id
